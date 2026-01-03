@@ -140,10 +140,6 @@ function App() {
     setBatchDeleteDialogOpen(false);
   }, []);
 
-  const scrollToBottom = useCallback(() => {
-    window.scrollTo({top: document.documentElement.scrollHeight});
-  }, []);
-
   // Загрузка сообщений
   const fetchMessages = useCallback(
     async (isInitial = false) => {
@@ -152,7 +148,7 @@ function App() {
       const currentTags = refCurrentTags.current;
       const searchQuery = refSearchQuery.current;
       try {
-        const lastId = !isInitial && messages.length > 0 ? messages[0].id : 0;
+        const lastId = !isInitial && messages.length > 0 ? messages[messages.length - 1].id : 0;
 
         const res = await axios.get(`${API_BASE}/messages/list`, {
           params: {
@@ -168,16 +164,9 @@ function App() {
         if (isInitial) {
           setMessages(newMessages);
           setHasMore(newMessages.length === LIMIT);
-          requestAnimationFrame(scrollToBottom);
         } else {
           if (newMessages.length > 0) {
-            const scrollPos = document.documentElement.scrollHeight - window.scrollY;
-
-            setMessages((prev) => [...newMessages, ...prev]);
-
-            requestAnimationFrame(() => {
-              window.scrollTo(0, document.documentElement.scrollHeight - scrollPos);
-            });
+            setMessages((prev) => [...prev, ...newMessages]);
           }
           if (newMessages.length < LIMIT) setHasMore(false);
         }
@@ -187,7 +176,7 @@ function App() {
         setIsLoading(false);
       }
     },
-    [scrollToBottom],
+    [],
   );
 
   // Синхронизация с URL и загрузка данных
@@ -291,21 +280,15 @@ function App() {
 
           <Container
             maxWidth="sm"
-            sx={{flexGrow: 1, pt: 2, pb: 9 + (files.length ? 7 : 0) + (currentTags.length ? 5 : 0)}}
+            sx={{flexGrow: 1, pt: 1, pb: 7 + (files.length ? 4 : 0) + (currentTags.length ? 5 : 0)}}
           >
-            {hasMore && (
-              <Box sx={{display: 'flex', justifyContent: 'center', p: 2}}>
-                <CircularProgress size={20} />
-              </Box>
-            )}
-
             <Stack spacing={1.5}>
               {messages.map((msg, index) => (
                 <MessageItem
                   key={msg.id}
                   msg={msg}
                   onTagClick={setCurrentTags}
-                  isFirst={index === 0}
+                  isLast={index === messages.length - 1}
                   handleOpenMenu={handleOpenMenu}
                   isSelectMode={isSelectMode}
                   selectedIds={selectedIds}
@@ -316,6 +299,12 @@ function App() {
                 />
               ))}
             </Stack>
+
+            {hasMore && (
+              <Box sx={{display: 'flex', justifyContent: 'center', p: 2}}>
+                <CircularProgress size={20} />
+              </Box>
+            )}
           </Container>
 
           <BottomInputForm

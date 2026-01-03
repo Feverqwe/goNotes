@@ -35,7 +35,7 @@ interface MessageItemProps {
   isSelectMode: boolean;
   toggleSelect: (id: number) => void;
   selectedIds: number[];
-  isFirst: boolean;
+  isLast: boolean;
   refIsLoading: React.RefObject<boolean>;
   refHasMore: React.RefObject<boolean>;
   fetchMessages: (isInitial?: boolean) => Promise<void>;
@@ -44,7 +44,7 @@ interface MessageItemProps {
 const MessageItem: FC<MessageItemProps> = ({
   msg,
   onTagClick,
-  isFirst,
+  isLast,
   handleOpenMenu,
   isSelectMode,
   toggleSelect,
@@ -75,7 +75,7 @@ const MessageItem: FC<MessageItemProps> = ({
   );
 
   return (
-    <Box ref={isFirst ? firstMessageRef : undefined}>
+    <Box ref={isLast ? firstMessageRef : undefined}>
       <Card
         onClick={(e) => {
           if (isSelectMode) {
@@ -105,7 +105,7 @@ const MessageItem: FC<MessageItemProps> = ({
           {!isSelectMode && (
             <IconButton
               className="message-action"
-              size="small"
+              size="medium"
               onClick={(e) => handleOpenMenu(e, msg)}
               sx={{
                 position: 'absolute',

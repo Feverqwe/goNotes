@@ -269,9 +269,9 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
               input: {
                 disableUnderline: true,
                 sx: {
+                  color: '#fff',
                   py: 1.2,
                   px: 1,
-                  color: '#fff', // Текст всегда белый
                 },
               },
             }}

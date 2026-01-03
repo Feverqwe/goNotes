@@ -365,7 +365,7 @@ func saveFile(fileHeader *multipart.FileHeader, destPath string) error {
 }
 
 func extractHashtags(text string) []string {
-	re := regexp.MustCompile(`#(\w+)`)
+	re := regexp.MustCompile(`#([^\s$]+)`)
 	matches := re.FindAllStringSubmatch(text, -1)
 	set := make(map[string]struct{})
 	var result []string
@@ -455,13 +455,11 @@ func handleListMessages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, content, created_at, updated_at FROM (
-			SELECT id, content, created_at, updated_at
+		SELECT id, content, created_at, updated_at
 			FROM messages 
 			%s 
 			ORDER BY id DESC 
-			LIMIT ?
-		) AS subquery ORDER BY id ASC`, whereSQL)
+			LIMIT ?`, whereSQL)
 
 	args = append(args, limit)
 

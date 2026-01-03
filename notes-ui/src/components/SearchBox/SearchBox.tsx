@@ -40,7 +40,7 @@ const SearchBox: FC<SearchBoxProps> = ({
       >
         <TextField
           fullWidth
-          size="small"
+          size="medium"
           variant="standard"
           placeholder="Поиск..."
           value={searchQuery}
