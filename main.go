@@ -656,8 +656,6 @@ func handleWww(router *internal.Router, config *cfg.Config) {
 		mTime := binTime
 		assetPath := r.URL.Path
 
-		log.Println("assetPath", assetPath)
-
 		if assetPath == "/" {
 			assetPath = "/index.html"
 		}
