@@ -45,7 +45,6 @@ const NoteMenu: FC<NoteMenuProps> = ({
             bgcolor: 'rgba(28, 28, 30, 0.85)', // Стекло
             backdropFilter: 'blur(25px)', // Сильный блюр
             minWidth: 220,
-            borderRadius: '16px',
             border: '1px solid rgba(255, 255, 255, 0.1)',
             boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
             backgroundImage: 'none', // Убираем стандартное наложение MUI
@@ -61,8 +60,6 @@ const NoteMenu: FC<NoteMenuProps> = ({
         sx={{
           mx: 1,
           my: 0.2,
-          borderRadius: '10px',
-          transition: 'all 0.2s',
           '&:hover': {bgcolor: 'rgba(144, 202, 249, 0.12)'},
         }}
       >
@@ -79,8 +76,6 @@ const NoteMenu: FC<NoteMenuProps> = ({
         sx={{
           mx: 1,
           my: 0.2,
-          borderRadius: '10px',
-          transition: 'all 0.2s',
           '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.08)'},
         }}
       >
@@ -98,8 +93,6 @@ const NoteMenu: FC<NoteMenuProps> = ({
         sx={{
           mx: 1,
           my: 0.2,
-          borderRadius: '10px',
-          transition: 'all 0.2s',
           '&:hover': {bgcolor: 'rgba(144, 202, 249, 0.12)'},
         }}
       >
@@ -120,8 +113,6 @@ const NoteMenu: FC<NoteMenuProps> = ({
         sx={{
           mx: 1,
           my: 0.2,
-          borderRadius: '10px',
-          transition: 'all 0.2s',
           '&:hover': {bgcolor: 'rgba(255, 69, 58, 0.15)'},
         }}
       >
@@ -134,7 +125,6 @@ const NoteMenu: FC<NoteMenuProps> = ({
             primary: {
               fontSize: '0.9rem',
               color: '#ff453a',
-              fontWeight: 600,
             },
           }}
         />

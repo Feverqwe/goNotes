@@ -25,7 +25,7 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
         bgcolor: '#1c1c1e',
         borderTop: '1px solid #90caf9',
         zIndex: 1100,
-        p: 1,
+        p: 0.2,
         animation: 'slideUp 0.3s ease',
       }}
     >
@@ -33,22 +33,20 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
         maxWidth="sm"
         sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}
       >
-        <Box sx={{display: 'flex', alignItems: 'center', gap: 2}}>
+        <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
           <IconButton onClick={cancelSelectMode} color="inherit">
             <Close />
           </IconButton>
-          <Typography variant="body1" sx={{fontWeight: 'bold'}}>
-            Выбрано: {selectedIds.length}
-          </Typography>
+          <Typography variant="body1">Выбрано: {selectedIds.length}</Typography>
         </Box>
 
         <Button
+          size="small"
           variant="contained"
           color="error"
           disabled={selectedIds.length === 0}
           startIcon={<Delete />}
           onClick={askBatchDeleteConfirmation}
-          sx={{borderRadius: '12px', textTransform: 'none'}}
         >
           Удалить
         </Button>

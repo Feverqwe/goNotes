@@ -146,7 +146,6 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         borderTop: '1px solid',
         borderColor: editingId ? 'rgba(144, 202, 249, 0.5)' : '#2c2c2e',
         zIndex: 1000,
-        transition: 'border-color 0.3s ease',
       }}
     >
       <Container maxWidth="sm" disableGutters>
@@ -167,7 +166,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
               variant="caption"
               sx={{color: '#90caf9', fontWeight: 500, letterSpacing: 0.5}}
             >
-              ИЗМЕНЕНИЕ ЗАМЕТКИ
+              Редактируем
             </Typography>
             <Box sx={{flexGrow: 1}} />
             <IconButton size="small" onClick={cancelEditing} sx={{color: '#90caf9'}}>
@@ -182,8 +181,8 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
             sx={{
               display: 'flex',
               gap: 1,
-              px: 2,
-              py: 1.5,
+              pt: 1,
+              pb: 0,
               overflowX: 'auto',
               '&::-webkit-scrollbar': {display: 'none'},
             }}
@@ -194,10 +193,9 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
                 sx={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: 1,
                   bgcolor: '#1c1c1e',
-                  px: 1.5,
-                  py: 0.8,
+                  pl: 1,
+                  pr: 0,
                   borderRadius: 3,
                   border: '1px solid #2c2c2e',
                   minWidth: 'fit-content',
@@ -216,7 +214,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
 
         {/* ЭСТЕТИЧНЫЕ ТЕГИ (Soft UI) */}
         {currentTags.length > 0 && (
-          <Box sx={{px: 2, pt: 1.5, display: 'flex', gap: 1, flexWrap: 'wrap'}}>
+          <Box sx={{pt: 1, pb: 1, display: 'flex', gap: 1, flexWrap: 'wrap'}}>
             {currentTags.map((tag) => (
               <Chip
                 key={tag}
@@ -238,14 +236,13 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         )}
 
         {/* ОСНОВНОЕ ПОЛЕ ВВОДА */}
-        <Box sx={{display: 'flex', alignItems: 'flex-end', px: 1, pb: 1, pt: 0.5}}>
+        <Box sx={{display: 'flex', alignItems: 'flex-end'}}>
           <IconButton
             component="label"
             disabled={!!editingId}
             sx={{
               color: files.length > 0 ? '#90caf9' : '#8e8e93',
               mb: 0.3,
-              transition: 'all 0.2s',
               visibility: editingId ? 'hidden' : 'visible',
               width: editingId ? 0 : 'auto',
             }}
@@ -274,9 +271,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
                 sx: {
                   py: 1.2,
                   px: 1,
-                  fontSize: '1.05rem',
                   color: '#fff', // Текст всегда белый
-                  lineHeight: 1.4,
                 },
               },
             }}

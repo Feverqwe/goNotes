@@ -27,7 +27,7 @@ const SearchBox: FC<SearchBoxProps> = ({
         bgcolor: 'rgba(0,0,0,0.7)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-        p: 1.5, // Увеличим отступы для «воздуха»
+        py: 1, // Увеличим отступы для «воздуха»
       }}
     >
       <Box
@@ -36,14 +36,13 @@ const SearchBox: FC<SearchBoxProps> = ({
           alignItems: 'center',
           maxWidth: 'sm',
           mx: 'auto',
-          transition: 'all 0.3s ease',
         }}
       >
         <TextField
           fullWidth
           size="small"
           variant="standard"
-          placeholder="Поиск заметок..."
+          placeholder="Поиск..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           slotProps={{
@@ -71,7 +70,6 @@ const SearchBox: FC<SearchBoxProps> = ({
                     onClick={handleOpenTagMenu}
                     sx={{
                       color: currentTags.length > 0 ? '#90caf9' : '#8e8e93',
-                      transition: 'color 0.2s',
                       bgcolor: currentTags.length > 0 ? 'rgba(144, 202, 249, 0.1)' : 'transparent',
                       '&:hover': {bgcolor: 'rgba(255,255,255,0.05)'},
                     }}
@@ -91,11 +89,9 @@ const SearchBox: FC<SearchBoxProps> = ({
               ),
               sx: {
                 bgcolor: '#1c1c1e',
-                px: 1.5,
-                py: 0.8, // Чуть больше высоты для современного вида
-                borderRadius: '12px', // Более скругленные углы
+                px: 0.5,
+                borderRadius: '4px', // Более скругленные углы
                 border: '1px solid transparent',
-                transition: 'all 0.2s ease-in-out',
                 '&:focus-within': {
                   bgcolor: '#252527',
                   border: '1px solid rgba(144, 202, 249, 0.3)',
