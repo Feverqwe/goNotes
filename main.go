@@ -50,8 +50,11 @@ var db *sql.DB
 
 func main() {
 	var err error
+
+	var config = cfg.LoadConfig()
+
 	// Открываем БД с включенным режимом WAL для стабильности
-	db, err = sql.Open("sqlite", "notes.db?_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)")
+	db, err = sql.Open("sqlite", filepath.Join(cfg.GetProfilePath(), "notes.db?_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)"))
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -72,9 +75,7 @@ func main() {
 	}*/
 
 	// Создаем папку для вложений
-	os.Mkdir("uploads", 0755)
-
-	var config = cfg.LoadConfig()
+	os.Mkdir(filepath.Join(cfg.GetProfilePath(), "uploads"), 0755)
 
 	router := internal.NewRouter()
 
@@ -105,7 +106,7 @@ func main() {
 func handleGetFile(w http.ResponseWriter, r *http.Request) {
 	// Извлекаем имя файла из URL (например, /files/123_test.jpg -> 123_test.jpg)
 	fileName := filepath.Base(r.URL.Path)
-	fullPath := filepath.Join("uploads", fileName)
+	fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
 
 	// Проверяем, существует ли файл
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
@@ -184,7 +185,7 @@ func handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	files := r.MultipartForm.File["attachments"]
 	for _, fHeader := range files {
 		fileName := fmt.Sprintf("%d_%s", msgID, fHeader.Filename)
-		fullPath := filepath.Join("uploads", fileName)
+		fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
 
 		if err := saveFile(fHeader, fullPath); err != nil {
 			log.Printf("File save error: %v", err)
@@ -198,7 +199,7 @@ func handleSendMessage(w http.ResponseWriter, r *http.Request) {
 		if isImage(fileName) {
 			fileType = "image"
 			thumbName := "thumb_" + fileName
-			fullThumbPath := filepath.Join("uploads", thumbName)
+			fullThumbPath := filepath.Join(cfg.GetProfilePath(), "uploads", thumbName)
 
 			// Генерируем миниатюру
 			if err := generateThumbnail(fullPath, fullThumbPath); err != nil {
@@ -636,7 +637,7 @@ func generatePlaceholders(n int) string {
 
 // Вспомогательная функция для безопасного удаления файла с диска
 func deletePhysicalFile(fileName string) {
-	fullPath := filepath.Join("uploads", fileName)
+	fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
 	if err := os.Remove(fullPath); err != nil {
 		// Если файла нет — не страшно, просто логируем
 		log.Printf("Could not delete file %s: %v", fullPath, err)
