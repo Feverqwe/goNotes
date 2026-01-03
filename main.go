@@ -88,8 +88,18 @@ func main() {
 	router.All("^/files/", handleGetFile)
 	handleWww(router, &config)
 
-	fmt.Println("Server started at :8080")
-	log.Fatal(http.ListenAndServe(":8080", router))
+	address := config.GetAddress()
+
+	log.Printf("Listening on %s...", address)
+	httpServer := &http.Server{
+		Addr:    address,
+		Handler: router,
+	}
+
+	err = httpServer.ListenAndServe()
+	if err != nil {
+		log.Println("Server error", err)
+	}
 }
 
 func handleGetFile(w http.ResponseWriter, r *http.Request) {
