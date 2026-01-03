@@ -1,4 +1,4 @@
-import React, {FC} from 'react';
+import React, {FC, useCallback, useRef} from 'react';
 
 // MUI Core Components
 import {
@@ -31,24 +31,51 @@ import CodeCode from './CodeCode';
 interface MessageItemProps {
   msg: Note;
   onTagClick: React.Dispatch<React.SetStateAction<string[]>>;
-  firstRef: null | ((node: Element) => void);
   handleOpenMenu: (event: React.MouseEvent, msg: Note) => void;
   isSelectMode: boolean;
   toggleSelect: (id: number) => void;
   selectedIds: number[];
+  isFirst: boolean;
+  refIsLoading: React.RefObject<boolean>;
+  refHasMore: React.RefObject<boolean>;
+  fetchMessages: (isInitial?: boolean) => Promise<void>;
 }
 
 const MessageItem: FC<MessageItemProps> = ({
   msg,
   onTagClick,
-  firstRef,
+  isFirst,
   handleOpenMenu,
   isSelectMode,
   toggleSelect,
   selectedIds,
+  refIsLoading,
+  refHasMore,
+  fetchMessages,
 }) => {
+  const observer = useRef<IntersectionObserver | undefined>(undefined);
+
+  // Коллбэк для отслеживания самого верхнего элемента
+  const firstMessageRef = useCallback(
+    (node: Element) => {
+      const isLoading = refIsLoading.current;
+      const hasMore = refHasMore.current;
+      if (isLoading) return;
+      if (observer.current) observer.current.disconnect();
+
+      observer.current = new IntersectionObserver((entries) => {
+        if (entries[0].isIntersecting && hasMore) {
+          fetchMessages(false);
+        }
+      });
+
+      if (node) observer.current.observe(node);
+    },
+    [fetchMessages, refHasMore, refIsLoading],
+  );
+
   return (
-    <Box ref={firstRef}>
+    <Box ref={isFirst ? firstMessageRef : undefined}>
       <Card
         onClick={(e) => {
           if (isSelectMode) {

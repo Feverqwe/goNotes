@@ -1,14 +1,14 @@
-import React, {FC} from 'react';
+import React, {FC, useCallback, useContext} from 'react';
 import {Box, ListItemIcon, ListItemText, Menu, MenuItem} from '@mui/material';
 import {CheckCircleOutline, ContentCopy, Delete, Edit} from '@mui/icons-material';
 import {Note} from '../../types';
+import {SnackCtx} from '../../ctx/SnackCtx';
 
 interface NoteMenuProps {
   anchorEl: Element | null;
   handleCloseMenu: () => void;
   selectedMsg: Note | null;
   enterSelectMode: (msg: Note) => void;
-  handleCopy: () => void;
   onEditClick: () => void;
   onDeleteClick: () => void;
 }
@@ -18,10 +18,19 @@ const NoteMenu: FC<NoteMenuProps> = ({
   handleCloseMenu,
   selectedMsg,
   enterSelectMode,
-  handleCopy,
   onEditClick,
   onDeleteClick,
 }) => {
+  const showSnackbar = useContext(SnackCtx);
+
+  const handleCopy = useCallback(() => {
+    if (selectedMsg) {
+      navigator.clipboard.writeText(selectedMsg.content);
+      handleCloseMenu();
+      showSnackbar('Текст скопирован в буфер обмена', 'success');
+    }
+  }, [selectedMsg, handleCloseMenu, showSnackbar]);
+
   return (
     <Menu
       anchorEl={anchorEl}

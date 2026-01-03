@@ -1,4 +1,4 @@
-import React, {FC} from 'react';
+import React, {FC, useCallback} from 'react';
 
 // MUI Core Components
 import {Box, ListItemIcon, ListItemText, Menu, MenuItem, Stack, Typography} from '@mui/material';
@@ -14,7 +14,6 @@ interface TagsMenuProps {
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   allTags: string[];
-  toggleTag: (tag: string) => void;
 }
 
 const TagsMenu: FC<TagsMenuProps> = ({
@@ -23,8 +22,21 @@ const TagsMenu: FC<TagsMenuProps> = ({
   currentTags,
   setCurrentTags,
   allTags,
-  toggleTag,
 }) => {
+  const toggleTag = useCallback(
+    (tag: string) => {
+      setCurrentTags((prev) => {
+        if (prev.includes(tag)) {
+          // Если тег уже есть — удаляем его
+          return prev.filter((t) => t !== tag);
+        }
+        // Если нет — добавляем в массив
+        return [...prev, tag];
+      });
+    },
+    [setCurrentTags],
+  );
+
   return (
     <Menu
       anchorEl={tagMenuAnchor}

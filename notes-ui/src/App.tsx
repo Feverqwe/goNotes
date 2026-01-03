@@ -19,7 +19,7 @@ import {
 import {AlertColor} from '@mui/material/Alert/Alert';
 import {Note} from './types';
 import MessageItem from './components/MessageItem/MessageItem';
-import {API_BASE} from './constants';
+import {API_BASE, themeProps} from './constants';
 import {SnackCtx} from './ctx/SnackCtx';
 import TagsMenu from './components/TagsMenu/TagsMenu';
 import SearchBox from './components/SearchBox/SearchBox';
@@ -61,7 +61,12 @@ function App() {
   const [anchorEl, setAnchorEl] = useState<Element | null>(null);
   const [selectedMsg, setSelectedMsg] = useState<Note | null>(null);
   const [hasMore, setHasMore] = useState(true);
+  const refHasMore = useRef(hasMore);
+  refHasMore.current = hasMore;
+
   const [isLoading, setIsLoading] = useState(false);
+  const refIsLoading = useRef(isLoading);
+  refIsLoading.current = isLoading;
 
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
@@ -70,6 +75,9 @@ function App() {
   // Состояния для диалога подтверждения
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [msgToDelete, setMsgToDelete] = useState<number | null>(null);
+  const refMsgToDelete = useRef(msgToDelete);
+  refMsgToDelete.current = msgToDelete;
+
   const refGoBack = useRef(false);
 
   const [deleteBatchDialogOpen, setBatchDeleteDialogOpen] = useState(false);
@@ -83,8 +91,6 @@ function App() {
     setTagMenuAnchor(event.currentTarget);
   }, []);
   const handleCloseTagMenu = useCallback(() => setTagMenuAnchor(null), []);
-
-  const observer = useRef<IntersectionObserver | undefined>(undefined);
 
   const handleCloseSnackbar = useCallback((event: unknown, reason?: string) => {
     if (reason === 'clickaway') {
@@ -211,21 +217,6 @@ function App() {
     [scrollToBottom],
   );
 
-  // Сама функция удаления (обновленная)
-  const confirmDelete = useCallback(async () => {
-    if (!msgToDelete) return;
-
-    try {
-      await axios.delete(`${API_BASE}/messages/delete`, {params: {id: msgToDelete}});
-      fetchMessages(true);
-      showSnackbar('Заметка удалена', 'info');
-    } catch (e) {
-      showSnackbar('Ошибка при удалении', 'error');
-    } finally {
-      closeDeleteDialog();
-    }
-  }, [fetchMessages, msgToDelete, closeDeleteDialog, showSnackbar]);
-
   // Синхронизация с URL и загрузка данных
   useEffect(() => {
     // 1. Мгновенно обновляем URL
@@ -261,48 +252,8 @@ function App() {
     return () => clearTimeout(delayDebounceFn);
   }, [currentTags, searchQuery, fetchMessages]); // Добавили searchQuery в зависимости
 
-  // Коллбэк для отслеживания самого верхнего элемента
-  const firstMessageRef = useCallback(
-    (node: Element) => {
-      if (isLoading) return;
-      if (observer.current) observer.current.disconnect();
-
-      observer.current = new IntersectionObserver((entries) => {
-        if (entries[0].isIntersecting && hasMore) {
-          fetchMessages(false);
-        }
-      });
-
-      if (node) observer.current.observe(node);
-    },
-    [isLoading, hasMore, fetchMessages],
-  );
-
   // Только темная тема
-  const theme = useMemo(
-    () =>
-      createTheme({
-        palette: {
-          mode: 'dark',
-          primary: {main: '#90caf9'},
-          background: {default: '#000', paper: '#121212'},
-        },
-        // Глобальное отключение эффектов
-        components: {
-          MuiButtonBase: {
-            defaultProps: {
-              disableRipple: true, // Отключает пульсацию для всех кнопок и иконок
-            },
-          },
-          MuiButton: {
-            defaultProps: {
-              disableElevation: true, // Опционально: убирает тени у кнопок для плоского стиля
-            },
-          },
-        },
-      }),
-    [],
-  );
+  const theme = useMemo(() => createTheme(themeProps), []);
 
   const startEditing = useCallback((msg: Note) => {
     setEditingId(msg.id);
@@ -321,14 +272,6 @@ function App() {
     setSelectedMsg(null);
   }, []);
 
-  const handleCopy = useCallback(() => {
-    if (selectedMsg) {
-      navigator.clipboard.writeText(selectedMsg.content);
-      handleCloseMenu();
-      showSnackbar('Текст скопирован в буфер обмена', 'success');
-    }
-  }, [selectedMsg, handleCloseMenu, showSnackbar]);
-
   const onEditClick = useCallback(() => {
     if (!selectedMsg) return;
     startEditing(selectedMsg);
@@ -340,17 +283,6 @@ function App() {
     askDeleteConfirmation(selectedMsg.id);
     handleCloseMenu();
   }, [selectedMsg, handleCloseMenu, askDeleteConfirmation]);
-
-  const toggleTag = useCallback((tag: string) => {
-    setCurrentTags((prev) => {
-      if (prev.includes(tag)) {
-        // Если тег уже есть — удаляем его
-        return prev.filter((t) => t !== tag);
-      }
-      // Если нет — добавляем в массив
-      return [...prev, tag];
-    });
-  }, []);
 
   // Функция переключения выбора
   const toggleSelect = useCallback((id: number) => {
@@ -371,19 +303,6 @@ function App() {
     setIsSelectMode(false);
     setSelectedIds([]);
   }, []);
-
-  const confirmBatchDelete = useCallback(async () => {
-    try {
-      await axios.post(`${API_BASE}/messages/batch-delete`, {ids: selectedIds});
-      fetchMessages(true);
-      showSnackbar(`Удалено сообщений: ${selectedIds.length}`, 'info');
-      cancelSelectMode();
-    } catch (e) {
-      showSnackbar('Ошибка при массовом удалении', 'error');
-    } finally {
-      setBatchDeleteDialogOpen(false);
-    }
-  }, [fetchMessages, cancelSelectMode, selectedIds, showSnackbar]);
 
   return (
     <ThemeProvider theme={theme}>
@@ -413,11 +332,14 @@ function App() {
                   key={msg.id}
                   msg={msg}
                   onTagClick={setCurrentTags}
-                  firstRef={index === 0 ? firstMessageRef : null}
+                  isFirst={index === 0}
                   handleOpenMenu={handleOpenMenu}
                   isSelectMode={isSelectMode}
                   selectedIds={selectedIds}
                   toggleSelect={toggleSelect}
+                  refIsLoading={refIsLoading}
+                  refHasMore={refHasMore}
+                  fetchMessages={fetchMessages}
                 />
               ))}
             </Stack>
@@ -449,7 +371,6 @@ function App() {
           handleCloseMenu={handleCloseMenu}
           selectedMsg={selectedMsg}
           enterSelectMode={enterSelectMode}
-          handleCopy={handleCopy}
           onEditClick={onEditClick}
           onDeleteClick={onDeleteClick}
         />
@@ -472,14 +393,16 @@ function App() {
         <DeleteDialog
           deleteDialogOpen={deleteDialogOpen}
           closeDeleteDialog={closeDeleteDialog}
-          confirmDelete={confirmDelete}
+          fetchMessages={fetchMessages}
+          refMsgToDelete={refMsgToDelete}
         />
 
         <BatchDeleteDialog
           deleteBatchDialogOpen={deleteBatchDialogOpen}
           closeBatchDeleteDialog={closeBatchDeleteDialog}
           selectedIds={selectedIds}
-          confirmBatchDelete={confirmBatchDelete}
+          fetchMessages={fetchMessages}
+          cancelSelectMode={cancelSelectMode}
         />
 
         <TagsMenu
@@ -488,7 +411,6 @@ function App() {
           currentTags={currentTags}
           setCurrentTags={setCurrentTags}
           allTags={allTags}
-          toggleTag={toggleTag}
         />
       </SnackCtx.Provider>
     </ThemeProvider>
