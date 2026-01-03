@@ -8,12 +8,13 @@ import {SnackCtx} from '../../ctx/SnackCtx';
 interface CodeCodeProps extends PropsWithChildren {
   node: Element;
   className: string;
-  inline: boolean;
   showSnackbar: (message: string, severity?: AlertColor) => void;
 }
 
-const CodeCode: FC<CodeCodeProps> = ({node, inline, className, children, ...props}) => {
+const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
   const showSnackbar = useContext(SnackCtx);
+
+  const isMultiline = /\n/.test(String(children));
 
   // Проверяем, есть ли указание языка (например, ```go )
   const match = /language-(\w+)/.exec(className || '');
@@ -25,7 +26,7 @@ const CodeCode: FC<CodeCodeProps> = ({node, inline, className, children, ...prop
     showSnackbar('Код скопирован в буфер обмена', 'success');
   };
 
-  return !inline && match ? (
+  return isMultiline ? (
     <Box
       onClick={copyCodeBlock} // Клик по блоку копирует его
       sx={{
@@ -52,7 +53,7 @@ const CodeCode: FC<CodeCodeProps> = ({node, inline, className, children, ...prop
     >
       <SyntaxHighlighter
         style={oneDark}
-        language={match[1]}
+        language={match?.[1]}
         PreTag="div"
         customStyle={{margin: 0, padding: '12px'}}
         {...props}
