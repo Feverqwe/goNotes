@@ -1,4 +1,4 @@
-import React, {FC, useCallback, useContext, useMemo, useRef} from 'react';
+import React, {FC, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
 
 import {Box, Chip, Container, IconButton, Paper, TextField, Typography} from '@mui/material';
 import {AttachFile, Check, Close, Edit, Send} from '@mui/icons-material';
@@ -30,6 +30,19 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   fetchMessages,
 }) => {
   const showSnackbar = useContext(SnackCtx);
+  const refInputText = useRef(inputText);
+  refInputText.current = inputText;
+
+  useEffect(() => {
+    // Слушаем сообщение от Service Worker о том, что нам что-то "расшарили"
+    navigator.serviceWorker.addEventListener('message', (event) => {
+      if (event.data.action === 'load-shared-files') {
+        const sharedFiles = event.data.files as File[]; // Массив файлов из другого приложения
+        setFiles((prev) => [...prev, ...sharedFiles]);
+        if (event.data.text) setInputText(event.data.text);
+      }
+    });
+  }, [setFiles, setInputText]);
 
   const cancelEditing = useCallback(() => {
     setEditingId(null);
@@ -43,9 +56,6 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     },
     [setFiles],
   );
-
-  const refInputText = useRef(inputText);
-  refInputText.current = inputText;
 
   // Проверка: можно ли отправить (текст НЕ пустой ИЛИ есть файлы)
   const canSend = useMemo(

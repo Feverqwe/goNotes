@@ -44,15 +44,7 @@ const DeleteDialog: FC<DeleteDialogProps> = ({
 
   return (
     <Dialog open={deleteDialogOpen} onClose={closeDeleteDialog} transitionDuration={250}>
-      <DialogTitle
-        sx={{
-          color: '#fff',
-          fontWeight: 700,
-          textAlign: 'center',
-          fontSize: '1.1rem',
-          pb: 1,
-        }}
-      >
+      <DialogTitle>
         Удалить заметку?
       </DialogTitle>
 

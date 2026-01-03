@@ -32,7 +32,6 @@ import DeleteDialog from './components/DeleteDialog/DeleteDialog';
 const LIMIT = 6; // Сколько сообщений грузим за раз
 
 function App() {
-  const [allTags, setAllTags] = useState([]);
   const [searchQuery, setSearchQuery] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const tagsStr = params.get('q');
@@ -105,21 +104,6 @@ function App() {
     setSnackbarOpen(true);
   }, []);
 
-  const fetchTags = useCallback(async () => {
-    try {
-      const res = await axios.get(`${API_BASE}/tags/list`);
-      setAllTags(res.data);
-    } catch (e) {
-      console.error('Ошибка загрузки тегов', e);
-      showSnackbar('Не удалось загрузить теги', 'error');
-    }
-  }, [showSnackbar]);
-
-  // Вызываем при старте и после изменений данных
-  useEffect(() => {
-    fetchTags();
-  }, [messages, fetchTags]); // Обновляем список, если изменились сообщения
-
   // 3. Обработка кнопок "Назад/Вперед" в браузере
   useEffect(() => {
     const handlePopState = () => {
@@ -132,17 +116,6 @@ function App() {
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  useEffect(() => {
-    // Слушаем сообщение от Service Worker о том, что нам что-то "расшарили"
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data.action === 'load-shared-files') {
-        const sharedFiles = event.data.files as File[]; // Массив файлов из другого приложения
-        setFiles((prev) => [...prev, ...sharedFiles]);
-        if (event.data.text) setInputText(event.data.text);
-      }
-    });
   }, []);
 
   // Функция открытия диалога
@@ -377,7 +350,7 @@ function App() {
 
         <Snackbar
           open={snackbarOpen}
-          autoHideDuration={4000}
+          autoHideDuration={3000}
           onClose={handleCloseSnackbar}
           anchorOrigin={{vertical: 'top', horizontal: 'center'}}
         >
@@ -410,7 +383,7 @@ function App() {
           handleCloseTagMenu={handleCloseTagMenu}
           currentTags={currentTags}
           setCurrentTags={setCurrentTags}
-          allTags={allTags}
+          messages={messages}
         />
       </SnackCtx.Provider>
     </ThemeProvider>

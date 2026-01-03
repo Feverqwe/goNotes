@@ -43,16 +43,8 @@ const BatchDeleteDialog: FC<BatchDeleteDialogProps> = ({
 
   return (
     <Dialog open={deleteBatchDialogOpen} onClose={closeBatchDeleteDialog} transitionDuration={250}>
-      <DialogTitle
-        sx={{
-          color: '#fff',
-          fontWeight: 700,
-          textAlign: 'center',
-          fontSize: '1.1rem',
-          pb: 1,
-        }}
-      >
-        Удалить {selectedIds.length} сообщений?
+      <DialogTitle>
+        Удалить выбранные заметки?
       </DialogTitle>
 
       <DialogContent>

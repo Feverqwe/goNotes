@@ -1,10 +1,14 @@
-import React, {FC, useCallback} from 'react';
+import React, {FC, useCallback, useContext, useEffect, useState} from 'react';
 
 // MUI Core Components
 import {Box, ListItemIcon, ListItemText, Menu, MenuItem, Stack, Typography} from '@mui/material';
 
 // MUI Icons
 import {Check, FilterList, Tag as TagIcon} from '@mui/icons-material';
+import axios from 'axios';
+import {API_BASE} from '../../constants';
+import {Note} from '../../types';
+import {SnackCtx} from '../../ctx/SnackCtx';
 
 // Markdown & Syntax Highlighting
 
@@ -13,7 +17,7 @@ interface TagsMenuProps {
   handleCloseTagMenu: () => void;
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
-  allTags: string[];
+  messages: Note[];
 }
 
 const TagsMenu: FC<TagsMenuProps> = ({
@@ -21,8 +25,26 @@ const TagsMenu: FC<TagsMenuProps> = ({
   handleCloseTagMenu,
   currentTags,
   setCurrentTags,
-  allTags,
+  messages,
 }) => {
+  const showSnackbar = useContext(SnackCtx);
+  const [allTags, setAllTags] = useState([]);
+
+  const fetchTags = useCallback(async () => {
+    try {
+      const res = await axios.get(`${API_BASE}/tags/list`);
+      setAllTags(res.data);
+    } catch (e) {
+      console.error('Ошибка загрузки тегов', e);
+      showSnackbar('Не удалось загрузить теги', 'error');
+    }
+  }, [showSnackbar]);
+
+  // Вызываем при старте и после изменений данных
+  useEffect(() => {
+    fetchTags();
+  }, [messages, fetchTags]); // Обновляем список, если изменились сообщения
+
   const toggleTag = useCallback(
     (tag: string) => {
       setCurrentTags((prev) => {
