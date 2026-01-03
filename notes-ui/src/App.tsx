@@ -4,53 +4,30 @@ import axios from 'axios';
 // MUI Core Components
 import {
   Alert,
-  Badge,
   Box,
-  Button,
-  Chip,
   CircularProgress,
   Container,
   createTheme,
   CssBaseline,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  IconButton,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Paper,
   Snackbar,
   Stack,
-  TextField,
   ThemeProvider,
-  Typography,
 } from '@mui/material';
 
 // MUI Icons
-import {
-  AttachFile,
-  Check,
-  CheckCircleOutline,
-  Clear,
-  Close,
-  ContentCopy,
-  Delete,
-  Edit,
-  FilterList,
-  Send,
-  Tag as TagIcon,
-} from '@mui/icons-material';
-
 // Markdown & Syntax Highlighting
 import {AlertColor} from '@mui/material/Alert/Alert';
 import {Note} from './types';
 import MessageItem from './components/MessageItem/MessageItem';
 import {API_BASE} from './constants';
 import {SnackCtx} from './ctx/SnackCtx';
+import TagsMenu from './components/TagsMenu/TagsMenu';
+import SearchBox from './components/SearchBox/SearchBox';
+import BottomInputForm from './components/BottomInputForm/BottomInputForm';
+import MultiSelectMenu from './components/MultiSelectMenu/MultiSelectMenu';
+import NoteMenu from './components/NoteMenu/NoteMenu';
+import BatchDeleteDialog from './components/BatchDeleteDialog/BatchDeleteDialog';
+import DeleteDialog from './components/DeleteDialog/DeleteDialog';
 
 const LIMIT = 6; // Сколько сообщений грузим за раз
 
@@ -69,8 +46,6 @@ function App() {
   refMessages.current = messages;
 
   const [inputText, setInputText] = useState('');
-  const refInputText = useRef(inputText);
-  refInputText.current = inputText;
 
   const [files, setFiles] = useState<File[]>([]);
 
@@ -186,17 +161,6 @@ function App() {
     setBatchDeleteDialogOpen(false);
   }, []);
 
-  // Функция для удаления файла из списка выбранных перед отправкой
-  const removeFile = useCallback((index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-  }, []);
-
-  // Проверка: можно ли отправить (текст НЕ пустой ИЛИ есть файлы)
-  const canSend = useMemo(
-    () => inputText.trim().length > 0 || files.length > 0,
-    [inputText, files.length],
-  );
-
   const scrollToBottom = useCallback(() => {
     window.scrollTo({top: document.documentElement.scrollHeight});
   }, []);
@@ -232,9 +196,9 @@ function App() {
 
             setMessages((prev) => [...newMessages, ...prev]);
 
-            requestAnimationFrame(() =>
-              window.scrollTo(0, document.documentElement.scrollHeight - scrollPos),
-            );
+            requestAnimationFrame(() => {
+              window.scrollTo(0, document.documentElement.scrollHeight - scrollPos);
+            });
           }
           if (newMessages.length < LIMIT) setHasMore(false);
         }
@@ -340,76 +304,11 @@ function App() {
     [],
   );
 
-  const handleSend = useCallback(async () => {
-    if (!canSend) return;
-    const inputText = refInputText.current;
-
-    if (editingId) {
-      // ЛОГИКА ОБНОВЛЕНИЯ
-      try {
-        await axios.post(`${API_BASE}/messages/update`, {
-          id: editingId,
-          content: inputText,
-        });
-        setEditingId(null);
-        setInputText('');
-        fetchMessages(true); // Перегружаем, чтобы увидеть изменения
-      } catch (e) {
-        console.error(e);
-        showSnackbar('Не удалось обновить сообщение', 'error');
-      }
-    } else {
-      let content = inputText;
-      currentTags.forEach((currentTag) => {
-        if (currentTag && !content.includes(`#${currentTag}`)) {
-          content += ` #${currentTag}`;
-        }
-      });
-
-      const formData = new FormData();
-      formData.append('content', content);
-      files.forEach((f) => formData.append('attachments', f));
-
-      try {
-        await axios.post(`${API_BASE}/messages/send`, formData);
-        setInputText('');
-        setFiles([]); // Очищаем файлы после отправки
-        fetchMessages(true);
-      } catch (e) {
-        console.error(e);
-        showSnackbar('Не удалось отправить сообщение', 'error');
-      }
-    }
-  }, [canSend, currentTags, editingId, fetchMessages, files, showSnackbar]);
-
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      // Проверяем, нажат ли Enter
-      if (e.key === 'Enter') {
-        // Проверяем нажатие Ctrl (Windows/Linux) или Meta (Cmd на Mac)
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault(); // Предотвращаем лишний перенос
-          if (canSend) {
-            handleSend();
-          }
-        }
-        // Обычный Enter теперь всегда делает перенос строки автоматически,
-        // так как мы не вызываем preventDefault() в остальных случаях.
-      }
-    },
-    [handleSend, canSend],
-  );
-
   const startEditing = useCallback((msg: Note) => {
     setEditingId(msg.id);
     setInputText(msg.content);
     // Скроллим к полю ввода
     window.scrollTo({top: document.documentElement.scrollHeight});
-  }, []);
-
-  const cancelEditing = useCallback(() => {
-    setEditingId(null);
-    setInputText('');
   }, []);
 
   const handleOpenMenu = useCallback((event: React.MouseEvent, msg: Note) => {
@@ -488,112 +387,26 @@ function App() {
 
   return (
     <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box sx={{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
-        <Paper
-          square
-          elevation={0}
-          sx={{
-            position: 'sticky',
-            top: 0,
-            zIndex: 11,
-            // Более глубокое размытие и мягкий фон
-            bgcolor: 'rgba(0,0,0,0.7)',
-            backdropFilter: 'blur(20px)',
-            borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-            p: 1.5, // Увеличим отступы для «воздуха»
-          }}
-        >
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              maxWidth: 'sm',
-              mx: 'auto',
-              transition: 'all 0.3s ease',
-            }}
+      <SnackCtx.Provider value={showSnackbar}>
+        <CssBaseline />
+        <Box sx={{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
+          <SearchBox
+            searchQuery={searchQuery}
+            setSearchQuery={setSearchQuery}
+            currentTags={currentTags}
+            handleOpenTagMenu={handleOpenTagMenu}
+          />
+
+          <Container
+            maxWidth="sm"
+            sx={{flexGrow: 1, pt: 2, pb: 9 + (files.length ? 7 : 0) + (currentTags.length ? 5 : 0)}}
           >
-            <TextField
-              fullWidth
-              size="small"
-              variant="standard"
-              placeholder="Поиск заметок..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              slotProps={{
-                input: {
-                  disableUnderline: true,
-                  startAdornment: (
-                    <Badge
-                      badgeContent={currentTags.length}
-                      color="primary"
-                      // Настроим Badge, чтобы он был аккуратнее
-                      sx={{
-                        mr: 1,
-                        '& .MuiBadge-badge': {
-                          fontSize: '0.6rem',
-                          height: 16,
-                          minWidth: 16,
-                          top: 4,
-                          right: 4,
-                          border: '2px solid #1c1c1e',
-                        },
-                      }}
-                    >
-                      <IconButton
-                        size="small"
-                        onClick={handleOpenTagMenu}
-                        sx={{
-                          color: currentTags.length > 0 ? '#90caf9' : '#8e8e93',
-                          transition: 'color 0.2s',
-                          bgcolor:
-                            currentTags.length > 0 ? 'rgba(144, 202, 249, 0.1)' : 'transparent',
-                          '&:hover': {bgcolor: 'rgba(255,255,255,0.05)'},
-                        }}
-                      >
-                        <FilterList sx={{fontSize: 20}} />
-                      </IconButton>
-                    </Badge>
-                  ),
-                  endAdornment: searchQuery && (
-                    <IconButton
-                      size="small"
-                      onClick={() => setSearchQuery('')}
-                      sx={{color: '#8e8e93', '&:hover': {color: '#efefef'}}}
-                    >
-                      <Clear sx={{fontSize: 18}} />
-                    </IconButton>
-                  ),
-                  sx: {
-                    bgcolor: '#1c1c1e',
-                    px: 1.5,
-                    py: 0.8, // Чуть больше высоты для современного вида
-                    borderRadius: '12px', // Более скругленные углы
-                    border: '1px solid transparent',
-                    transition: 'all 0.2s ease-in-out',
-                    '&:focus-within': {
-                      bgcolor: '#252527',
-                      border: '1px solid rgba(144, 202, 249, 0.3)',
-                      boxShadow: '0 0 0 2px rgba(144, 202, 249, 0.05)',
-                    },
-                  },
-                },
-              }}
-            />
-          </Box>
-        </Paper>
+            {hasMore && (
+              <Box sx={{display: 'flex', justifyContent: 'center', p: 2}}>
+                <CircularProgress size={20} />
+              </Box>
+            )}
 
-        <Container
-          maxWidth="sm"
-          sx={{flexGrow: 1, pt: 2, pb: 9 + (files.length ? 7 : 0) + (currentTags.length ? 5 : 0)}}
-        >
-          {hasMore && (
-            <Box sx={{display: 'flex', justifyContent: 'center', p: 2}}>
-              <CircularProgress size={20} />
-            </Box>
-          )}
-
-          <SnackCtx.Provider value={showSnackbar}>
             <Stack spacing={1.5}>
               {messages.map((msg, index) => (
                 <MessageItem
@@ -608,568 +421,76 @@ function App() {
                 />
               ))}
             </Stack>
-          </SnackCtx.Provider>
-        </Container>
-
-        <Paper
-          square
-          elevation={0}
-          sx={{
-            position: 'fixed',
-            bottom: 0,
-            left: 0,
-            right: 0,
-            bgcolor: '#121212',
-            borderTop: '1px solid',
-            borderColor: editingId ? 'rgba(144, 202, 249, 0.5)' : '#2c2c2e',
-            zIndex: 1000,
-            transition: 'border-color 0.3s ease',
-          }}
-        >
-          <Container maxWidth="sm" disableGutters>
-            {/* ИНДИКАТОР РЕДАКТИРОВАНИЯ (аккуратный градиент) */}
-            {editingId && (
-              <Box
-                sx={{
-                  px: 2,
-                  py: 0.5,
-                  background:
-                    'linear-gradient(90deg, rgba(144, 202, 249, 0.1) 0%, transparent 100%)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 1,
-                }}
-              >
-                <Edit sx={{fontSize: 14, color: '#90caf9'}} />
-                <Typography
-                  variant="caption"
-                  sx={{color: '#90caf9', fontWeight: 500, letterSpacing: 0.5}}
-                >
-                  ИЗМЕНЕНИЕ ЗАМЕТКИ
-                </Typography>
-                <Box sx={{flexGrow: 1}} />
-                <IconButton size="small" onClick={cancelEditing} sx={{color: '#90caf9'}}>
-                  <Close sx={{fontSize: 16}} />
-                </IconButton>
-              </Box>
-            )}
-
-            {/* КРАСИВЫЙ СПИСОК ФАЙЛОВ (в стиле вкладок) */}
-            {files.length > 0 && !editingId && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  gap: 1,
-                  px: 2,
-                  py: 1.5,
-                  overflowX: 'auto',
-                  '&::-webkit-scrollbar': {display: 'none'},
-                }}
-              >
-                {files.map((file, idx) => (
-                  <Box
-                    key={idx}
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: 1,
-                      bgcolor: '#1c1c1e',
-                      px: 1.5,
-                      py: 0.8,
-                      borderRadius: 3,
-                      border: '1px solid #2c2c2e',
-                      minWidth: 'fit-content',
-                    }}
-                  >
-                    <Typography variant="caption" sx={{color: '#efefef', maxWidth: 120}} noWrap>
-                      {file.name}
-                    </Typography>
-                    <IconButton size="small" onClick={() => removeFile(idx)} color="error">
-                      <Close sx={{fontSize: 14}} />
-                    </IconButton>
-                  </Box>
-                ))}
-              </Box>
-            )}
-
-            {/* ЭСТЕТИЧНЫЕ ТЕГИ (Soft UI) */}
-            {currentTags.length > 0 && (
-              <Box sx={{px: 2, pt: 1.5, display: 'flex', gap: 1, flexWrap: 'wrap'}}>
-                {currentTags.map((tag) => (
-                  <Chip
-                    key={tag}
-                    label={tag} // Убираем #, так как это дизайн-элемент
-                    onDelete={() => setCurrentTags((tags) => tags.filter((t) => t !== tag))}
-                    size="small"
-                    sx={{
-                      bgcolor: 'rgba(144, 202, 249, 0.08)',
-                      color: '#90caf9',
-                      border: '1px solid rgba(144, 202, 249, 0.2)',
-                      borderRadius: '8px',
-                      fontWeight: 600,
-                      fontSize: '0.7rem',
-                      '& .MuiChip-deleteIcon': {color: '#90caf9', fontSize: 14},
-                    }}
-                  />
-                ))}
-              </Box>
-            )}
-
-            {/* ОСНОВНОЕ ПОЛЕ ВВОДА */}
-            <Box sx={{display: 'flex', alignItems: 'flex-end', px: 1, pb: 1, pt: 0.5}}>
-              <IconButton
-                component="label"
-                disabled={!!editingId}
-                sx={{
-                  color: files.length > 0 ? '#90caf9' : '#8e8e93',
-                  mb: 0.3,
-                  transition: 'all 0.2s',
-                  visibility: editingId ? 'hidden' : 'visible',
-                  width: editingId ? 0 : 'auto',
-                }}
-              >
-                <AttachFile sx={{transform: 'rotate(45deg)', fontSize: 24}} />
-                <input
-                  hidden
-                  multiple
-                  type="file"
-                  onChange={(e) =>
-                    setFiles((prev) => [...prev, ...Array.from(e.target.files ?? [])])
-                  }
-                />
-              </IconButton>
-
-              <TextField
-                fullWidth
-                multiline
-                maxRows={10}
-                variant="standard"
-                placeholder={editingId ? 'Редактирование...' : 'Заметка...'}
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                onKeyDown={handleKeyDown}
-                slotProps={{
-                  input: {
-                    disableUnderline: true,
-                    sx: {
-                      py: 1.2,
-                      px: 1,
-                      fontSize: '1.05rem',
-                      color: '#fff', // Текст всегда белый
-                      lineHeight: 1.4,
-                    },
-                  },
-                }}
-              />
-
-              <IconButton
-                onClick={handleSend}
-                disabled={!canSend}
-                sx={{
-                  color: '#90caf9',
-                  mb: 0.3,
-                  '&.Mui-disabled': {color: '#3a3a3c'},
-                }}
-              >
-                {editingId ? <Check sx={{fontSize: 28}} /> : <Send sx={{fontSize: 26}} />}
-              </IconButton>
-            </Box>
           </Container>
-        </Paper>
 
-        {isSelectMode && (
-          <Paper
-            square
-            sx={{
-              position: 'fixed',
-              bottom: 0,
-              left: 0,
-              right: 0,
-              bgcolor: '#1c1c1e',
-              borderTop: '1px solid #90caf9',
-              zIndex: 1100,
-              p: 1,
-              animation: 'slideUp 0.3s ease',
-            }}
-          >
-            <Container
-              maxWidth="sm"
-              sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center'}}
-            >
-              <Box sx={{display: 'flex', alignItems: 'center', gap: 2}}>
-                <IconButton onClick={cancelSelectMode} color="inherit">
-                  <Close />
-                </IconButton>
-                <Typography variant="body1" sx={{fontWeight: 'bold'}}>
-                  Выбрано: {selectedIds.length}
-                </Typography>
-              </Box>
-
-              <Button
-                variant="contained"
-                color="error"
-                disabled={selectedIds.length === 0}
-                startIcon={<Delete />}
-                onClick={askBatchDeleteConfirmation}
-                sx={{borderRadius: '12px', textTransform: 'none'}}
-              >
-                Удалить
-              </Button>
-            </Container>
-          </Paper>
-        )}
-      </Box>
-      <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseMenu}
-        transitionDuration={150}
-        slotProps={{
-          // Убираем стандартные отступы списка, чтобы кастомизировать их
-          list: {sx: {py: 0.8}},
-          paper: {
-            sx: {
-              bgcolor: 'rgba(28, 28, 30, 0.85)', // Стекло
-              backdropFilter: 'blur(25px)', // Сильный блюр
-              minWidth: 220,
-              borderRadius: '16px',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
-              backgroundImage: 'none', // Убираем стандартное наложение MUI
-            },
-          },
-        }}
-      >
-        <MenuItem
-          onClick={() => {
-            if (!selectedMsg) return;
-            enterSelectMode(selectedMsg);
-          }}
-          sx={{
-            mx: 1,
-            my: 0.2,
-            borderRadius: '10px',
-            transition: 'all 0.2s',
-            '&:hover': {bgcolor: 'rgba(144, 202, 249, 0.12)'},
-          }}
-        >
-          <ListItemIcon sx={{minWidth: '36px !important'}}>
-            <CheckCircleOutline fontSize="small" />
-          </ListItemIcon>
-          <ListItemText slotProps={{primary: {fontSize: '0.9rem', color: '#efefef'}}}>
-            Выбрать
-          </ListItemText>
-        </MenuItem>
-
-        <MenuItem
-          onClick={handleCopy}
-          sx={{
-            mx: 1,
-            my: 0.2,
-            borderRadius: '10px',
-            transition: 'all 0.2s',
-            '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.08)'},
-          }}
-        >
-          <ListItemIcon sx={{minWidth: '36px !important'}}>
-            <ContentCopy fontSize="small" sx={{color: '#efefef'}} />
-          </ListItemIcon>
-          <ListItemText
-            primary="Копировать"
-            slotProps={{primary: {fontSize: '0.9rem', color: '#efefef'}}}
+          <BottomInputForm
+            editingId={editingId}
+            setEditingId={setEditingId}
+            files={files}
+            currentTags={currentTags}
+            setCurrentTags={setCurrentTags}
+            setFiles={setFiles}
+            inputText={inputText}
+            setInputText={setInputText}
+            fetchMessages={fetchMessages}
           />
-        </MenuItem>
 
-        <MenuItem
-          onClick={onEditClick}
-          sx={{
-            mx: 1,
-            my: 0.2,
-            borderRadius: '10px',
-            transition: 'all 0.2s',
-            '&:hover': {bgcolor: 'rgba(144, 202, 249, 0.12)'},
-          }}
-        >
-          <ListItemIcon sx={{minWidth: '36px !important'}}>
-            <Edit fontSize="small" sx={{color: '#90caf9'}} />
-          </ListItemIcon>
-          <ListItemText
-            primary="Изменить"
-            slotProps={{primary: {fontSize: '0.9rem', color: '#efefef'}}}
-          />
-        </MenuItem>
+          {isSelectMode && (
+            <MultiSelectMenu
+              cancelSelectMode={cancelSelectMode}
+              selectedIds={selectedIds}
+              askBatchDeleteConfirmation={askBatchDeleteConfirmation}
+            />
+          )}
+        </Box>
 
-        {/* Разделитель перед опасным действием */}
-        <Box sx={{height: '1px', bgcolor: 'rgba(255, 255, 255, 0.05)', my: 0.8, mx: 2}} />
+        <NoteMenu
+          anchorEl={anchorEl}
+          handleCloseMenu={handleCloseMenu}
+          selectedMsg={selectedMsg}
+          enterSelectMode={enterSelectMode}
+          handleCopy={handleCopy}
+          onEditClick={onEditClick}
+          onDeleteClick={onDeleteClick}
+        />
 
-        <MenuItem
-          onClick={onDeleteClick}
-          sx={{
-            mx: 1,
-            my: 0.2,
-            borderRadius: '10px',
-            transition: 'all 0.2s',
-            '&:hover': {bgcolor: 'rgba(255, 69, 58, 0.15)'},
-          }}
-        >
-          <ListItemIcon sx={{minWidth: '36px !important'}}>
-            <Delete fontSize="small" sx={{color: '#ff453a'}} />
-          </ListItemIcon>
-          <ListItemText
-            primary="Удалить"
-            slotProps={{
-              primary: {
-                fontSize: '0.9rem',
-                color: '#ff453a',
-                fontWeight: 600,
-              },
-            }}
-          />
-        </MenuItem>
-      </Menu>
-
-      <Snackbar
-        open={snackbarOpen}
-        autoHideDuration={4000}
-        onClose={handleCloseSnackbar}
-        anchorOrigin={{vertical: 'top', horizontal: 'center'}}
-      >
-        <Alert
+        <Snackbar
+          open={snackbarOpen}
+          autoHideDuration={4000}
           onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          sx={{width: '100%', bgcolor: theme.palette.background.paper}}
+          anchorOrigin={{vertical: 'top', horizontal: 'center'}}
         >
-          {snackbarMessage}
-        </Alert>
-      </Snackbar>
-
-      <Dialog open={deleteDialogOpen} onClose={closeDeleteDialog} transitionDuration={250}>
-        <DialogTitle
-          sx={{
-            color: '#fff',
-            fontWeight: 700,
-            textAlign: 'center',
-            fontSize: '1.1rem',
-            pb: 1,
-          }}
-        >
-          Удалить заметку?
-        </DialogTitle>
-
-        <DialogContent>
-          <DialogContentText>
-            Это действие нельзя отменить. <br />
-            Все вложения будут стерты.
-          </DialogContentText>
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={confirmDelete} fullWidth variant="text" color="error">
-            Удалить
-          </Button>
-
-          <Button onClick={closeDeleteDialog} fullWidth variant="text">
-            Отмена
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog
-        open={deleteBatchDialogOpen}
-        onClose={closeBatchDeleteDialog}
-        transitionDuration={250}
-      >
-        <DialogTitle
-          sx={{
-            color: '#fff',
-            fontWeight: 700,
-            textAlign: 'center',
-            fontSize: '1.1rem',
-            pb: 1,
-          }}
-        >
-          Удалить {selectedIds.length} сообщений?
-        </DialogTitle>
-
-        <DialogContent>
-          <DialogContentText>
-            Это действие нельзя отменить. <br />
-            Все вложения будут стерты.
-          </DialogContentText>
-        </DialogContent>
-
-        <DialogActions>
-          <Button onClick={confirmBatchDelete} fullWidth variant="text" color="error">
-            Удалить
-          </Button>
-
-          <Button onClick={closeBatchDeleteDialog} fullWidth variant="text">
-            Отмена
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* МЕНЮ ТЕГОВ — ДИЗАЙН УРОВНЯ 2026 */}
-      <Menu
-        anchorEl={tagMenuAnchor}
-        open={Boolean(tagMenuAnchor)}
-        onClose={handleCloseTagMenu}
-        transitionDuration={250}
-        slotProps={{
-          paper: {
-            sx: {
-              bgcolor: 'rgba(20, 20, 22, 0.8)',
-              backdropFilter: 'blur(25px) saturate(180%)', // Более сочный блюр
-              minWidth: 260,
-              maxHeight: 500,
-              borderRadius: '20px',
-              border: '1px solid rgba(255, 255, 255, 0.08)',
-              boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
-              mt: 1.5,
-              overflow: 'hidden',
-              backgroundImage: 'none',
-            },
-          },
-        }}
-      >
-        {/* Кастомный заголовок с кнопкой закрытия */}
-        <Box
-          sx={{
-            px: 2.5,
-            pt: 2,
-            pb: 1.5,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-          }}
-        >
-          <Typography
-            sx={{
-              color: '#fff',
-              fontSize: '0.85rem',
-              fontWeight: 800,
-              letterSpacing: '0.02em',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-            }}
+          <Alert
+            onClose={handleCloseSnackbar}
+            severity={snackbarSeverity}
+            sx={{width: '100%', bgcolor: theme.palette.background.paper}}
           >
-            <FilterList sx={{fontSize: 18, color: '#90caf9'}} />
-            ФИЛЬТРЫ
-          </Typography>
+            {snackbarMessage}
+          </Alert>
+        </Snackbar>
 
-          {currentTags.length > 0 && (
-            <Typography
-              variant="caption"
-              onClick={() => setCurrentTags([])}
-              sx={{
-                color: '#90caf9',
-                cursor: 'pointer',
-                fontSize: '0.7rem',
-                fontWeight: 600,
-                '&:hover': {textDecoration: 'underline'},
-              }}
-            >
-              Сбросить ({currentTags.length})
-            </Typography>
-          )}
-        </Box>
+        <DeleteDialog
+          deleteDialogOpen={deleteDialogOpen}
+          closeDeleteDialog={closeDeleteDialog}
+          confirmDelete={confirmDelete}
+        />
 
-        {/* Список тегов в виде сетки или списка */}
-        <Box
-          sx={{
-            px: 1,
-            pb: 1.5,
-            maxHeight: 380,
-            overflowY: 'auto',
-            // Стилизация скроллбара
-            '&::-webkit-scrollbar': {width: '4px'},
-            '&::-webkit-scrollbar-thumb': {bgcolor: 'rgba(255,255,255,0.1)', borderRadius: '10px'},
-          }}
-        >
-          {allTags.length === 0 ? (
-            <Box sx={{py: 4, textAlign: 'center', opacity: 0.5}}>
-              <TagIcon sx={{fontSize: 40, mb: 1}} />
-              <Typography variant="body2">Теги еще не созданы</Typography>
-            </Box>
-          ) : (
-            <Stack spacing={0.5}>
-              {allTags.map((tag) => {
-                const isActive = currentTags.includes(tag);
-                return (
-                  <MenuItem
-                    key={tag}
-                    onClick={() => toggleTag(tag)}
-                    disableRipple // Отключаем стандартный рипл для чистоты
-                    sx={{
-                      borderRadius: '12px',
-                      py: 1,
-                      px: 1.5,
-                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                      border: '1px solid',
-                      borderColor: isActive ? 'rgba(144, 202, 249, 0.3)' : 'transparent',
-                      bgcolor: isActive ? 'rgba(144, 202, 249, 0.08)' : 'transparent',
-                      '&:hover': {
-                        bgcolor: isActive
-                          ? 'rgba(144, 202, 249, 0.12)'
-                          : 'rgba(255, 255, 255, 0.05)',
-                      },
-                    }}
-                  >
-                    <ListItemIcon sx={{minWidth: '32px !important'}}>
-                      <Box
-                        sx={{
-                          width: 24,
-                          height: 24,
-                          borderRadius: '6px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          bgcolor: isActive ? '#90caf9' : 'rgba(255,255,255,0.05)',
-                          transition: 'all 0.3s ease',
-                        }}
-                      >
-                        {isActive ? (
-                          <Check sx={{fontSize: 16, color: '#000'}} />
-                        ) : (
-                          <Typography sx={{fontSize: 12, color: '#8e8e93', fontWeight: 'bold'}}>
-                            #
-                          </Typography>
-                        )}
-                      </Box>
-                    </ListItemIcon>
+        <BatchDeleteDialog
+          deleteBatchDialogOpen={deleteBatchDialogOpen}
+          closeBatchDeleteDialog={closeBatchDeleteDialog}
+          selectedIds={selectedIds}
+          confirmBatchDelete={confirmBatchDelete}
+        />
 
-                    <ListItemText
-                      primary={tag}
-                      slotProps={{
-                        primary: {
-                          fontSize: '0.9rem',
-                          fontWeight: isActive ? 700 : 400,
-                          color: isActive ? '#fff' : '#8e8e93',
-                          sx: {transition: 'color 0.3s'},
-                        },
-                      }}
-                    />
-
-                    {/* Точка-индикатор активного состояния */}
-                    {isActive && (
-                      <Box
-                        sx={{
-                          width: 6,
-                          height: 6,
-                          borderRadius: '50%',
-                          bgcolor: '#90caf9',
-                          boxShadow: '0 0 10px #90caf9',
-                        }}
-                      />
-                    )}
-                  </MenuItem>
-                );
-              })}
-            </Stack>
-          )}
-        </Box>
-      </Menu>
+        <TagsMenu
+          tagMenuAnchor={tagMenuAnchor}
+          handleCloseTagMenu={handleCloseTagMenu}
+          currentTags={currentTags}
+          setCurrentTags={setCurrentTags}
+          allTags={allTags}
+          toggleTag={toggleTag}
+        />
+      </SnackCtx.Provider>
     </ThemeProvider>
   );
 }
