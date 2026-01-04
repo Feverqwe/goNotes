@@ -30,3 +30,14 @@ CREATE TABLE IF NOT EXISTS message_tags (
     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
+-- Ускорение поиска без учета регистра
+CREATE INDEX IF NOT EXISTS idx_messages_content_lower ON messages(LOWER(content));
+
+-- Ускорение загрузки вложений
+CREATE INDEX IF NOT EXISTS idx_attachments_message_id ON attachments(message_id);
+
+-- Ускорение фильтрации по тегам
+CREATE INDEX IF NOT EXISTS idx_message_tags_tag_id ON message_tags(tag_id);
+
+-- Оптимизация сортировки по дате
+CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at DESC);
