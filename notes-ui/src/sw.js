@@ -2,56 +2,49 @@ self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
   if (event.request.method === 'POST' && url.pathname === '/share') {
-    // Останавливаем стандартную отправку на сервер
+    // ВАЖНО: Мы должны вызвать respondWith сразу
     event.respondWith(
       (async () => {
         const formData = await event.request.formData();
         const text = formData.get('text') || formData.get('url') || formData.get('title') || '';
         const files = formData.getAll('attachments');
 
-        // Редиректим на главную (303 See Other — стандарт для POST-редиректа)
-        // Добавляем флаг в URL, чтобы приложение знало, что мы ждем данные
-        const response = Response.redirect('/?shared=1', 303);
+        // Вместо openWindow сначала пробуем найти существующее окно
+        const allClients = await self.clients.matchAll({type: 'window', includeUncontrolled: true});
+        let client = allClients.find((c) => c.visibilityState === 'visible');
 
-        // Ждем появления окна приложения
-        const clientsList = await self.clients.matchAll({
-          type: 'window',
-          includeUncontrolled: true,
-        });
-
-        // Пытаемся найти уже открытое окно или открываем новое
-        let client = clientsList.find((c) => c.visibilityState === 'visible') || clientsList[0];
-
-        if (!client) {
-          client = await self.clients.openWindow('/?shared=1');
+        // Если окна нет, открываем новое. Браузер разрешает это внутри обработки share_target
+        if (!client && allClients.length > 0) {
+          client = allClients[0];
         }
 
-        // Функция отправки данных с повторами, пока клиент не будет готов
-        const sendData = async () => {
-          let attempts = 0;
-          const maxAttempts = 20;
+        if (!client) {
+          // Если совсем нет окон, открываем.
+          // Ошибка InvalidAccessError часто возникает, если пытаться открыть URL,
+          // отличный от того, что в манифесте, или если домен не в фокусе.
+          client = await self.clients.openWindow('/');
+        }
 
-          const interval = setInterval(async () => {
-            attempts++;
-            const currentClients = await self.clients.matchAll({type: 'window'});
-            const activeClient = currentClients.find((c) => c.url.includes('/'));
+        // Ждем, пока клиент станет активным
+        if (client.focused === false) {
+          client = await client.focus();
+        }
 
-            if (activeClient) {
-              activeClient.postMessage({
-                action: 'load-shared-files',
-                text: text,
-                files: files,
-              });
-              clearInterval(interval);
-            }
-
-            if (attempts >= maxAttempts) clearInterval(interval);
-          }, 500);
+        // Передаем данные. Используем небольшой таймаут, чтобы страница успела проснуться
+        const sendPayload = () => {
+          client.postMessage({
+            action: 'load-shared-files',
+            text: text,
+            files: files, // Это объекты File/Blob, они корректно передаются через Structured Clone
+          });
         };
 
-        sendData();
+        // В 2026 году лучше использовать ping-pong для проверки готовности страницы
+        // Но для начала попробуем просто задержку
+        setTimeout(sendPayload, 800);
 
-        return response;
+        // Возвращаем редирект, чтобы завершить POST-запрос share_target
+        return Response.redirect('/', 303);
       })(),
     );
   }

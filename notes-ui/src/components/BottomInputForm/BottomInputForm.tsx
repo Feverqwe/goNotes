@@ -41,6 +41,28 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   const refInputText = useRef(inputText);
   refInputText.current = inputText;
 
+  useEffect(() => {
+    const handleMessage = (event: MessageEvent) => {
+      if (event.data.action === 'load-shared-files') {
+        const sharedFiles = event.data.files as File[];
+        setFiles((prev) => [...prev, ...sharedFiles]);
+        if (event.data.text) setInputText(event.data.text);
+
+        // Сообщаем SW, что данные получены (необязательно, но полезно для отладки)
+        console.log('Shared content received!');
+      }
+    };
+
+    navigator.serviceWorker.addEventListener('message', handleMessage);
+
+    // В 2026 важно: сообщаем SW, что мы готовы
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({type: 'READY_TO_RECEIVE'});
+    }
+
+    return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
+  }, [setFiles, setInputText]);
+
   // Инициализация при входе в режим редактирования
   useEffect(() => {
     if (editingId) {
