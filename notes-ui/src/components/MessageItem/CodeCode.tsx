@@ -44,12 +44,22 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         onKeyDown={handleKeyDown}
         onClick={handleCopy}
         style={{
-          backgroundColor: '#2c2c2e',
-          padding: '2px 6px',
+          backgroundColor: 'rgba(144, 202, 249, 0.1)', // Полупрозрачный голубой фон
+          color: '#90caf9', // Цвет текста в тон темы
+          padding: '2px 5px', // Чуть более компактные отступы
           borderRadius: '4px',
           fontFamily: 'monospace',
+          fontSize: '0.85em', // Чуть меньше основного текста
           cursor: 'pointer',
-          color: '#90caf9',
+          border: '1px solid rgba(144, 202, 249, 0.2)', // Тонкая рамка для четкости
+          wordBreak: 'break-word', // Чтобы не ломало верстку
+          transition: 'all 0.1s',
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(144, 202, 249, 0.2)';
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.backgroundColor = 'rgba(144, 202, 249, 0.1)';
         }}
         {...props}
       >
@@ -100,6 +110,10 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
       <SyntaxHighlighter
         style={oneDark}
         language={match?.[1]}
+        wrapLines={true}
+        lineProps={{
+          style: {wordBreak: 'break-all', whiteSpace: 'pre-wrap'},
+        }}
         PreTag="div"
         // Добавили pr: 6, чтобы текст кода не заезжал под кнопку medium размера
         customStyle={{margin: 0, padding: '12px', paddingRight: '48px'}}
