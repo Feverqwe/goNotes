@@ -1,0 +1,68 @@
+{
+  "name": "notes-ui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "clean:dist": "del-cli ./dist/**",
+    "clean:www": "del-cli --force ../assets/www",
+    "copy:dist": "ncp ./dist ../assets/www",
+    "build": "webpack --mode production",
+    "dev": "webpack --mode development --watch",
+    "release": "npm run clean:dist && npm run build && npm run clean:www && npm run copy:dist",
+    "tsc": "tsc --noEmit",
+    "lint": "npx eslint ./src && npm run prettier",
+    "prettier": "npx prettier --check ./src",
+    "prettier:fix": "npx prettier --write ./src",
+    "lint:fix": "npx eslint --fix ./src && npm run prettier:fix"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@emotion/react": "^11.14.0",
+    "@emotion/styled": "^11.14.1",
+    "@mui/icons-material": "^7.3.6",
+    "@mui/material": "^7.3.6",
+    "axios": "^1.13.2",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
+    "react-markdown": "^10.1.0",
+    "react-syntax-highlighter": "^16.1.0",
+    "remark-gfm": "^4.0.1"
+  },
+  "devDependencies": {
+    "@types/react-dom": "^19.0.2",
+    "@types/react-syntax-highlighter": "^15.5.13",
+    "@typescript-eslint/eslint-plugin": "^8.19.0",
+    "@typescript-eslint/parser": "^8.19.0",
+    "copy-webpack-plugin": "^12.0.2",
+    "cross-env": "^7.0.2",
+    "css-loader": "^7.1.2",
+    "del-cli": "^6.0.0",
+    "eslint": "^8.27.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-jsx-a11y": "^6.6.1",
+    "eslint-plugin-react": "^7.31.10",
+    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint-plugin-unused-imports": "^4.1.4",
+    "html-webpack-plugin": "^5.5.0",
+    "less-loader": "^12.1.0",
+    "ncp": "^2.0.0",
+    "prettier": "^3.0.2",
+    "react-dev-utils": "^12.0.0",
+    "style-loader": "^4.0.0",
+    "ts-loader": "^9.2.6",
+    "ts-node": "^10.7.0",
+    "typescript": "^5.0.4",
+    "url-loader": "^4.1.1",
+    "webpack": "^5.64.2",
+    "webpack-cli": "^6.0.1"
+  },
+  "overrides": {
+    "eslint-config-airbnb": {
+      "eslint-plugin-react-hooks": "$eslint-plugin-react-hooks"
+    }
+  }
+}
