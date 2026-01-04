@@ -112,7 +112,7 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         language={match?.[1]}
         wrapLines={true}
         lineProps={{
-          style: {wordBreak: 'break-all', whiteSpace: 'pre-wrap'},
+          style: {wordBreak: 'normal', whiteSpace: 'pre-wrap'},
         }}
         PreTag="div"
         // Добавили pr: 6, чтобы текст кода не заезжал под кнопку medium размера
