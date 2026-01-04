@@ -1,5 +1,5 @@
 import React, {FC, PropsWithChildren, useCallback, useContext} from 'react';
-import {Box, IconButton} from '@mui/material';
+import {Box, IconButton, Typography} from '@mui/material';
 import {ContentCopy} from '@mui/icons-material';
 import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter';
 import {oneDark} from 'react-syntax-highlighter/dist/esm/styles/prism';
@@ -15,6 +15,7 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
 
   const isMultiline = /\n/.test(String(children));
   const match = /language-(\w+)/.exec(className || '');
+  const lang = match ? match[1] : '';
   const codeContent = String(children).replace(/\n$/, '');
 
   const handleCopy = (e: React.MouseEvent) => {
@@ -71,52 +72,62 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
   return (
     <Box
       sx={{
-        my: 1,
+        my: 1.5,
         borderRadius: 2,
         overflow: 'hidden',
-        fontSize: '0.85rem',
-        position: 'relative',
-        '&:hover .copy-button': {opacity: 1},
+        border: '1px solid rgba(255, 255, 255, 0.08)',
+        bgcolor: '#282c34', // Основной фон OneDark
       }}
     >
-      <IconButton
-        className="copy-button"
-        onClick={handleCopy}
-        size="medium" // Ваш выбор размера
+      {/* Постоянная сервисная панель */}
+      <Box
         sx={{
-          position: 'absolute',
-          top: 4,
-          right: 4,
-          zIndex: 2,
-          color: '#90caf9',
-          bgcolor: 'rgba(0, 0, 0, 0.4)',
-          backdropFilter: 'blur(4px)', // Добавим немного блюра для эстетики
-          opacity: {xs: 1, sm: 0},
-          transition: 'opacity 0.2s, background-color 0.2s',
-          '&:hover': {
-            bgcolor: 'rgba(144, 202, 249, 0.15)',
-            color: '#fff',
-          },
-          '&:focus-visible': {
-            opacity: 1,
-            boxShadow: '0 0 0 2px #90caf9',
-            borderColor: '#90caf9',
-          },
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          px: 1.5,
+          py: 0.2, // Узкая и аккуратная
+          bgcolor: 'rgba(0, 0, 0, 0.3)', // Тёмная подложка
+          borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
         }}
       >
-        <ContentCopy fontSize="small" />
-      </IconButton>
+        <Typography
+          variant="caption"
+          sx={{
+            color: '#5c6370',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.5px',
+            fontSize: '0.65rem',
+          }}
+        >
+          {lang || 'code'}
+        </Typography>
+
+        <IconButton
+          onClick={handleCopy}
+          size="medium" // Крупная область нажатия для тача
+          sx={{
+            color: '#8e8e93',
+            p: 1,
+            '&:hover': {color: '#90caf9'},
+          }}
+        >
+          <ContentCopy sx={{fontSize: 16}} />
+        </IconButton>
+      </Box>
 
       <SyntaxHighlighter
         style={oneDark}
-        language={match?.[1]}
-        wrapLines={true}
-        lineProps={{
-          style: {wordBreak: 'normal', whiteSpace: 'pre-wrap'},
-        }}
+        language={lang}
         PreTag="div"
-        // Добавили pr: 6, чтобы текст кода не заезжал под кнопку medium размера
-        customStyle={{margin: 0, padding: '12px', paddingRight: '48px'}}
+        wrapLines={true}
+        lineProps={{style: {wordBreak: 'break-all', whiteSpace: 'pre-wrap'}}}
+        customStyle={{
+          margin: 0,
+          padding: '12px',
+          background: 'transparent', // Прозрачность, чтобы видеть фон родителя
+        }}
         {...props}
       >
         {codeContent}
