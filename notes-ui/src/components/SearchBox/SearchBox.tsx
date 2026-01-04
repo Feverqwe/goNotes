@@ -18,7 +18,7 @@ const SearchBox: FC<SearchBoxProps> = ({
   currentTags,
   setCurrentTags,
   handleOpenTagMenu,
-                                   showArchived,
+  showArchived,
   setShowArchived,
 }) => {
   // Функция для полной очистки поиска и тегов

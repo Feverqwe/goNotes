@@ -1,9 +1,15 @@
 import React, {FC, useCallback, useContext} from 'react';
 import {Box, ListItemIcon, ListItemText, Menu, MenuItem} from '@mui/material';
-import {CheckCircleOutline, ContentCopy, Delete, Edit} from '@mui/icons-material';
+import {
+  CheckCircleOutline,
+  ContentCopy,
+  Delete,
+  Edit,
+  Archive,
+  Unarchive,
+} from '@mui/icons-material';
 import {Note} from '../../types';
 import {SnackCtx} from '../../ctx/SnackCtx';
-import {Archive, Unarchive} from '@mui/icons-material';
 
 interface NoteMenuProps {
   anchorEl: Element | null;

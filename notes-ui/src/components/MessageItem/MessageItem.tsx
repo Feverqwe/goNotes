@@ -88,10 +88,16 @@ const MessageItem: FC<MessageItemProps> = ({
           position: 'relative', // Для позиционирования кнопки
           '&:hover .message-action': {opacity: 1}, // Показываем кнопку при наведении (на десктопе)
           // Подсветка выбранного сообщения
-          bgcolor: selectedIds.includes(msg.id) ? 'rgba(144, 202, 249, 0.05)' : '#1c1c1e',
+          bgcolor: selectedIds.includes(msg.id)
+            ? 'rgba(144, 202, 249, 0.05)'
+            : msg.is_archived
+              ? '#161618'
+              : '#1c1c1e',
           boxShadow: selectedIds.includes(msg.id) ? '0 0 3px #90caf9' : 'none',
-          opacity: msg.is_archived ? 0.6 : 1,
-          border: msg.is_archived ? '1px dashed rgba(255,255,255,0.1)' : 'none',
+          backgroundImage: msg.is_archived
+            ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 10px)'
+            : 'none',
+          border: msg.is_archived ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
         }}
       >
         <CardContent sx={{'&:last-child': {pb: 1.5}, pr: 1.5, pl: 2, pt: 1.5}}>
@@ -123,7 +129,7 @@ const MessageItem: FC<MessageItemProps> = ({
 
           <Box
             sx={{
-              color: '#fff',
+              color: msg.is_archived ? '#8e8e93' : '#fff',
               pr: 3,
               // Стилизуем элементы Markdown под наш интерфейс
               '& p': {m: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6},
