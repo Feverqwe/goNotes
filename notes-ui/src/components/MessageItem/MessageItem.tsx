@@ -39,6 +39,7 @@ interface MessageItemProps {
   refIsLoading: React.RefObject<boolean>;
   refHasMore: React.RefObject<boolean>;
   fetchMessages: (isInitial?: boolean) => Promise<void>;
+  startEditing: (note: Note) => void;
 }
 
 const MessageItem: FC<MessageItemProps> = ({
@@ -52,6 +53,7 @@ const MessageItem: FC<MessageItemProps> = ({
   refIsLoading,
   refHasMore,
   fetchMessages,
+  startEditing,
 }) => {
   const observer = useRef<IntersectionObserver | undefined>(undefined);
 
@@ -74,9 +76,24 @@ const MessageItem: FC<MessageItemProps> = ({
     [fetchMessages, refHasMore, refIsLoading],
   );
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      // Если фокус на кнопке внутри карточки (например, меню), не перехватываем
+      if (e.target !== e.currentTarget) return;
+
+      if (e.key.toLowerCase() === 'e' || e.key.toLowerCase() === 'у') {
+        e.preventDefault();
+        startEditing(msg);
+      }
+    },
+    [startEditing, msg],
+  );
+
   return (
     <Box ref={isLast ? firstMessageRef : undefined}>
       <Card
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
         onClick={(e) => {
           if (isSelectMode) {
             e.stopPropagation();
@@ -98,6 +115,10 @@ const MessageItem: FC<MessageItemProps> = ({
             ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 10px)'
             : 'none',
           border: msg.is_archived ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
+          '&:focus-visible': {
+            boxShadow: '0 0 0 2px #90caf9',
+            borderColor: '#90caf9',
+          },
         }}
       >
         <CardContent sx={{'&:last-child': {pb: 1.5}, pr: 1.5, pl: 2, pt: 1.5}}>
@@ -121,6 +142,11 @@ const MessageItem: FC<MessageItemProps> = ({
                 opacity: {xs: 1, sm: 0}, // На мобилках видна всегда, на ПК — при наведении
                 transition: 'opacity 0.2s',
                 color: '#8e8e93',
+                '&:focus-visible': {
+                  opacity: 1,
+                  boxShadow: '0 0 0 2px #90caf9',
+                  borderColor: '#90caf9',
+                },
               }}
             >
               <MoreVert fontSize="inherit" />

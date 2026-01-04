@@ -92,31 +92,6 @@ const TagsMenu: FC<TagsMenuProps> = ({
         },
       }}
     >
-      <Box
-        sx={{
-          px: 2,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          height: '20px',
-        }}
-      >
-        <Typography sx={{color: '#8e8e93', fontSize: '0.7rem', fontWeight: 700}}>
-          ФИЛЬТРЫ
-        </Typography>
-        {currentTags.length > 0 && (
-          <Typography
-            onClick={() => setCurrentTags([])}
-            variant="caption"
-            sx={{color: '#90caf9', cursor: 'pointer', fontSize: '0.7rem'}}
-          >
-            Сбросить
-          </Typography>
-        )}
-      </Box>
-
-      <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)', my: 1}} />
-
       <MenuItem
         onClick={() => {
           setShowArchived(!showArchived);
@@ -140,40 +115,65 @@ const TagsMenu: FC<TagsMenuProps> = ({
 
       <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
 
-      <Box sx={{maxHeight: 280, overflowY: 'auto', py: 0.5}}>
-        {allTags.map((tag) => {
-          const isActive = currentTags.includes(tag);
-          return (
-            <MenuItem
-              key={tag}
-              onClick={() => toggleTag(tag)}
-              sx={{
-                py: 0.8,
-                px: 2,
-                bgcolor: isActive ? 'rgba(144, 202, 249, 0.05)' : 'transparent',
-                '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.05)'},
-              }}
-            >
-              <ListItemIcon sx={{minWidth: '28px !important'}}>
-                <Typography
-                  sx={{
-                    fontSize: 14,
-                    color: isActive ? '#90caf9' : '#48484a',
-                    fontWeight: isActive ? 700 : 400,
-                  }}
-                >
-                  #
-                </Typography>
-              </ListItemIcon>
-              <ListItemText
-                primary={tag}
-                slotProps={{primary: {fontSize: '0.85rem', color: isActive ? '#fff' : '#8e8e93'}}}
-              />
-              {isActive && <Check sx={{fontSize: 14, color: '#90caf9'}} />}
-            </MenuItem>
-          );
-        })}
-      </Box>
+      <MenuItem
+        onClick={() => setCurrentTags([])}
+        sx={{
+          px: 2,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          height: '20px',
+        }}
+        disabled={currentTags.length === 0}
+      >
+        <Typography sx={{color: '#8e8e93', fontSize: '0.7rem', fontWeight: 700}}>
+          ФИЛЬТРЫ
+        </Typography>
+        {currentTags.length > 0 && (
+          <Typography
+            variant="caption"
+            sx={{color: '#90caf9', cursor: 'pointer', fontSize: '0.7rem'}}
+          >
+            Сбросить
+          </Typography>
+        )}
+      </MenuItem>
+
+      <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
+
+      {allTags.map((tag) => {
+        const isActive = currentTags.includes(tag);
+        return (
+          <MenuItem
+            key={tag}
+            tabIndex={0}
+            onClick={() => toggleTag(tag)}
+            sx={{
+              py: 0.8,
+              px: 2,
+              bgcolor: isActive ? 'rgba(144, 202, 249, 0.05)' : 'transparent',
+              '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.05)'},
+            }}
+          >
+            <ListItemIcon sx={{minWidth: '28px !important'}}>
+              <Typography
+                sx={{
+                  fontSize: 14,
+                  color: isActive ? '#90caf9' : '#48484a',
+                  fontWeight: isActive ? 700 : 400,
+                }}
+              >
+                #
+              </Typography>
+            </ListItemIcon>
+            <ListItemText
+              primary={tag}
+              slotProps={{primary: {fontSize: '0.85rem', color: isActive ? '#fff' : '#8e8e93'}}}
+            />
+            {isActive && <Check sx={{fontSize: 14, color: '#90caf9'}} />}
+          </MenuItem>
+        );
+      })}
     </Menu>
   );
 };

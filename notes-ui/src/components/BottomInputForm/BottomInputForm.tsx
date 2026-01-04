@@ -30,6 +30,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   const showSnackbar = useContext(SnackCtx);
   const [isDragging, setIsDragging] = useState(false);
   const [inputText, setInputText] = useState('');
+  const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
 
   // Состояния для редактирования существующих вложений
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
@@ -76,6 +77,15 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         }
       }
       setDeletedAttachIds([]);
+
+      setTimeout(() => {
+        if (inputRef.current) {
+          inputRef.current.focus();
+          // Перемещаем курсор в конец текста
+          const length = inputRef.current.value.length;
+          inputRef.current.setSelectionRange(length, length);
+        }
+      }, 100);
     } else {
       setExistingAttachments([]);
       setDeletedAttachIds([]);
@@ -369,6 +379,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </IconButton>
 
           <TextField
+            inputRef={inputRef}
             fullWidth
             multiline
             maxRows={10}

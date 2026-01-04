@@ -308,7 +308,11 @@ function App() {
 
           <Container
             maxWidth="sm"
-            sx={{flexGrow: 1, pt: 1, pb: 7.5 + (files.length ? 8 : 0) + (currentTags.length ? 7 : 0)}}
+            sx={{
+              flexGrow: 1,
+              pt: 1,
+              pb: 7.5 + (files.length ? 8 : 0) + (currentTags.length ? 7 : 0),
+            }}
           >
             <Stack spacing={1.5}>
               {messages.map((msg, index) => (
@@ -324,6 +328,7 @@ function App() {
                   refIsLoading={refIsLoading}
                   refHasMore={refHasMore}
                   fetchMessages={fetchMessages}
+                  startEditing={startEditing}
                 />
               ))}
             </Stack>

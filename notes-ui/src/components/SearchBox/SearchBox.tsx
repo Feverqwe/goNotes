@@ -88,6 +88,10 @@ const SearchBox: FC<SearchBoxProps> = ({
                       color: activeFiltersCount > 0 ? '#90caf9' : '#8e8e93',
                       bgcolor: activeFiltersCount > 0 ? 'rgba(144, 202, 249, 0.1)' : 'transparent',
                       '&:hover': {bgcolor: 'rgba(255,255,255,0.05)'},
+                      '&:focus-visible': {
+                        boxShadow: '0 0 0 2px #90caf9',
+                        borderColor: '#90caf9',
+                      },
                     }}
                   >
                     <FilterList sx={{fontSize: 20}} />

@@ -1,4 +1,4 @@
-import React, {FC, PropsWithChildren, useContext} from 'react';
+import React, {FC, PropsWithChildren, useCallback, useContext} from 'react';
 import {Box, IconButton} from '@mui/material';
 import {ContentCopy} from '@mui/icons-material';
 import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter';
@@ -23,9 +23,25 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
     showSnackbar('Код скопирован', 'success');
   };
 
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      // Если фокус на кнопке внутри карточки (например, меню), не перехватываем
+      if (e.target !== e.currentTarget) return;
+
+      if (e.key.toLowerCase() === 'enter') {
+        e.stopPropagation();
+        navigator.clipboard.writeText(codeContent);
+        showSnackbar('Код скопирован', 'success');
+      }
+    },
+    [codeContent, showSnackbar],
+  );
+
   if (!isMultiline) {
     return (
       <code
+        tabIndex={0}
+        onKeyDown={handleKeyDown}
         onClick={handleCopy}
         style={{
           backgroundColor: '#2c2c2e',
@@ -70,6 +86,11 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
           '&:hover': {
             bgcolor: 'rgba(144, 202, 249, 0.15)',
             color: '#fff',
+          },
+          '&:focus-visible': {
+            opacity: 1,
+            boxShadow: '0 0 0 2px #90caf9',
+            borderColor: '#90caf9',
           },
         }}
       >
