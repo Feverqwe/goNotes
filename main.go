@@ -48,11 +48,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// TODO RM IT
-	_, err = db.Query("ALTER TABLE messages ADD COLUMN is_archived INTEGER DEFAULT 0;")
+	/*_, err = db.Query("ALTER TABLE messages ADD COLUMN is_archived INTEGER DEFAULT 0;")
 	if err != nil {
 		log.Printf("Migrate query error: %v", err)
-	}
+	}*/
 
 	// Инициализируем схему прямо из встроенной переменной
 	if _, err := db.Exec(schemaSQL); err != nil {
