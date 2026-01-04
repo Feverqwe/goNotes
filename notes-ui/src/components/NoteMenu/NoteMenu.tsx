@@ -1,11 +1,11 @@
 import React, {FC, useCallback, useContext} from 'react';
-import {Box, ListItemIcon, ListItemText, Menu, MenuItem} from '@mui/material';
+import {Divider, ListItemIcon, ListItemText, Menu, MenuItem, SvgIconTypeMap} from '@mui/material';
 import {
+  Archive,
   CheckCircleOutline,
   ContentCopy,
   Delete,
   Edit,
-  Archive,
   Unarchive,
 } from '@mui/icons-material';
 import {Note} from '../../types';
@@ -45,107 +45,76 @@ const NoteMenu: FC<NoteMenuProps> = ({
       anchorEl={anchorEl}
       open={Boolean(anchorEl)}
       onClose={handleCloseMenu}
-      transitionDuration={150}
+      transitionDuration={100}
       slotProps={{
-        // Убираем стандартные отступы списка, чтобы кастомизировать их
-        list: {sx: {py: 0.8}},
+        list: {sx: {py: 0.5}},
         paper: {
           sx: {
-            bgcolor: 'rgba(28, 28, 30, 0.85)', // Стекло
-            backdropFilter: 'blur(25px)', // Сильный блюр
-            minWidth: 220,
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.6)',
-            backgroundImage: 'none', // Убираем стандартное наложение MUI
+            bgcolor: 'rgba(24, 24, 26, 0.85)', // Чуть плотнее фон
+            backdropFilter: 'blur(15px) saturate(140%)',
+            minWidth: 200,
+            borderRadius: '4px', // Строгий радиус
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+            backgroundImage: 'none',
           },
         },
       }}
     >
-      <MenuItem
-        onClick={() => {
-          if (!selectedMsg) return;
-          enterSelectMode(selectedMsg);
-        }}
-        sx={{
-          mx: 1,
-          my: 0.2,
-          '&:hover': {bgcolor: 'rgba(144, 202, 249, 0.12)'},
-        }}
-      >
-        <ListItemIcon sx={{minWidth: '36px !important'}}>
-          <CheckCircleOutline fontSize="small" />
-        </ListItemIcon>
-        <ListItemText slotProps={{primary: {fontSize: '0.9rem', color: '#efefef'}}}>
-          Выбрать
-        </ListItemText>
-      </MenuItem>
+      {[
+        {
+          icon: <CheckCircleOutline />,
+          text: 'Выбрать',
+          onClick: () => enterSelectMode(selectedMsg!),
+          color: '#8e8e93',
+        },
+        {icon: <ContentCopy />, text: 'Копировать', onClick: handleCopy, color: '#8e8e93'},
+        {icon: <Edit />, text: 'Изменить', onClick: onEditClick, color: '#90caf9'},
+        {
+          icon: selectedMsg?.is_archived ? <Unarchive /> : <Archive />,
+          text: selectedMsg?.is_archived ? 'Разархивировать' : 'В архив',
+          onClick: onArchiveClick,
+          color: '#8e8e93',
+        },
+      ].map((item, idx) => (
+        <MenuItem
+          key={idx}
+          onClick={item.onClick}
+          sx={{
+            py: 1,
+            px: 2,
+            borderRadius: 0, // Пункты на всю ширину без скруглений
+            transition: 'background-color 0.1s',
+            '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.05)'},
+          }}
+        >
+          <ListItemIcon sx={{minWidth: '32px !important', color: item.color}}>
+            {React.cloneElement(item.icon, {sx: {fontSize: 18}})}
+          </ListItemIcon>
+          <ListItemText
+            primary={item.text}
+            slotProps={{primary: {fontSize: '0.85rem', color: '#efefef'}}}
+          />
+        </MenuItem>
+      ))}
 
-      <MenuItem
-        onClick={handleCopy}
-        sx={{
-          mx: 1,
-          my: 0.2,
-          '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.08)'},
-        }}
-      >
-        <ListItemIcon sx={{minWidth: '36px !important'}}>
-          <ContentCopy fontSize="small" sx={{color: '#efefef'}} />
-        </ListItemIcon>
-        <ListItemText
-          primary="Копировать"
-          slotProps={{primary: {fontSize: '0.9rem', color: '#efefef'}}}
-        />
-      </MenuItem>
-
-      <MenuItem
-        onClick={onEditClick}
-        sx={{
-          mx: 1,
-          my: 0.2,
-          '&:hover': {bgcolor: 'rgba(144, 202, 249, 0.12)'},
-        }}
-      >
-        <ListItemIcon sx={{minWidth: '36px !important'}}>
-          <Edit fontSize="small" sx={{color: '#90caf9'}} />
-        </ListItemIcon>
-        <ListItemText
-          primary="Изменить"
-          slotProps={{primary: {fontSize: '0.9rem', color: '#efefef'}}}
-        />
-      </MenuItem>
-
-      <MenuItem onClick={onArchiveClick} sx={{mx: 1, my: 0.2}}>
-        <ListItemIcon sx={{minWidth: '36px !important'}}>
-          {selectedMsg?.is_archived ? <Unarchive fontSize="small" /> : <Archive fontSize="small" />}
-        </ListItemIcon>
-        <ListItemText
-          primary={selectedMsg?.is_archived ? 'Разархивировать' : 'В архив'}
-          slotProps={{primary: {fontSize: '0.9rem', color: '#efefef'}}}
-        />
-      </MenuItem>
-
-      {/* Разделитель перед опасным действием */}
-      <Box sx={{height: '1px', bgcolor: 'rgba(255, 255, 255, 0.05)', my: 0.8, mx: 2}} />
+      <Divider sx={{my: 0.5, borderColor: 'rgba(255, 255, 255, 0.08)'}} />
 
       <MenuItem
         onClick={onDeleteClick}
         sx={{
-          mx: 1,
-          my: 0.2,
-          '&:hover': {bgcolor: 'rgba(255, 69, 58, 0.15)'},
+          py: 1,
+          px: 2,
+          borderRadius: 0,
+          '&:hover': {bgcolor: 'rgba(255, 69, 58, 0.1)'},
         }}
       >
-        <ListItemIcon sx={{minWidth: '36px !important'}}>
-          <Delete fontSize="small" sx={{color: '#ff453a'}} />
+        <ListItemIcon sx={{minWidth: '32px !important'}}>
+          <Delete sx={{fontSize: 18, color: '#ff453a'}} />
         </ListItemIcon>
         <ListItemText
           primary="Удалить"
-          slotProps={{
-            primary: {
-              fontSize: '0.9rem',
-              color: '#ff453a',
-            },
-          }}
+          slotProps={{primary: {fontSize: '0.85rem', color: '#ff453a'}}}
         />
       </MenuItem>
     </Menu>

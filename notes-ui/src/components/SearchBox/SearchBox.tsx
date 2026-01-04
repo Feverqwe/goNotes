@@ -39,8 +39,8 @@ const SearchBox: FC<SearchBoxProps> = ({
         position: 'sticky',
         top: 0,
         zIndex: 11,
-        bgcolor: 'rgba(0,0,0,0.7)',
-        backdropFilter: 'blur(20px)',
+        bgcolor: 'rgba(18, 18, 18, 0.7)', // Немного темнее, так как под ней прокрутка
+        backdropFilter: 'blur(20px) saturate(180%)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
         py: 1,
       }}

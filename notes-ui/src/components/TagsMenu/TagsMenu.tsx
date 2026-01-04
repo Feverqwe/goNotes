@@ -12,7 +12,7 @@ import {
   Typography,
 } from '@mui/material';
 // MUI Icons
-import {Archive, FilterList, Tag as TagIcon} from '@mui/icons-material';
+import {Archive, Check, FilterList, Tag as TagIcon} from '@mui/icons-material';
 import axios from 'axios';
 import {API_BASE} from '../../constants';
 import {Note} from '../../types';
@@ -79,145 +79,101 @@ const TagsMenu: FC<TagsMenuProps> = ({
       slotProps={{
         paper: {
           sx: {
-            minWidth: 260,
-            maxHeight: 500,
-            border: '1px solid rgba(255, 255, 255, 0.08)',
-            boxShadow: '0 20px 50px rgba(0,0,0,0.4)',
-            mt: 1,
-            overflow: 'hidden',
+            bgcolor: 'rgba(24, 24, 26, 0.85)',
+            backdropFilter: 'blur(15px) saturate(140%)',
+            minWidth: 240,
+            maxHeight: 450,
+            borderRadius: '4px', // Тот же строгий радиус
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+            mt: 0.5,
             backgroundImage: 'none',
           },
         },
       }}
     >
-      {/* Кастомный заголовок с кнопкой закрытия */}
       <Box
         sx={{
-          px: 1.5,
-          pt: 1,
-          pb: 0.5,
+          px: 2,
           display: 'flex',
-          alignItems: 'center',
           justifyContent: 'space-between',
+          alignItems: 'center',
+          height: '20px',
         }}
       >
-        <Typography
-          sx={{
-            color: '#fff',
-            fontSize: '0.85rem',
-            fontWeight: 800,
-            letterSpacing: '0.02em',
-            display: 'flex',
-            alignItems: 'center',
-            gap: 1,
-          }}
-        >
-          <FilterList sx={{fontSize: 18, color: '#90caf9'}} />
+        <Typography sx={{color: '#8e8e93', fontSize: '0.7rem', fontWeight: 700}}>
           ФИЛЬТРЫ
         </Typography>
-
         {currentTags.length > 0 && (
           <Typography
-            variant="caption"
             onClick={() => setCurrentTags([])}
-            sx={{
-              color: '#90caf9',
-              cursor: 'pointer',
-              fontSize: '0.7rem',
-              '&:hover': {textDecoration: 'underline'},
-            }}
+            variant="caption"
+            sx={{color: '#90caf9', cursor: 'pointer', fontSize: '0.7rem'}}
           >
-            Сбросить ({currentTags.length})
+            Сбросить
           </Typography>
         )}
       </Box>
 
-      {/* Список тегов в виде сетки или списка */}
-      <Box
-        sx={{
-          px: 1,
-          pb: 0.5,
-          maxHeight: 380,
-          overflowY: 'auto',
-        }}
-      >
-        {allTags.length === 0 ? (
-          <Box sx={{py: 4, textAlign: 'center', opacity: 0.5}}>
-            <TagIcon sx={{fontSize: 40, mb: 1}} />
-            <Typography variant="body2">Теги еще не созданы</Typography>
-          </Box>
-        ) : (
-          <Stack spacing={0.5}>
-            {allTags.map((tag) => {
-              const isActive = currentTags.includes(tag);
-              return (
-                <MenuItem
-                  key={tag}
-                  onClick={() => toggleTag(tag)}
-                  disableRipple // Отключаем стандартный рипл для чистоты
-                  sx={{
-                    py: 1,
-                    px: 1.5,
-                    border: '1px solid',
-                    borderColor: isActive ? 'rgba(144, 202, 249, 0.3)' : 'transparent',
-                    bgcolor: isActive ? 'rgba(144, 202, 249, 0.08)' : 'transparent',
-                    '&:hover': {
-                      bgcolor: isActive ? 'rgba(144, 202, 249, 0.12)' : 'rgba(255, 255, 255, 0.05)',
-                    },
-                  }}
-                >
-                  <ListItemIcon sx={{minWidth: '32px !important'}}>
-                    <Box
-                      sx={{
-                        width: 24,
-                        height: 24,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        bgcolor: 'rgba(255,255,255,0.05)',
-                      }}
-                    >
-                      <Typography sx={{fontSize: 12, color: '#8e8e93'}}>#</Typography>
-                    </Box>
-                  </ListItemIcon>
+      <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)', my: 1}} />
 
-                  <ListItemText
-                    primary={tag}
-                    slotProps={{
-                      primary: {
-                        fontSize: '0.9rem',
-                        fontWeight: 400,
-                        color: isActive ? '#fff' : '#8e8e93',
-                      },
-                    }}
-                  />
-                </MenuItem>
-              );
-            })}
-          </Stack>
-        )}
-      </Box>
-      <Divider sx={{mx: 1, my: 0.5}} />
       <MenuItem
         onClick={() => {
           setShowArchived(!showArchived);
           handleCloseTagMenu();
         }}
         sx={{
-          mx: 1,
-          my: 0.5,
-          borderRadius: 1,
-          bgcolor: showArchived ? 'rgba(144, 202, 249, 0.15)' : 'transparent',
+          py: 1.2,
+          px: 2,
+          bgcolor: showArchived ? 'rgba(144, 202, 249, 0.08)' : 'transparent',
+          '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.05)'},
         }}
       >
         <ListItemIcon sx={{minWidth: '32px !important'}}>
-          <Archive fontSize="small" sx={{color: showArchived ? '#90caf9' : '#8e8e93'}} />
+          <Archive sx={{fontSize: 18, color: showArchived ? '#90caf9' : '#8e8e93'}} />
         </ListItemIcon>
         <ListItemText
           primary="Только архив"
-          slotProps={{primary: {fontSize: '0.9rem', color: showArchived ? '#90caf9' : '#efefef'}}}
+          slotProps={{primary: {fontSize: '0.85rem', color: showArchived ? '#90caf9' : '#efefef'}}}
         />
       </MenuItem>
+
+      <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
+
+      <Box sx={{maxHeight: 280, overflowY: 'auto', py: 0.5}}>
+        {allTags.map((tag) => {
+          const isActive = currentTags.includes(tag);
+          return (
+            <MenuItem
+              key={tag}
+              onClick={() => toggleTag(tag)}
+              sx={{
+                py: 0.8,
+                px: 2,
+                bgcolor: isActive ? 'rgba(144, 202, 249, 0.05)' : 'transparent',
+                '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.05)'},
+              }}
+            >
+              <ListItemIcon sx={{minWidth: '28px !important'}}>
+                <Typography
+                  sx={{
+                    fontSize: 14,
+                    color: isActive ? '#90caf9' : '#48484a',
+                    fontWeight: isActive ? 700 : 400,
+                  }}
+                >
+                  #
+                </Typography>
+              </ListItemIcon>
+              <ListItemText
+                primary={tag}
+                slotProps={{primary: {fontSize: '0.85rem', color: isActive ? '#fff' : '#8e8e93'}}}
+              />
+              {isActive && <Check sx={{fontSize: 14, color: '#90caf9'}} />}
+            </MenuItem>
+          );
+        })}
+      </Box>
     </Menu>
   );
 };
