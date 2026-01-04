@@ -27,6 +27,7 @@ import (
 
 	"github.com/NYTimes/gziphandler"
 	"github.com/nfnt/resize"
+	"github.com/rwcarlsen/goexif/exif"
 	_ "modernc.org/sqlite"
 )
 
@@ -647,6 +648,19 @@ func handleUpdateMessage(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+// Вспомогательная функция для поворота (добавьте в main.go)
+func applyOrientation(img image.Image, orientation string) image.Image {
+	switch orientation {
+	case "3": // 180°
+		return rotate180(img)
+	case "6": // 90° CW
+		return rotate90(img)
+	case "8": // 270° CW
+		return rotate270(img)
+	}
+	return img
+}
+
 // Функция создания миниатюры (150px в ширину)
 func generateThumbnail(originalPath string, thumbPath string) error {
 	file, err := os.Open(originalPath)
@@ -655,11 +669,27 @@ func generateThumbnail(originalPath string, thumbPath string) error {
 	}
 	defer file.Close()
 
+	// 1. Читаем EXIF метаданные для определения ориентации
+	var orientation = "1"
+	x, err := exif.Decode(file)
+	if err == nil {
+		tag, err := x.Get(exif.Orientation)
+		if err == nil {
+			orientation = tag.String()
+		}
+	}
+
+	// Сбрасываем указатель в начало файла после чтения EXIF
+	file.Seek(0, 0)
+
 	// Декодируем изображение
 	img, _, err := image.Decode(file)
 	if err != nil {
 		return err
 	}
+
+	// 3. Применяем поворот на основе EXIF
+	img = applyOrientation(img, orientation)
 
 	// Изменяем размер: 150px по ширине, 0 = автоматическая высота
 	m := resize.Resize(640, 0, img, resize.Bilinear)
@@ -764,4 +794,40 @@ func handleWww(router *internal.Router, config *cfg.Config) {
 	}))
 
 	router.Custom([]string{http.MethodGet, http.MethodHead}, []string{"^/"}, gzipHandler.ServeHTTP)
+}
+
+// rotate90 поворачивает на 90 градусов по часовой стрелке
+func rotate90(img image.Image) image.Image {
+	bounds := img.Bounds()
+	newImg := image.NewRGBA(image.Rect(0, 0, bounds.Dy(), bounds.Dx()))
+	for x := bounds.Min.X; x < bounds.Max.X; x++ {
+		for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+			newImg.Set(bounds.Max.Y-y-1, x, img.At(x, y))
+		}
+	}
+	return newImg
+}
+
+// rotate180 поворачивает на 180 градусов
+func rotate180(img image.Image) image.Image {
+	bounds := img.Bounds()
+	newImg := image.NewRGBA(bounds)
+	for x := bounds.Min.X; x < bounds.Max.X; x++ {
+		for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+			newImg.Set(bounds.Max.X-x-1, bounds.Max.Y-y-1, img.At(x, y))
+		}
+	}
+	return newImg
+}
+
+// rotate270 поворачивает на 270 градусов (или 90 против часовой)
+func rotate270(img image.Image) image.Image {
+	bounds := img.Bounds()
+	newImg := image.NewRGBA(image.Rect(0, 0, bounds.Dy(), bounds.Dx()))
+	for x := bounds.Min.X; x < bounds.Max.X; x++ {
+		for y := bounds.Min.Y; y < bounds.Max.Y; y++ {
+			newImg.Set(y, bounds.Max.X-x-1, img.At(x, y))
+		}
+	}
+	return newImg
 }
