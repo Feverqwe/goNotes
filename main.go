@@ -420,22 +420,21 @@ func handleListMessages(w http.ResponseWriter, r *http.Request) {
 		args = append(args, lastID)
 	}
 
-	// Поиск по тексту (поддержка LIKE паттернов)
+	// Поиск по тексту (учитываем регистр для кириллицы)
 	if searchQuery != "" {
-		// 1. Убираем лишние пробелы и разбиваем строку на слова
 		searchQuery = strings.TrimSpace(searchQuery)
-		words := strings.Fields(searchQuery) // Разбивает по любым пробельным символам
+		words := strings.Fields(searchQuery)
 
 		for _, word := range words {
-			// Заменяем '*' на '%' для поддержки ручных паттернов
-			processedWord := strings.ReplaceAll(word, "*", "%")
+			// Приводим поисковое слово к нижнему регистру в Go
+			processedWord := strings.ToLower(strings.ReplaceAll(word, "*", "%"))
 
-			// Если в слове нет '*', ищем как подстроку (оборачиваем в %)
 			if !strings.Contains(word, "*") {
-				processedWord = "%" + word + "%"
+				processedWord = "%" + processedWord + "%"
 			}
 
-			clauses = append(clauses, "content LIKE ?")
+			// Используем LOWER(content) для сравнения без учета регистра
+			clauses = append(clauses, "LOWER(content) LIKE ?")
 			args = append(args, processedWord)
 		}
 	}
