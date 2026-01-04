@@ -1,4 +1,4 @@
-import React, {FC, useCallback, useContext, useEffect, useMemo, useRef} from 'react';
+import React, {FC, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 
 import {Box, Chip, Container, IconButton, Paper, TextField, Typography} from '@mui/material';
 import {AttachFile, Check, Close, Edit, Send} from '@mui/icons-material';
@@ -30,6 +30,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   fetchMessages,
 }) => {
   const showSnackbar = useContext(SnackCtx);
+  const [isDragging, setIsDragging] = useState(false); // Состояние для подсветки при перетаскивании
   const refInputText = useRef(inputText);
   refInputText.current = inputText;
 
@@ -133,22 +134,78 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     [handleSend, canSend],
   );
 
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setIsDragging(true);
+    } else if (e.type === 'dragleave') {
+      setIsDragging(false);
+    }
+  }, []);
+
+  // Обработчик сброса файлов
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      setIsDragging(false);
+
+      if (editingId) return; // Запрещаем дроп при редактировании, так как бэкенд не поддерживает смену вложений
+
+      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        setFiles((prev) => [...prev, ...droppedFiles]);
+        e.dataTransfer.clearData();
+      }
+    },
+    [editingId, setFiles],
+  );
+
   return (
     <Paper
       square
       elevation={0}
+      // Добавляем обработчики на Paper
+      onDragEnter={handleDrag}
+      onDragOver={handleDrag}
+      onDragLeave={handleDrag}
+      onDrop={handleDrop}
       sx={{
         position: 'fixed',
         bottom: 0,
         left: 0,
         right: 0,
-        bgcolor: '#121212',
+        bgcolor: isDragging ? 'rgba(144, 202, 249, 0.1)' : '#121212', // Подсветка фона
         borderTop: '1px solid',
         borderColor: editingId ? 'rgba(144, 202, 249, 0.5)' : '#2c2c2e',
         zIndex: 1000,
       }}
     >
       <Container maxWidth="sm" disableGutters>
+        {/* Если перетаскиваем файл — показываем подсказку поверх формы */}
+        {isDragging && !editingId && (
+          <Box
+            sx={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              bgcolor: 'rgba(18, 18, 18, 0.8)',
+              zIndex: 10,
+              pointerEvents: 'none', // Чтобы не мешать событию onDrop
+            }}
+          >
+            <Typography variant="body2" sx={{color: '#90caf9', fontWeight: 700}}>
+              Отпустите файлы для добавления
+            </Typography>
+          </Box>
+        )}
+
         {/* ИНДИКАТОР РЕДАКТИРОВАНИЯ (аккуратный градиент) */}
         {editingId && (
           <Box
