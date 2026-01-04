@@ -56,6 +56,13 @@ function App() {
   const refCurrentTags = useRef(currentTags);
   refCurrentTags.current = currentTags;
 
+  const [showArchived, setShowArchived] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('archived') === '1';
+  });
+  const refShowArchived = useRef(showArchived);
+  refShowArchived.current = showArchived;
+
   const [editingId, setEditingId] = useState<number | null>(null);
   const [anchorEl, setAnchorEl] = useState<Element | null>(null);
   const [selectedMsg, setSelectedMsg] = useState<Note | null>(null);
@@ -141,49 +148,54 @@ function App() {
   }, []);
 
   // Загрузка сообщений
-  const fetchMessages = useCallback(
-    async (isInitial = false) => {
-      setIsLoading(true);
-      const messages = refMessages.current;
-      const currentTags = refCurrentTags.current;
-      const searchQuery = refSearchQuery.current;
-      try {
-        const lastId = !isInitial && messages.length > 0 ? messages[messages.length - 1].id : 0;
+  const fetchMessages = useCallback(async (isInitial = false) => {
+    setIsLoading(true);
+    const messages = refMessages.current;
+    const currentTags = refCurrentTags.current;
+    const searchQuery = refSearchQuery.current;
+    const showArchived = refShowArchived.current;
+    try {
+      const lastId = !isInitial && messages.length > 0 ? messages[messages.length - 1].id : 0;
 
-        const res = await axios.get(`${API_BASE}/messages/list`, {
-          params: {
-            limit: LIMIT,
-            last_id: lastId,
-            tags: currentTags.join(','),
-            q: searchQuery,
-          },
-        });
+      const res = await axios.get(`${API_BASE}/messages/list`, {
+        params: {
+          limit: LIMIT,
+          last_id: lastId,
+          tags: currentTags.join(','),
+          q: searchQuery,
+          archived: showArchived ? '1' : '0',
+        },
+      });
 
-        const newMessages = res.data;
+      const newMessages = res.data;
 
-        if (isInitial) {
-          setMessages(newMessages);
-          setHasMore(newMessages.length === LIMIT);
-        } else {
-          if (newMessages.length > 0) {
-            setMessages((prev) => [...prev, ...newMessages]);
-          }
-          if (newMessages.length < LIMIT) setHasMore(false);
+      if (isInitial) {
+        setMessages(newMessages);
+        setHasMore(newMessages.length === LIMIT);
+      } else {
+        if (newMessages.length > 0) {
+          setMessages((prev) => [...prev, ...newMessages]);
         }
-      } catch (e) {
-        console.error(e);
-      } finally {
-        setIsLoading(false);
+        if (newMessages.length < LIMIT) setHasMore(false);
       }
-    },
-    [],
-  );
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Синхронизация с URL и загрузка данных
   useEffect(() => {
     // 1. Мгновенно обновляем URL
     if (!refGoBack.current) {
       const url = new URL(window.location.href);
+
+      if (showArchived) {
+        url.searchParams.set('archived', '1');
+      } else {
+        url.searchParams.delete('archived');
+      }
 
       // Работа с тегами
       if (currentTags.length > 0) {
@@ -212,7 +224,7 @@ function App() {
 
     // Очистка таймера при следующем изменении (если пользователь нажал клавишу быстрее чем 400мс)
     return () => clearTimeout(delayDebounceFn);
-  }, [currentTags, searchQuery, fetchMessages]); // Добавили searchQuery в зависимости
+  }, [currentTags, searchQuery, fetchMessages, showArchived]); // Добавили searchQuery в зависимости
 
   // Только темная тема
   const theme = useMemo(() => createTheme(themeProps), []);
@@ -293,6 +305,8 @@ function App() {
             currentTags={currentTags}
             setCurrentTags={setCurrentTags}
             handleOpenTagMenu={handleOpenTagMenu}
+            showArchived={showArchived}
+            setShowArchived={setShowArchived}
           />
 
           <Container
@@ -392,6 +406,8 @@ function App() {
           currentTags={currentTags}
           setCurrentTags={setCurrentTags}
           messages={messages}
+          showArchived={showArchived}
+          setShowArchived={setShowArchived}
         />
       </SnackCtx.Provider>
     </ThemeProvider>

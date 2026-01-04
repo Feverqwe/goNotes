@@ -8,6 +8,8 @@ interface SearchBoxProps {
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>; // Добавили сеттер для сброса тегов
   handleOpenTagMenu: (event: React.MouseEvent<HTMLButtonElement>) => void;
+  showArchived: boolean;
+  setShowArchived: (v: boolean) => void;
 }
 
 const SearchBox: FC<SearchBoxProps> = ({
@@ -16,15 +18,18 @@ const SearchBox: FC<SearchBoxProps> = ({
   currentTags,
   setCurrentTags,
   handleOpenTagMenu,
+                                   showArchived,
+  setShowArchived,
 }) => {
   // Функция для полной очистки поиска и тегов
   const handleClearAll = useCallback(() => {
     setSearchQuery('');
     setCurrentTags([]);
-  }, [setSearchQuery, setCurrentTags]);
+    setShowArchived(false);
+  }, [setSearchQuery, setCurrentTags, setShowArchived]);
 
   // Определяем, активен ли какой-либо фильтр
-  const hasFilters = searchQuery.length > 0 || currentTags.length > 0;
+  const hasFilters = searchQuery.length > 0 || currentTags.length > 0 || showArchived;
 
   return (
     <Paper

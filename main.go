@@ -405,7 +405,8 @@ func handleListMessages(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 	lastID, _ := strconv.Atoi(r.URL.Query().Get("last_id"))
 	tagsParam := r.URL.Query().Get("tags")
-	searchQuery := r.URL.Query().Get("q") // Новый параметр поиска
+	searchQuery := r.URL.Query().Get("q")
+	onlyArchived := r.URL.Query().Get("archived") == "1"
 
 	if limit <= 0 {
 		limit = 15
@@ -454,7 +455,13 @@ func handleListMessages(w http.ResponseWriter, r *http.Request) {
 		args = append(args, len(tagList))
 	}
 
-	if searchQuery == "" && tagsParam == "" {
+	if searchQuery != "" || tagsParam != "" {
+		// Если есть поиск или теги — показываем всё (и архив, и обычные)
+	} else if onlyArchived {
+		// Если выбран режим "Архив" — показываем ТОЛЬКО архивные
+		clauses = append(clauses, "is_archived = 1")
+	} else {
+		// Обычный режим — показываем только НЕ архивные
 		clauses = append(clauses, "is_archived = 0")
 	}
 

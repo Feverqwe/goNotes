@@ -1,10 +1,18 @@
 import React, {FC, useCallback, useContext, useEffect, useState} from 'react';
 
 // MUI Core Components
-import {Box, ListItemIcon, ListItemText, Menu, MenuItem, Stack, Typography} from '@mui/material';
-
+import {
+  Box,
+  Divider,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Stack,
+  Typography,
+} from '@mui/material';
 // MUI Icons
-import {Check, FilterList, Tag as TagIcon} from '@mui/icons-material';
+import {Archive, FilterList, Tag as TagIcon} from '@mui/icons-material';
 import axios from 'axios';
 import {API_BASE} from '../../constants';
 import {Note} from '../../types';
@@ -18,6 +26,8 @@ interface TagsMenuProps {
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   messages: Note[];
+  showArchived: boolean;
+  setShowArchived: (v: boolean) => void;
 }
 
 const TagsMenu: FC<TagsMenuProps> = ({
@@ -26,6 +36,8 @@ const TagsMenu: FC<TagsMenuProps> = ({
   currentTags,
   setCurrentTags,
   messages,
+  showArchived,
+  setShowArchived,
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const [allTags, setAllTags] = useState([]);
@@ -165,9 +177,7 @@ const TagsMenu: FC<TagsMenuProps> = ({
                         bgcolor: 'rgba(255,255,255,0.05)',
                       }}
                     >
-                      <Typography sx={{fontSize: 12, color: '#8e8e93'}}>
-                        #
-                      </Typography>
+                      <Typography sx={{fontSize: 12, color: '#8e8e93'}}>#</Typography>
                     </Box>
                   </ListItemIcon>
 
@@ -187,6 +197,27 @@ const TagsMenu: FC<TagsMenuProps> = ({
           </Stack>
         )}
       </Box>
+      <Divider sx={{mx: 1, my: 0.5}} />
+      <MenuItem
+        onClick={() => {
+          setShowArchived(!showArchived);
+          handleCloseTagMenu();
+        }}
+        sx={{
+          mx: 1,
+          my: 0.5,
+          borderRadius: 1,
+          bgcolor: showArchived ? 'rgba(144, 202, 249, 0.15)' : 'transparent',
+        }}
+      >
+        <ListItemIcon sx={{minWidth: '32px !important'}}>
+          <Archive fontSize="small" sx={{color: showArchived ? '#90caf9' : '#8e8e93'}} />
+        </ListItemIcon>
+        <ListItemText
+          primary="Только архив"
+          slotProps={{primary: {fontSize: '0.9rem', color: showArchived ? '#90caf9' : '#efefef'}}}
+        />
+      </MenuItem>
     </Menu>
   );
 };
