@@ -28,6 +28,7 @@ import MultiSelectMenu from './components/MultiSelectMenu/MultiSelectMenu';
 import NoteMenu from './components/NoteMenu/NoteMenu';
 import BatchDeleteDialog from './components/BatchDeleteDialog/BatchDeleteDialog';
 import DeleteDialog from './components/DeleteDialog/DeleteDialog';
+import EmptyState from './components/EmptyState/EmptyState';
 
 const LIMIT = 6; // Сколько сообщений грузим за раз
 
@@ -291,6 +292,11 @@ function App() {
     }
   }, [selectedMsg, fetchMessages, showSnackbar, handleCloseMenu]);
 
+  const hasActiveFilters = useMemo(
+    () => searchQuery.length > 0 || currentTags.length > 0 || showArchived,
+    [currentTags.length, searchQuery.length, showArchived],
+  );
+
   return (
     <ThemeProvider theme={theme}>
       <SnackCtx.Provider value={showSnackbar}>
@@ -314,6 +320,8 @@ function App() {
               pb: 7.5 + (files.length ? 8 : 0) + (currentTags.length ? 7 : 0),
             }}
           >
+            {messages.length === 0 && !isLoading && <EmptyState hasFilters={hasActiveFilters} />}
+
             <Stack spacing={1.5}>
               {messages.map((msg, index) => (
                 <MessageItem
