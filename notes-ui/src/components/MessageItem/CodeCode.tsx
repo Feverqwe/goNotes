@@ -115,6 +115,7 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
           style: {wordBreak: 'normal', whiteSpace: 'pre-wrap'},
         }}
         PreTag="div"
+        customStyle={{margin: 0, padding: '12px'}}
         {...props}
       >
         {codeContent}
