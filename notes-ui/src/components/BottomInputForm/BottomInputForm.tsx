@@ -82,7 +82,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         if (inputRef.current) {
           inputRef.current.focus();
           // Перемещаем курсор в конец текста
-          const length = inputRef.current.value.length;
+          const {length} = inputRef.current.value;
           inputRef.current.setSelectionRange(length, length);
         }
       }, 100);
@@ -106,7 +106,8 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   );
 
   const toggleDeleteExisting = useCallback((id: number) => {
-    setDeletedAttachIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]),
+    setDeletedAttachIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   }, []);
 
@@ -189,6 +190,16 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       }
     },
     [setFiles],
+  );
+
+  const handleFileKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        e.currentTarget.querySelector('input')?.dispatchEvent(new MouseEvent('click'));
+      }
+    },
+    [],
   );
 
   return (
@@ -368,7 +379,19 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         )}
 
         <Box sx={{display: 'flex', alignItems: 'flex-end', px: 0.5, pb: 0.5}}>
-          <IconButton component="label" sx={{color: '#8e8e93', mb: 0.5}}>
+          <IconButton
+            component="label"
+            onKeyDown={handleFileKeyDown}
+            tabIndex={3}
+            sx={{
+              color: '#8e8e93',
+              mb: 0.5,
+              '&:focus-visible': {
+                boxShadow: '0 0 0 2px #90caf9',
+                borderColor: '#90caf9',
+              },
+            }}
+          >
             <AttachFile sx={{transform: 'rotate(45deg)'}} />
             <input
               hidden
@@ -392,14 +415,28 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
               input: {
                 disableUnderline: true,
                 sx: {color: '#fff', py: 1.5, px: 1, fontSize: '0.95rem'},
+                slotProps: {
+                  input: {
+                    tabIndex: 3,
+                  },
+                },
               },
             }}
           />
 
           <IconButton
+            tabIndex={3}
             onClick={handleSend}
             disabled={!canSend}
-            sx={{color: '#90caf9', mb: 0.5, '&.Mui-disabled': {color: '#3a3a3c'}}}
+            sx={{
+              color: '#90caf9',
+              mb: 0.5,
+              '&.Mui-disabled': {color: '#3a3a3c'},
+              '&:focus-visible': {
+                boxShadow: '0 0 0 2px #90caf9',
+                borderColor: '#90caf9',
+              },
+            }}
           >
             {editingId ? <Check sx={{fontSize: 28}} /> : <Send sx={{fontSize: 26}} />}
           </IconButton>

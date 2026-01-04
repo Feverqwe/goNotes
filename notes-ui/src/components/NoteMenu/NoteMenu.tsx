@@ -1,5 +1,5 @@
 import React, {FC, useCallback, useContext} from 'react';
-import {Divider, ListItemIcon, ListItemText, Menu, MenuItem, SvgIconTypeMap} from '@mui/material';
+import {Divider, ListItemIcon, ListItemText, Menu, MenuItem} from '@mui/material';
 import {
   Archive,
   CheckCircleOutline,

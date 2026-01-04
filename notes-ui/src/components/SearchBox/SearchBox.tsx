@@ -63,6 +63,7 @@ const SearchBox: FC<SearchBoxProps> = ({
           onChange={(e) => setSearchQuery(e.target.value)}
           slotProps={{
             input: {
+              tabIndex: 1,
               disableUnderline: true,
               startAdornment: (
                 <Badge

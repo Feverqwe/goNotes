@@ -1,18 +1,9 @@
 import React, {FC, useCallback, useContext, useEffect, useState} from 'react';
 
 // MUI Core Components
-import {
-  Box,
-  Divider,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Stack,
-  Typography,
-} from '@mui/material';
+import {Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
 // MUI Icons
-import {Archive, Check, FilterList, Tag as TagIcon} from '@mui/icons-material';
+import {Archive, Check} from '@mui/icons-material';
 import axios from 'axios';
 import {API_BASE} from '../../constants';
 import {Note} from '../../types';

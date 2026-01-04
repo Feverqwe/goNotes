@@ -6,7 +6,7 @@ import {oneDark} from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {SnackCtx} from '../../ctx/SnackCtx';
 
 interface CodeCodeProps extends PropsWithChildren {
-  node: any;
+  node: unknown;
   className: string;
 }
 
