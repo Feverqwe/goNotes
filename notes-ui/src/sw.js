@@ -1,32 +1,57 @@
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
 
-  // Перехватываем запрос на /share, который мы указали в манифесте
   if (event.request.method === 'POST' && url.pathname === '/share') {
+    // Останавливаем стандартную отправку на сервер
     event.respondWith(
       (async () => {
         const formData = await event.request.formData();
-        const text = formData.get('text') || formData.get('url') || '';
+        const text = formData.get('text') || formData.get('url') || formData.get('title') || '';
         const files = formData.getAll('attachments');
 
-        // Открываем окно приложения, если оно закрыто
-        const client = await self.clients.claim();
-        const allClients = await self.clients.matchAll({type: 'window'});
-        const appWindow = allClients[0] || (await self.clients.openWindow('/'));
+        // Редиректим на главную (303 See Other — стандарт для POST-редиректа)
+        // Добавляем флаг в URL, чтобы приложение знало, что мы ждем данные
+        const response = Response.redirect('/?shared=1', 303);
 
-        // Ждем немного, пока страница загрузится, и шлем данные
-        setTimeout(() => {
-          appWindow.postMessage(
-            {
-              action: 'load-shared-files',
-              text: text,
-              files: files,
-            },
-            '*',
-          );
-        }, 1000);
+        // Ждем появления окна приложения
+        const clientsList = await self.clients.matchAll({
+          type: 'window',
+          includeUncontrolled: true,
+        });
 
-        return Response.redirect('/', 303);
+        // Пытаемся найти уже открытое окно или открываем новое
+        let client = clientsList.find((c) => c.visibilityState === 'visible') || clientsList[0];
+
+        if (!client) {
+          client = await self.clients.openWindow('/?shared=1');
+        }
+
+        // Функция отправки данных с повторами, пока клиент не будет готов
+        const sendData = async () => {
+          let attempts = 0;
+          const maxAttempts = 20;
+
+          const interval = setInterval(async () => {
+            attempts++;
+            const currentClients = await self.clients.matchAll({type: 'window'});
+            const activeClient = currentClients.find((c) => c.url.includes('/'));
+
+            if (activeClient) {
+              activeClient.postMessage({
+                action: 'load-shared-files',
+                text: text,
+                files: files,
+              });
+              clearInterval(interval);
+            }
+
+            if (attempts >= maxAttempts) clearInterval(interval);
+          }, 500);
+        };
+
+        sendData();
+
+        return response;
       })(),
     );
   }
