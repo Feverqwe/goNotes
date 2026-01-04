@@ -69,7 +69,7 @@ function App() {
   const refHasMore = useRef(hasMore);
   refHasMore.current = hasMore;
 
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const refIsLoading = useRef(isLoading);
   refIsLoading.current = isLoading;
 
