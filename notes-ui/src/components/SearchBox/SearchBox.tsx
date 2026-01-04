@@ -1,4 +1,4 @@
-import React, {FC} from 'react';
+import React, {FC, useCallback} from 'react';
 import {Badge, Box, IconButton, Paper, TextField} from '@mui/material';
 import {Clear, FilterList} from '@mui/icons-material';
 
@@ -6,6 +6,7 @@ interface SearchBoxProps {
   searchQuery: string;
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   currentTags: string[];
+  setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>; // Добавили сеттер для сброса тегов
   handleOpenTagMenu: (event: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -13,8 +14,18 @@ const SearchBox: FC<SearchBoxProps> = ({
   searchQuery,
   setSearchQuery,
   currentTags,
+  setCurrentTags,
   handleOpenTagMenu,
 }) => {
+  // Функция для полной очистки поиска и тегов
+  const handleClearAll = useCallback(() => {
+    setSearchQuery('');
+    setCurrentTags([]);
+  }, [setSearchQuery, setCurrentTags]);
+
+  // Определяем, активен ли какой-либо фильтр
+  const hasFilters = searchQuery.length > 0 || currentTags.length > 0;
+
   return (
     <Paper
       square
@@ -23,11 +34,10 @@ const SearchBox: FC<SearchBoxProps> = ({
         position: 'sticky',
         top: 0,
         zIndex: 11,
-        // Более глубокое размытие и мягкий фон
         bgcolor: 'rgba(0,0,0,0.7)',
         backdropFilter: 'blur(20px)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-        py: 1, // Увеличим отступы для «воздуха»
+        py: 1,
       }}
     >
       <Box
@@ -52,7 +62,6 @@ const SearchBox: FC<SearchBoxProps> = ({
                 <Badge
                   badgeContent={currentTags.length}
                   color="primary"
-                  // Настроим Badge, чтобы он был аккуратнее
                   sx={{
                     mr: 1,
                     '& .MuiBadge-badge': {
@@ -78,11 +87,15 @@ const SearchBox: FC<SearchBoxProps> = ({
                   </IconButton>
                 </Badge>
               ),
-              endAdornment: searchQuery && (
+              // Обновленная логика кнопки очистки
+              endAdornment: hasFilters && (
                 <IconButton
                   size="small"
-                  onClick={() => setSearchQuery('')}
-                  sx={{color: '#8e8e93', '&:hover': {color: '#efefef'}}}
+                  onClick={handleClearAll}
+                  sx={{
+                    color: '#8e8e93',
+                    '&:hover': {color: '#ff453a'}, // Сделаем чуть краснее при наведении для акцента на удалении
+                  }}
                 >
                   <Clear sx={{fontSize: 18}} />
                 </IconButton>
@@ -90,7 +103,7 @@ const SearchBox: FC<SearchBoxProps> = ({
               sx: {
                 bgcolor: '#1c1c1e',
                 px: 0.5,
-                borderRadius: '4px', // Более скругленные углы
+                borderRadius: '4px',
                 border: '1px solid transparent',
                 '&:focus-within': {
                   bgcolor: '#252527',

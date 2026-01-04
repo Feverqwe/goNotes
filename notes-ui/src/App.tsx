@@ -275,6 +275,7 @@ function App() {
             searchQuery={searchQuery}
             setSearchQuery={setSearchQuery}
             currentTags={currentTags}
+            setCurrentTags={setCurrentTags}
             handleOpenTagMenu={handleOpenTagMenu}
           />
 
