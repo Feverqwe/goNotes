@@ -37,7 +37,6 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         cursor: 'pointer',
         position: 'relative',
         transition: 'transform 0.1s',
-        '&:active': {transform: 'scale(0.99)'}, // Эффект нажатия
         '&:hover::after': {
           content: '"Кликните, чтобы скопировать"',
           position: 'absolute',
