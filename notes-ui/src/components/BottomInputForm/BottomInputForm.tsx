@@ -192,15 +192,12 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     [setFiles],
   );
 
-  const handleFileKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        e.currentTarget.querySelector('input')?.dispatchEvent(new MouseEvent('click'));
-      }
-    },
-    [],
-  );
+  const handleFileKeyDown = useCallback((e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      e.currentTarget.querySelector('input')?.dispatchEvent(new MouseEvent('click'));
+    }
+  }, []);
 
   return (
     <Paper
