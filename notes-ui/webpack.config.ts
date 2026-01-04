@@ -72,7 +72,11 @@ const getOptions: CallableWebpackConfiguration = (env, argv) => ({
       scriptLoading: 'blocking',
     }),
     new CopyPlugin({
-      patterns: [{from: './src/assets/icons', to: 'icons'}],
+      patterns: [
+        {from: './src/assets/icons', to: 'icons'},
+        {from: './src/assets/manifest.json', to: 'manifest.json'},
+        {from: './src/sw.js', to: 'sw.js'},
+      ],
     }),
   ],
   resolve: {
