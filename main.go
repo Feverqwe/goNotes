@@ -559,32 +559,73 @@ func handleUpdateMessage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var data struct {
-		ID      int64  `json:"id"`
-		Content string `json:"content"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	// Лимит 32МБ
+	if err := r.ParseMultipartForm(32 << 20); err != nil {
+		http.Error(w, "Error parsing form", http.StatusBadRequest)
 		return
 	}
+
+	idStr := r.FormValue("id")
+	content := r.FormValue("content")
+	// Список ID вложений, которые нужно УДАЛИТЬ (придет строкой через запятую)
+	deleteAttachIDs := r.FormValue("delete_attachments")
+
+	id, _ := strconv.ParseInt(idStr, 10, 64)
 
 	tx, _ := db.Begin()
 	defer tx.Rollback()
 
-	// 1. Обновляем текст и дату
-	_, err := tx.Exec("UPDATE messages SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-		data.Content, data.ID)
+	// 1. Обновляем текст
+	_, err := tx.Exec("UPDATE messages SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", content, id)
 	if err != nil {
 		http.Error(w, err.Error(), 500)
 		return
 	}
 
-	// 2. Перепарсиваем теги (удаляем старые, ставим новые)
-	tx.Exec("DELETE FROM message_tags WHERE message_id = ?", data.ID)
-	tags := extractHashtags(data.Content)
+	// 2. Удаляем помеченные вложения
+	if deleteAttachIDs != "" {
+		ids := strings.Split(deleteAttachIDs, ",")
+		for _, aid := range ids {
+			// Сначала удаляем физически
+			var filePath, thumbPath string
+			err := tx.QueryRow("SELECT file_path, thumbnail_path FROM attachments WHERE id = ? AND message_id = ?", aid, id).Scan(&filePath, &thumbPath)
+			if err == nil {
+				deletePhysicalFile(filePath)
+				if thumbPath != "" {
+					deletePhysicalFile(thumbPath)
+				}
+			}
+			// Затем из базы
+			tx.Exec("DELETE FROM attachments WHERE id = ?", aid)
+		}
+	}
+
+	// 3. Добавляем новые вложения (та же логика, что в handleSendMessage)
+	files := r.MultipartForm.File["attachments"]
+	for _, fHeader := range files {
+		fileName := fmt.Sprintf("%d_%s", id, fHeader.Filename)
+		fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
+		if err := saveFile(fHeader, fullPath); err == nil {
+			fileType := "document"
+			thumbnailPath := ""
+			if isImage(fileName) {
+				fileType = "image"
+				thumbName := "thumb_" + fileName
+				if err := generateThumbnail(fullPath, filepath.Join(cfg.GetProfilePath(), "uploads", thumbName)); err == nil {
+					thumbnailPath = thumbName
+				}
+			}
+			tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
+				id, fileName, thumbnailPath, fileType)
+		}
+	}
+
+	// 4. Обновляем теги
+	tx.Exec("DELETE FROM message_tags WHERE message_id = ?", id)
+	tags := extractHashtags(content)
 	for _, t := range tags {
 		tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
-		tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", data.ID, t)
+		tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", id, t)
 	}
 
 	tx.Commit()

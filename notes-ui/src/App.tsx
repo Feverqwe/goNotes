@@ -318,6 +318,7 @@ function App() {
             inputText={inputText}
             setInputText={setInputText}
             fetchMessages={fetchMessages}
+            messages={messages}
           />
 
           {isSelectMode && (

@@ -1,10 +1,10 @@
 import React, {FC, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
-
 import {Box, Chip, Container, IconButton, Paper, TextField, Typography} from '@mui/material';
-import {AttachFile, Check, Close, Edit, Send} from '@mui/icons-material';
+import {AttachFile, Check, Close, Edit, Send, DeleteForever} from '@mui/icons-material';
 import axios from 'axios';
 import {API_BASE} from '../../constants';
 import {SnackCtx} from '../../ctx/SnackCtx';
+import {Attachment, Note} from '../../types';
 
 interface BottomInputFormProps {
   editingId: number | null;
@@ -16,6 +16,7 @@ interface BottomInputFormProps {
   setInputText: React.Dispatch<React.SetStateAction<string>>;
   setEditingId: React.Dispatch<React.SetStateAction<number | null>>;
   fetchMessages: (isInitial?: boolean) => Promise<void>;
+  messages: Note[]; // Добавьте этот пропс в App.tsx при вызове
 }
 
 const BottomInputForm: FC<BottomInputFormProps> = ({
@@ -28,145 +29,135 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   setInputText,
   setEditingId,
   fetchMessages,
+  messages,
 }) => {
   const showSnackbar = useContext(SnackCtx);
-  const [isDragging, setIsDragging] = useState(false); // Состояние для подсветки при перетаскивании
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Состояния для редактирования существующих вложений
+  const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
+  const [deletedAttachIds, setDeletedAttachIds] = useState<number[]>([]);
+
   const refInputText = useRef(inputText);
   refInputText.current = inputText;
 
+  // Инициализация при входе в режим редактирования
   useEffect(() => {
-    // Слушаем сообщение от Service Worker о том, что нам что-то "расшарили"
-    navigator.serviceWorker.addEventListener('message', (event) => {
-      if (event.data.action === 'load-shared-files') {
-        const sharedFiles = event.data.files as File[]; // Массив файлов из другого приложения
-        setFiles((prev) => [...prev, ...sharedFiles]);
-        if (event.data.text) setInputText(event.data.text);
+    if (editingId) {
+      const msg = messages.find((m) => m.id === editingId);
+      if (msg && msg.attachments) {
+        setExistingAttachments(msg.attachments);
       }
-    });
-  }, [setFiles, setInputText]);
+      setDeletedAttachIds([]);
+    } else {
+      setExistingAttachments([]);
+      setDeletedAttachIds([]);
+    }
+  }, [editingId, messages]);
 
   const cancelEditing = useCallback(() => {
     setEditingId(null);
     setInputText('');
-  }, [setEditingId, setInputText]);
+    setFiles([]);
+  }, [setEditingId, setInputText, setFiles]);
 
-  // Функция для удаления файла из списка выбранных перед отправкой
-  const removeFile = useCallback(
+  const removeNewFile = useCallback(
     (index: number) => {
       setFiles((prev) => prev.filter((_, i) => i !== index));
     },
     [setFiles],
   );
 
-  // Проверка: можно ли отправить (текст НЕ пустой ИЛИ есть файлы)
-  const canSend = useMemo(
-    () => inputText.trim().length > 0 || files.length > 0,
-    [inputText, files.length],
-  );
+  const toggleDeleteExisting = useCallback((id: number) => {
+    setDeletedAttachIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    );
+  }, []);
+
+  const canSend = useMemo(() => {
+    const hasText = inputText.trim().length > 0;
+    const hasNewFiles = files.length > 0;
+    const hasRemainingFiles = existingAttachments.length > deletedAttachIds.length;
+    return hasText || hasNewFiles || hasRemainingFiles;
+  }, [inputText, files, existingAttachments, deletedAttachIds]);
 
   const handleSend = useCallback(async () => {
     if (!canSend) return;
-    const inputText = refInputText.current;
+    const content = refInputText.current;
+    const formData = new FormData();
 
-    if (editingId) {
-      // ЛОГИКА ОБНОВЛЕНИЯ
-      try {
-        await axios.post(`${API_BASE}/messages/update`, {
-          id: editingId,
-          content: inputText,
+    formData.append('content', content);
+    files.forEach((f) => formData.append('attachments', f));
+
+    try {
+      if (editingId) {
+        formData.append('id', editingId.toString());
+        formData.append('delete_attachments', deletedAttachIds.join(','));
+        await axios.post(`${API_BASE}/messages/update`, formData);
+        showSnackbar('Сообщение обновлено', 'success');
+      } else {
+        // Добавляем активные теги к новому сообщению
+        let finalContent = content;
+        currentTags.forEach((tag) => {
+          if (!finalContent.includes(`#${tag}`)) finalContent += ` #${tag}`;
         });
-        setEditingId(null);
-        setInputText('');
-        fetchMessages(true); // Перегружаем, чтобы увидеть изменения
-      } catch (e) {
-        console.error(e);
-        showSnackbar('Не удалось обновить сообщение', 'error');
-      }
-    } else {
-      let content = inputText;
-      currentTags.forEach((currentTag) => {
-        if (currentTag && !content.includes(`#${currentTag}`)) {
-          content += ` #${currentTag}`;
-        }
-      });
-
-      const formData = new FormData();
-      formData.append('content', content);
-      files.forEach((f) => formData.append('attachments', f));
-
-      try {
+        formData.set('content', finalContent);
         await axios.post(`${API_BASE}/messages/send`, formData);
-        setInputText('');
-        setFiles([]); // Очищаем файлы после отправки
-        fetchMessages(true);
-      } catch (e) {
-        console.error(e);
-        showSnackbar('Не удалось отправить сообщение', 'error');
       }
+
+      setInputText('');
+      setFiles([]);
+      setEditingId(null);
+      fetchMessages(true);
+    } catch (e) {
+      showSnackbar('Ошибка при сохранении', 'error');
     }
   }, [
     canSend,
-    currentTags,
     editingId,
-    fetchMessages,
     files,
+    deletedAttachIds,
+    currentTags,
+    fetchMessages,
+    showSnackbar,
     setEditingId,
     setFiles,
     setInputText,
-    showSnackbar,
   ]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      // Проверяем, нажат ли Enter
-      if (e.key === 'Enter') {
-        // Проверяем нажатие Ctrl (Windows/Linux) или Meta (Cmd на Mac)
-        if (e.ctrlKey || e.metaKey) {
-          e.preventDefault(); // Предотвращаем лишний перенос
-          if (canSend) {
-            handleSend();
-          }
-        }
-        // Обычный Enter теперь всегда делает перенос строки автоматически,
-        // так как мы не вызываем preventDefault() в остальных случаях.
+      if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+        e.preventDefault();
+        handleSend();
       }
     },
-    [handleSend, canSend],
+    [handleSend],
   );
 
+  // Drag & Drop логика
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setIsDragging(true);
-    } else if (e.type === 'dragleave') {
-      setIsDragging(false);
-    }
+    if (e.type === 'dragenter' || e.type === 'dragover') setIsDragging(true);
+    else if (e.type === 'dragleave') setIsDragging(false);
   }, []);
 
-  // Обработчик сброса файлов
   const handleDrop = useCallback(
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
       setIsDragging(false);
-
-      if (editingId) return; // Запрещаем дроп при редактировании, так как бэкенд не поддерживает смену вложений
-
       if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
-        const droppedFiles = Array.from(e.dataTransfer.files);
-        setFiles((prev) => [...prev, ...droppedFiles]);
-        e.dataTransfer.clearData();
+        setFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)]);
       }
     },
-    [editingId, setFiles],
+    [setFiles],
   );
 
   return (
     <Paper
       square
-      elevation={0}
-      // Добавляем обработчики на Paper
       onDragEnter={handleDrag}
       onDragOver={handleDrag}
       onDragLeave={handleDrag}
@@ -176,70 +167,92 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         bottom: 0,
         left: 0,
         right: 0,
-        bgcolor: isDragging ? 'rgba(144, 202, 249, 0.1)' : '#121212', // Подсветка фона
+        bgcolor: isDragging ? '#1a1f24' : '#121212',
         borderTop: '1px solid',
         borderColor: editingId ? 'rgba(144, 202, 249, 0.5)' : '#2c2c2e',
         zIndex: 1000,
+        transition: 'background-color 0.2s',
       }}
     >
       <Container maxWidth="sm" disableGutters>
-        {/* Если перетаскиваем файл — показываем подсказку поверх формы */}
-        {isDragging && !editingId && (
-          <Box
-            sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
-              right: 0,
-              bottom: 0,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              bgcolor: 'rgba(18, 18, 18, 0.8)',
-              zIndex: 10,
-              pointerEvents: 'none', // Чтобы не мешать событию onDrop
-            }}
-          >
-            <Typography variant="body2" sx={{color: '#90caf9', fontWeight: 700}}>
-              Отпустите файлы для добавления
-            </Typography>
-          </Box>
-        )}
-
-        {/* ИНДИКАТОР РЕДАКТИРОВАНИЯ (аккуратный градиент) */}
         {editingId && (
           <Box
             sx={{
               px: 2,
               py: 0.5,
-              background: 'linear-gradient(90deg, rgba(144, 202, 249, 0.1) 0%, transparent 100%)',
+              bgcolor: 'rgba(144, 202, 249, 0.1)',
               display: 'flex',
               alignItems: 'center',
               gap: 1,
             }}
           >
             <Edit sx={{fontSize: 14, color: '#90caf9'}} />
-            <Typography
-              variant="caption"
-              sx={{color: '#90caf9', fontWeight: 500, letterSpacing: 0.5}}
-            >
-              Редактируем
+            <Typography variant="caption" sx={{color: '#90caf9', fontWeight: 600}}>
+              РЕДАКТИРОВАНИЕ
             </Typography>
             <Box sx={{flexGrow: 1}} />
-            <IconButton size="small" onClick={cancelEditing} sx={{color: '#90caf9'}}>
-              <Close sx={{fontSize: 16}} />
+            <IconButton size="small" onClick={cancelEditing}>
+              <Close sx={{fontSize: 16, color: '#90caf9'}} />
             </IconButton>
           </Box>
         )}
 
-        {/* КРАСИВЫЙ СПИСОК ФАЙЛОВ (в стиле вкладок) */}
-        {files.length > 0 && !editingId && (
+        {/* СУЩЕСТВУЮЩИЕ ВЛОЖЕНИЯ (при редактировании) */}
+        {existingAttachments.length > 0 && editingId && (
           <Box
             sx={{
               display: 'flex',
               gap: 1,
+              px: 1,
               pt: 1,
-              pb: 0,
+              overflowX: 'auto',
+              '&::-webkit-scrollbar': {display: 'none'},
+            }}
+          >
+            {existingAttachments.map((att) => {
+              const isDeleted = deletedAttachIds.includes(att.id);
+              return (
+                <Box
+                  key={att.id}
+                  sx={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    bgcolor: isDeleted ? 'rgba(255, 69, 58, 0.1)' : '#1c1c1e',
+                    pl: 1,
+                    borderRadius: 2,
+                    border: '1px solid',
+                    borderColor: isDeleted ? '#ff453a' : '#2c2c2e',
+                    opacity: isDeleted ? 0.6 : 1,
+                  }}
+                >
+                  <Typography
+                    variant="caption"
+                    sx={{color: isDeleted ? '#ff453a' : '#efefef', maxWidth: 100}}
+                    noWrap
+                  >
+                    {att.file_path.split('_').slice(1).join('_')}
+                  </Typography>
+                  <IconButton size="small" onClick={() => toggleDeleteExisting(att.id)}>
+                    {isDeleted ? (
+                      <Close sx={{fontSize: 14, color: '#ff453a'}} />
+                    ) : (
+                      <DeleteForever sx={{fontSize: 14, color: '#8e8e93'}} />
+                    )}
+                  </IconButton>
+                </Box>
+              );
+            })}
+          </Box>
+        )}
+
+        {/* НОВЫЕ ВЛОЖЕНИЯ (выбранные сейчас) */}
+        {files.length > 0 && (
+          <Box
+            sx={{
+              display: 'flex',
+              gap: 1,
+              px: 1,
+              pt: 1,
               overflowX: 'auto',
               '&::-webkit-scrollbar': {display: 'none'},
             }}
@@ -252,59 +265,44 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
                   alignItems: 'center',
                   bgcolor: '#1c1c1e',
                   pl: 1,
-                  pr: 0,
-                  borderRadius: 3,
-                  border: '1px solid #2c2c2e',
-                  minWidth: 'fit-content',
+                  borderRadius: 2,
+                  border: '1px solid #90caf9',
                 }}
               >
-                <Typography variant="caption" sx={{color: '#efefef', maxWidth: 120}} noWrap>
+                <Typography variant="caption" sx={{color: '#90caf9', maxWidth: 120}} noWrap>
                   {file.name}
                 </Typography>
-                <IconButton size="small" onClick={() => removeFile(idx)} color="error">
-                  <Close sx={{fontSize: 14}} />
+                <IconButton size="small" onClick={() => removeNewFile(idx)}>
+                  <Close sx={{fontSize: 14, color: '#90caf9'}} />
                 </IconButton>
               </Box>
             ))}
           </Box>
         )}
 
-        {/* ЭСТЕТИЧНЫЕ ТЕГИ (Soft UI) */}
-        {currentTags.length > 0 && (
-          <Box sx={{pt: 1, pb: 1, display: 'flex', gap: 1, flexWrap: 'wrap'}}>
+        {/* ТЕГИ */}
+        {currentTags.length > 0 && !editingId && (
+          <Box sx={{px: 1, pt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap'}}>
             {currentTags.map((tag) => (
               <Chip
                 key={tag}
-                label={tag} // Убираем #, так как это дизайн-элемент
-                onDelete={() => setCurrentTags((tags) => tags.filter((t) => t !== tag))}
+                label={tag}
                 size="small"
+                onDelete={() => setCurrentTags((prev) => prev.filter((t) => t !== tag))}
                 sx={{
                   bgcolor: 'rgba(144, 202, 249, 0.08)',
                   color: '#90caf9',
-                  border: '1px solid rgba(144, 202, 249, 0.2)',
-                  borderRadius: '8px',
-                  fontWeight: 600,
-                  fontSize: '0.7rem',
-                  '& .MuiChip-deleteIcon': {color: '#90caf9', fontSize: 14},
+                  fontSize: '0.65rem',
+                  height: 20,
                 }}
               />
             ))}
           </Box>
         )}
 
-        {/* ОСНОВНОЕ ПОЛЕ ВВОДА */}
-        <Box sx={{display: 'flex', alignItems: 'flex-end'}}>
-          <IconButton
-            component="label"
-            disabled={!!editingId}
-            sx={{
-              color: files.length > 0 ? '#90caf9' : '#8e8e93',
-              mb: 0.3,
-              visibility: editingId ? 'hidden' : 'visible',
-              width: editingId ? 0 : 'auto',
-            }}
-          >
-            <AttachFile sx={{transform: 'rotate(45deg)', fontSize: 24}} />
+        <Box sx={{display: 'flex', alignItems: 'flex-end', px: 0.5, pb: 0.5}}>
+          <IconButton component="label" sx={{color: '#8e8e93', mb: 0.5}}>
+            <AttachFile sx={{transform: 'rotate(45deg)'}} />
             <input
               hidden
               multiple
@@ -318,18 +316,14 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
             multiline
             maxRows={10}
             variant="standard"
-            placeholder={editingId ? 'Редактирование...' : 'Заметка...'}
+            placeholder={isDragging ? 'Сбросьте файлы...' : 'Заметка...'}
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             slotProps={{
               input: {
                 disableUnderline: true,
-                sx: {
-                  color: '#fff',
-                  py: 1.2,
-                  px: 1,
-                },
+                sx: {color: '#fff', py: 1.5, px: 1, fontSize: '0.95rem'},
               },
             }}
           />
@@ -337,11 +331,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           <IconButton
             onClick={handleSend}
             disabled={!canSend}
-            sx={{
-              color: '#90caf9',
-              mb: 0.3,
-              '&.Mui-disabled': {color: '#3a3a3c'},
-            }}
+            sx={{color: '#90caf9', mb: 0.5, '&.Mui-disabled': {color: '#3a3a3c'}}}
           >
             {editingId ? <Check sx={{fontSize: 28}} /> : <Send sx={{fontSize: 26}} />}
           </IconButton>
