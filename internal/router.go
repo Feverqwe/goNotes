@@ -56,6 +56,10 @@ func (s *Router) Post(path string, handlers ...RouteHandler) {
 	s.Custom([]string{http.MethodPost}, []string{path}, handlers...)
 }
 
+func (s *Router) Delete(path string, handlers ...RouteHandler) {
+	s.Custom([]string{http.MethodDelete}, []string{path}, handlers...)
+}
+
 func (s *Router) All(path string, handlers ...RouteHandler) {
 	s.Custom([]string{}, []string{path}, handlers...)
 }

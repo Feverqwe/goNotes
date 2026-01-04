@@ -79,14 +79,21 @@ func main() {
 
 	router := internal.NewRouter()
 
-	router.All("/messages/send", handleSendMessage)
-	router.All("/messages/list", handleListMessages)
-	router.All("/messages/delete", handleDeleteMessage)
-	router.All("/messages/update", handleUpdateMessage)
-	router.All("/messages/batch-delete", handleBatchDeleteMessages)
-	router.All("/tags/list", handleListTags)
-	router.All("/share", handleSendMessage)
-	router.All("^/files/", handleGetFile)
+	// Сообщения
+	router.Post("/messages/send", handleSendMessage)                 // Создание (Multipart)
+	router.Get("/messages/list", handleListMessages)                 // Получение списка
+	router.Post("/messages/update", handleUpdateMessage)             // Обновление (Multipart)
+	router.Post("/messages/batch-delete", handleBatchDeleteMessages) // Массовое удаление
+
+	// Теги
+	router.Get("/tags/list", handleListTags) // Получение списка тегов
+
+	// Файлы и Share
+	router.Post("/share", handleSendMessage) // Share Target обычно шлет POST
+	router.Get("^/files/", handleGetFile)    // Раздача файлов
+
+	router.Delete("/messages/delete", handleDeleteMessage)
+
 	handleWww(router, &config)
 
 	address := config.GetAddress()
