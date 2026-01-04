@@ -224,14 +224,14 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </Box>
         )}
 
-        {/* СУЩЕСТВУЮЩИЕ ВЛОЖЕНИЯ (при редактировании) */}
+        {/* СУЩЕСТВУЮЩИЕ ВЛОЖЕНИЯ — адаптированы под тач */}
         {existingAttachments.length > 0 && editingId && (
           <Box
             sx={{
               display: 'flex',
-              gap: 1,
-              px: 1,
-              pt: 1,
+              gap: 1.5,
+              px: 2,
+              pt: 1.5,
               overflowX: 'auto',
               '&::-webkit-scrollbar': {display: 'none'},
             }}
@@ -244,26 +244,31 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
                   sx={{
                     display: 'flex',
                     alignItems: 'center',
+                    height: '42px',
                     bgcolor: isDeleted ? 'rgba(255, 69, 58, 0.1)' : '#1c1c1e',
-                    pl: 1,
-                    borderRadius: 2,
+                    pl: 2,
+                    borderRadius: '8px',
                     border: '1px solid',
                     borderColor: isDeleted ? '#ff453a' : '#2c2c2e',
                     opacity: isDeleted ? 0.6 : 1,
                   }}
                 >
                   <Typography
-                    variant="caption"
-                    sx={{color: isDeleted ? '#ff453a' : '#efefef', maxWidth: 100}}
+                    variant="body2"
+                    sx={{
+                      color: isDeleted ? '#ff453a' : '#efefef',
+                      maxWidth: 150,
+                      fontSize: '0.85rem',
+                    }}
                     noWrap
                   >
                     {att.file_path.split('_').slice(1).join('_')}
                   </Typography>
-                  <IconButton size="small" onClick={() => toggleDeleteExisting(att.id)}>
+                  <IconButton onClick={() => toggleDeleteExisting(att.id)} sx={{ml: 0.5}}>
                     {isDeleted ? (
-                      <Close sx={{fontSize: 14, color: '#ff453a'}} />
+                      <Close sx={{fontSize: 22, color: '#ff453a'}} />
                     ) : (
-                      <DeleteForever sx={{fontSize: 14, color: '#8e8e93'}} />
+                      <DeleteForever sx={{fontSize: 22, color: '#8e8e93'}} />
                     )}
                   </IconButton>
                 </Box>
@@ -272,14 +277,15 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </Box>
         )}
 
-        {/* НОВЫЕ ВЛОЖЕНИЯ (выбранные сейчас) */}
+        {/* КРАСИВЫЙ СПИСОК НОВЫХ ФАЙЛОВ — адаптирован под тач */}
         {files.length > 0 && (
           <Box
             sx={{
               display: 'flex',
-              gap: 1,
-              px: 1,
-              pt: 1,
+              gap: 1.5, // Увеличили расстояние между файлами
+              px: 2,
+              pt: 1.5,
+              pb: 0.5,
               overflowX: 'auto',
               '&::-webkit-scrollbar': {display: 'none'},
             }}
@@ -291,36 +297,59 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   bgcolor: '#1c1c1e',
-                  pl: 1,
-                  borderRadius: 2,
+                  pl: 2, // Больше отступ слева
+                  pr: 0.5,
+                  py: 0.5, // Добавили вертикальный отступ для высоты
+                  borderRadius: '8px',
                   border: '1px solid #90caf9',
+                  minWidth: 'fit-content',
+                  height: '42px', // Фиксированная высота для удобства нажатия
                 }}
               >
-                <Typography variant="caption" sx={{color: '#90caf9', maxWidth: 120}} noWrap>
+                <Typography
+                  variant="body2"
+                  sx={{color: '#90caf9', maxWidth: 150, fontSize: '0.9rem'}}
+                  noWrap
+                >
                   {file.name}
                 </Typography>
-                <IconButton size="small" onClick={() => removeNewFile(idx)}>
-                  <Close sx={{fontSize: 14, color: '#90caf9'}} />
+                <IconButton
+                  size="medium" // Увеличили размер кнопки
+                  onClick={() => removeNewFile(idx)}
+                  sx={{ml: 1, color: '#90caf9'}}
+                >
+                  <Close sx={{fontSize: 20}} />
                 </IconButton>
               </Box>
             ))}
           </Box>
         )}
 
-        {/* ТЕГИ */}
+        {/* ЭСТЕТИЧНЫЕ ТЕГИ — адаптированы под тач */}
         {currentTags.length > 0 && !editingId && (
-          <Box sx={{px: 1, pt: 1, display: 'flex', gap: 0.5, flexWrap: 'wrap'}}>
+          <Box sx={{px: 2, pt: 1.5, pb: 1, display: 'flex', gap: 1, flexWrap: 'wrap'}}>
             {currentTags.map((tag) => (
               <Chip
                 key={tag}
                 label={tag}
-                size="small"
                 onDelete={() => setCurrentTags((prev) => prev.filter((t) => t !== tag))}
+                // Убрали size="small" для стандартного (крупного) размера
                 sx={{
                   bgcolor: 'rgba(144, 202, 249, 0.08)',
                   color: '#90caf9',
-                  fontSize: '0.65rem',
-                  height: 20,
+                  border: '1px solid rgba(144, 202, 249, 0.2)',
+                  borderRadius: '6px', // Более строгий радиус
+                  fontWeight: 600,
+                  fontSize: '0.85rem', // Крупнее шрифт
+                  height: '36px', // Комфортная высота для тапа
+                  '& .MuiChip-deleteIcon': {
+                    fontSize: 20, // Увеличили крестик
+                    color: '#90caf9',
+                    ml: 1,
+                    mr: 0.5,
+                    '&:hover': {color: '#fff'},
+                  },
+                  '& .MuiChip-label': {px: 1.5}, // Больше места для текста
                 }}
               />
             ))}

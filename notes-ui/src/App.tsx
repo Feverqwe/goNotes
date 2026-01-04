@@ -311,7 +311,7 @@ function App() {
 
           <Container
             maxWidth="sm"
-            sx={{flexGrow: 1, pt: 1, pb: 7 + (files.length ? 4 : 0) + (currentTags.length ? 5 : 0)}}
+            sx={{flexGrow: 1, pt: 1, pb: 7 + (files.length ? 8 : 0) + (currentTags.length ? 7.5 : 0)}}
           >
             <Stack spacing={1.5}>
               {messages.map((msg, index) => (
