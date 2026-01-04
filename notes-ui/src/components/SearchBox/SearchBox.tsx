@@ -1,4 +1,4 @@
-import React, {FC, useCallback} from 'react';
+import React, {FC, useCallback, useMemo} from 'react';
 import {Badge, Box, IconButton, Paper, TextField} from '@mui/material';
 import {Clear, FilterList} from '@mui/icons-material';
 
@@ -28,8 +28,16 @@ const SearchBox: FC<SearchBoxProps> = ({
     setShowArchived(false);
   }, [setSearchQuery, setCurrentTags, setShowArchived]);
 
+  const activeFiltersCount = useMemo(
+    () => currentTags.length + (showArchived ? 1 : 0),
+    [currentTags.length, showArchived],
+  );
+
   // Определяем, активен ли какой-либо фильтр
-  const hasFilters = searchQuery.length > 0 || currentTags.length > 0 || showArchived;
+  const hasFilters = useMemo(
+    () => searchQuery.length > 0 || activeFiltersCount > 0 || showArchived,
+    [activeFiltersCount, searchQuery.length, showArchived],
+  );
 
   return (
     <Paper
@@ -39,20 +47,13 @@ const SearchBox: FC<SearchBoxProps> = ({
         position: 'sticky',
         top: 0,
         zIndex: 11,
-        bgcolor: 'rgba(18, 18, 18, 0.7)', // Немного темнее, так как под ней прокрутка
+        bgcolor: 'rgba(18, 18, 18, 0.7)',
         backdropFilter: 'blur(20px) saturate(180%)',
         borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
         py: 1,
       }}
     >
-      <Box
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          maxWidth: 'sm',
-          mx: 'auto',
-        }}
-      >
+      <Box sx={{display: 'flex', alignItems: 'center', maxWidth: 'sm', mx: 'auto'}}>
         <TextField
           fullWidth
           size="medium"
@@ -65,8 +66,8 @@ const SearchBox: FC<SearchBoxProps> = ({
               disableUnderline: true,
               startAdornment: (
                 <Badge
-                  badgeContent={currentTags.length}
-                  color="primary"
+                  badgeContent={activeFiltersCount}
+                  color={showArchived ? 'warning' : 'primary'}
                   sx={{
                     mr: 1,
                     '& .MuiBadge-badge': {
@@ -76,6 +77,7 @@ const SearchBox: FC<SearchBoxProps> = ({
                       top: 4,
                       right: 4,
                       border: '2px solid #1c1c1e',
+                      transition: 'background-color 0.3s',
                     },
                   }}
                 >
@@ -83,8 +85,8 @@ const SearchBox: FC<SearchBoxProps> = ({
                     size="small"
                     onClick={handleOpenTagMenu}
                     sx={{
-                      color: currentTags.length > 0 ? '#90caf9' : '#8e8e93',
-                      bgcolor: currentTags.length > 0 ? 'rgba(144, 202, 249, 0.1)' : 'transparent',
+                      color: activeFiltersCount > 0 ? '#90caf9' : '#8e8e93',
+                      bgcolor: activeFiltersCount > 0 ? 'rgba(144, 202, 249, 0.1)' : 'transparent',
                       '&:hover': {bgcolor: 'rgba(255,255,255,0.05)'},
                     }}
                   >
@@ -92,14 +94,13 @@ const SearchBox: FC<SearchBoxProps> = ({
                   </IconButton>
                 </Badge>
               ),
-              // Обновленная логика кнопки очистки
               endAdornment: hasFilters && (
                 <IconButton
                   size="small"
                   onClick={handleClearAll}
                   sx={{
                     color: '#8e8e93',
-                    '&:hover': {color: '#ff453a'}, // Сделаем чуть краснее при наведении для акцента на удалении
+                    '&:hover': {color: '#ff453a'},
                   }}
                 >
                   <Clear sx={{fontSize: 18}} />
