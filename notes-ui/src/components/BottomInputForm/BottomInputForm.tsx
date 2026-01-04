@@ -254,6 +254,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
                 >
                   <Typography
                     variant="body2"
+                    title={att.file_path.split('_').slice(1).join('_')}
                     sx={{
                       color: isDeleted ? '#ff453a' : '#efefef',
                       maxWidth: 150,
@@ -307,6 +308,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
               >
                 <Typography
                   variant="body2"
+                  title={file.name}
                   sx={{color: '#90caf9', maxWidth: 150, fontSize: '0.9rem'}}
                   noWrap
                 >
