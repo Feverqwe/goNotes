@@ -32,17 +32,6 @@ import (
 
 var DEBUG_UI = os.Getenv("DEBUG_UI") == "1"
 
-type Message struct {
-	ID          int64     `json:"id"`
-	ParentID    *int64    `json:"parent_id,omitempty"`
-	Content     string    `json:"content"`
-	Type        string    `json:"type"`
-	CreatedAt   string    `json:"created_at"`
-	UpdatedAt   string    `json:"updated_at"`
-	Tags        []string  `json:"tags,omitempty"`
-	Attachments []Message `json:"attachments,omitempty"`
-}
-
 //go:embed db.sql
 var schemaSQL string
 
@@ -59,20 +48,16 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// TODO RM IT
+	_, err = db.Query("ALTER TABLE messages ADD COLUMN is_archived INTEGER DEFAULT 0;")
+	if err != nil {
+		log.Printf("Migrate query error: %v", err)
+	}
+
 	// Инициализируем схему прямо из встроенной переменной
 	if _, err := db.Exec(schemaSQL); err != nil {
 		log.Fatalf("Init DB error: %v", err)
 	}
-
-	/*_, err = db.Query("ALTER TABLE attachments ADD COLUMN thumbnail_path TEXT DEFAULT '';")
-	if err != nil {
-		log.Printf("Query error: %v", err)
-	}*/
-
-	/*_, err = db.Query("UPDATE messages SET updated_at = created_at WHERE updated_at IS NULL;")
-	if err != nil {
-		log.Printf("Query error: %v", err)
-	}*/
 
 	// Создаем папку для вложений
 	os.Mkdir(filepath.Join(cfg.GetProfilePath(), "uploads"), 0755)
@@ -84,6 +69,7 @@ func main() {
 	router.Get("/messages/list", handleListMessages)                 // Получение списка
 	router.Post("/messages/update", handleUpdateMessage)             // Обновление (Multipart)
 	router.Post("/messages/batch-delete", handleBatchDeleteMessages) // Массовое удаление
+	router.Post("/messages/archive", handleArchiveMessage)
 
 	// Теги
 	router.Get("/tags/list", handleListTags) // Получение списка тегов
@@ -342,6 +328,18 @@ func handleBatchDeleteMessages(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func handleArchiveMessage(w http.ResponseWriter, r *http.Request) {
+	id := r.URL.Query().Get("id")
+	archive := r.URL.Query().Get("archive") // "1" или "0"
+
+	_, err := db.Exec("UPDATE messages SET is_archived = ? WHERE id = ?", archive, id)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 // --- Вспомогательные функции ---
 
 // --- Хелперы ---
@@ -391,6 +389,7 @@ type MessageDTO struct {
 	Content     string          `json:"content"`
 	CreatedAt   string          `json:"created_at"`
 	UpdatedAt   string          `json:"updated_at"`
+	IsArchived  int             `json:"is_archived"` // 0 или 1
 	Tags        []string        `json:"tags"`
 	Attachments []AttachmentDTO `json:"attachments"`
 }
@@ -455,13 +454,17 @@ func handleListMessages(w http.ResponseWriter, r *http.Request) {
 		args = append(args, len(tagList))
 	}
 
+	if searchQuery == "" && tagsParam == "" {
+		clauses = append(clauses, "is_archived = 0")
+	}
+
 	whereSQL := ""
 	if len(clauses) > 0 {
 		whereSQL = "WHERE " + strings.Join(clauses, " AND ")
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, content, created_at, updated_at
+		SELECT id, content, created_at, updated_at, is_archived
 			FROM messages 
 			%s 
 			ORDER BY id DESC 
@@ -483,7 +486,7 @@ func handleListMessages(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var m MessageDTO
 		// Если проблема с NULL решена в БД, Scan пройдет без ошибок
-		if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt); err != nil {
+		if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.IsArchived); err != nil {
 			log.Printf("Scan error: %v", err)
 			continue
 		}

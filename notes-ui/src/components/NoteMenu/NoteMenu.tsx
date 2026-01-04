@@ -3,6 +3,7 @@ import {Box, ListItemIcon, ListItemText, Menu, MenuItem} from '@mui/material';
 import {CheckCircleOutline, ContentCopy, Delete, Edit} from '@mui/icons-material';
 import {Note} from '../../types';
 import {SnackCtx} from '../../ctx/SnackCtx';
+import {Archive, Unarchive} from '@mui/icons-material';
 
 interface NoteMenuProps {
   anchorEl: Element | null;
@@ -11,6 +12,7 @@ interface NoteMenuProps {
   enterSelectMode: (msg: Note) => void;
   onEditClick: () => void;
   onDeleteClick: () => void;
+  onArchiveClick: () => void;
 }
 
 const NoteMenu: FC<NoteMenuProps> = ({
@@ -20,6 +22,7 @@ const NoteMenu: FC<NoteMenuProps> = ({
   enterSelectMode,
   onEditClick,
   onDeleteClick,
+  onArchiveClick,
 }) => {
   const showSnackbar = useContext(SnackCtx);
 
@@ -101,6 +104,16 @@ const NoteMenu: FC<NoteMenuProps> = ({
         </ListItemIcon>
         <ListItemText
           primary="Изменить"
+          slotProps={{primary: {fontSize: '0.9rem', color: '#efefef'}}}
+        />
+      </MenuItem>
+
+      <MenuItem onClick={onArchiveClick} sx={{mx: 1, my: 0.2}}>
+        <ListItemIcon sx={{minWidth: '36px !important'}}>
+          {selectedMsg?.is_archived ? <Unarchive fontSize="small" /> : <Archive fontSize="small" />}
+        </ListItemIcon>
+        <ListItemText
+          primary={selectedMsg?.is_archived ? 'Разархивировать' : 'В архив'}
           slotProps={{primary: {fontSize: '0.9rem', color: '#efefef'}}}
         />
       </MenuItem>

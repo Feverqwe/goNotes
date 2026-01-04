@@ -3,7 +3,8 @@ CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     content TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    is_archived INTEGER DEFAULT 0
 );
 
 -- Таблица вложений (привязана к сообщению)
@@ -41,3 +42,6 @@ CREATE INDEX IF NOT EXISTS idx_message_tags_tag_id ON message_tags(tag_id);
 
 -- Оптимизация сортировки по дате
 CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at DESC);
+
+-- И индекс для быстрой фильтрации
+CREATE INDEX IF NOT EXISTS idx_messages_is_archived ON messages(is_archived);

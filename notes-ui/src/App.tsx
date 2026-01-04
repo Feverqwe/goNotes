@@ -266,6 +266,22 @@ function App() {
     setSelectedIds([]);
   }, []);
 
+  const onArchiveClick = useCallback(async () => {
+    if (!selectedMsg) return;
+    const newStatus = selectedMsg.is_archived ? 0 : 1;
+    try {
+      await axios.post(`${API_BASE}/messages/archive`, null, {
+        params: {id: selectedMsg.id, archive: newStatus},
+      });
+      showSnackbar(newStatus ? 'Заметка в архиве' : 'Заметка восстановлена');
+      fetchMessages(true); // Перезагружаем список
+    } catch (e) {
+      showSnackbar('Ошибка архивации', 'error');
+    } finally {
+      handleCloseMenu();
+    }
+  }, [selectedMsg, fetchMessages, showSnackbar, handleCloseMenu]);
+
   return (
     <ThemeProvider theme={theme}>
       <SnackCtx.Provider value={showSnackbar}>
@@ -337,6 +353,7 @@ function App() {
           enterSelectMode={enterSelectMode}
           onEditClick={onEditClick}
           onDeleteClick={onDeleteClick}
+          onArchiveClick={onArchiveClick}
         />
 
         <Snackbar
