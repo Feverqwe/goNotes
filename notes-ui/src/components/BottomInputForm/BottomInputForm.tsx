@@ -47,20 +47,25 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         const sharedFiles = event.data.files as File[];
         setFiles((prev) => [...prev, ...sharedFiles]);
         if (event.data.text) setInputText(event.data.text);
-
-        // Сообщаем SW, что данные получены (необязательно, но полезно для отладки)
-        console.log('Shared content received!');
       }
     };
 
     navigator.serviceWorker.addEventListener('message', handleMessage);
 
-    // В 2026 важно: сообщаем SW, что мы готовы
-    if (navigator.serviceWorker.controller) {
-      navigator.serviceWorker.controller.postMessage({type: 'READY_TO_RECEIVE'});
-    }
+    // Как только компонент смонтирован, спрашиваем у SW: "Есть что для меня?"
+    const askForData = () => {
+      if (navigator.serviceWorker.controller) {
+        navigator.serviceWorker.controller.postMessage({action: 'GET_SHARED_DATA'});
+      }
+    };
 
-    return () => navigator.serviceWorker.removeEventListener('message', handleMessage);
+    // Небольшая задержка, чтобы стейты инициализировались
+    const timeout = setTimeout(askForData, 500);
+
+    return () => {
+      navigator.serviceWorker.removeEventListener('message', handleMessage);
+      clearTimeout(timeout);
+    };
   }, [setFiles, setInputText]);
 
   // Инициализация при входе в режим редактирования
