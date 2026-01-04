@@ -44,8 +44,6 @@ function App() {
   const refMessages = useRef<Note[]>(messages);
   refMessages.current = messages;
 
-  const [inputText, setInputText] = useState('');
-
   const [files, setFiles] = useState<File[]>([]);
 
   const [currentTags, setCurrentTags] = useState(() => {
@@ -231,7 +229,6 @@ function App() {
 
   const startEditing = useCallback((msg: Note) => {
     setEditingId(msg.id);
-    setInputText(msg.content);
     // Скроллим к полю ввода
     window.scrollTo({top: document.documentElement.scrollHeight});
   }, []);
@@ -311,7 +308,7 @@ function App() {
 
           <Container
             maxWidth="sm"
-            sx={{flexGrow: 1, pt: 1, pb: 7 + (files.length ? 8 : 0) + (currentTags.length ? 7.5 : 0)}}
+            sx={{flexGrow: 1, pt: 1, pb: 7.5 + (files.length ? 8 : 0) + (currentTags.length ? 7 : 0)}}
           >
             <Stack spacing={1.5}>
               {messages.map((msg, index) => (
@@ -345,8 +342,6 @@ function App() {
             currentTags={currentTags}
             setCurrentTags={setCurrentTags}
             setFiles={setFiles}
-            inputText={inputText}
-            setInputText={setInputText}
             fetchMessages={fetchMessages}
             messages={messages}
           />

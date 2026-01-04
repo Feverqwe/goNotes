@@ -1,6 +1,6 @@
 import React, {FC, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {Box, Chip, Container, IconButton, Paper, TextField, Typography} from '@mui/material';
-import {AttachFile, Check, Close, Edit, Send, DeleteForever} from '@mui/icons-material';
+import {AttachFile, Check, Close, DeleteForever, Edit, Send} from '@mui/icons-material';
 import axios from 'axios';
 import {API_BASE} from '../../constants';
 import {SnackCtx} from '../../ctx/SnackCtx';
@@ -12,8 +12,6 @@ interface BottomInputFormProps {
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  inputText: string;
-  setInputText: React.Dispatch<React.SetStateAction<string>>;
   setEditingId: React.Dispatch<React.SetStateAction<number | null>>;
   fetchMessages: (isInitial?: boolean) => Promise<void>;
   messages: Note[]; // Добавьте этот пропс в App.tsx при вызове
@@ -25,14 +23,13 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   currentTags,
   setCurrentTags,
   setFiles,
-  inputText,
-  setInputText,
   setEditingId,
   fetchMessages,
   messages,
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const [isDragging, setIsDragging] = useState(false);
+  const [inputText, setInputText] = useState('');
 
   // Состояния для редактирования существующих вложений
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
@@ -72,8 +69,11 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   useEffect(() => {
     if (editingId) {
       const msg = messages.find((m) => m.id === editingId);
-      if (msg && msg.attachments) {
-        setExistingAttachments(msg.attachments);
+      if (msg) {
+        setInputText(msg.content);
+        if (msg.attachments) {
+          setExistingAttachments(msg.attachments);
+        }
       }
       setDeletedAttachIds([]);
     } else {
@@ -96,8 +96,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   );
 
   const toggleDeleteExisting = useCallback((id: number) => {
-    setDeletedAttachIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    setDeletedAttachIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]),
     );
   }, []);
 
