@@ -2,7 +2,7 @@ import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} fr
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 // MUI Core Components
-import {Box, CircularProgress, Container, Stack} from '@mui/material';
+import {Alert, Box, CircularProgress, Container, Stack} from '@mui/material';
 
 // MUI Icons
 // Markdown & Syntax Highlighting
@@ -119,7 +119,15 @@ function App() {
     setBatchDeleteDialogOpen(false);
   }, []);
 
-  const {data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading} = useNotes({
+  const {
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    isError,
+    error: useNoteError,
+  } = useNotes({
     q: searchQuery,
     tags: currentTags,
     archived: showArchived,
@@ -346,7 +354,16 @@ function App() {
             pb: 7.5 + (files.length ? 8 : 0) + (currentTags.length ? 7 : 0),
           }}
         >
-          {displayMessages.length === 0 && !isLoading && (
+          {isError && (
+            <Alert
+              severity="error"
+              sx={{mb: 2, bgcolor: 'rgba(255, 69, 58, 0.1)', color: '#ff453a'}}
+            >
+              {useNoteError instanceof Error ? useNoteError.message : 'Ошибка при загрузке заметок'}
+            </Alert>
+          )}
+
+          {displayMessages.length === 0 && !isLoading && !isError && (
             <EmptyState hasFilters={hasActiveFilters} />
           )}
 
