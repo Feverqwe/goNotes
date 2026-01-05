@@ -1,8 +1,23 @@
 import axios, {AxiosRequestConfig, AxiosResponse} from 'axios';
-import {Note} from '../types';
 import {API_BASE} from '../constants';
+import {
+  ArchiveMessageRequest,
+  ArchiveMessageResponse,
+  BatchDeleteRequest,
+  BatchDeleteResponse,
+  DeleteMessageRequest,
+  DeleteMessageResponse,
+  ListMessagesRequest,
+  ListMessagesResponse,
+  ListTagsResponse,
+  ReorderMessagesRequest,
+  ReorderMessagesResponse,
+  SendMessageRequest,
+  SendMessageResponse,
+  UpdateMessageRequest,
+  UpdateMessageResponse,
+} from './types';
 
-// Создаем инстанс с базовыми настройками
 const client = axios.create({
   baseURL: API_BASE,
   headers: {
@@ -10,25 +25,16 @@ const client = axios.create({
   },
 });
 
-// Твой кастомный обработчик ответов (адаптированный под Axios)
 async function handleResponse<T>(
   response: AxiosResponse<{result?: T; error?: string}>,
 ): Promise<T> {
-  // В Axios данные лежат в response.data
   const body = response.data;
-
-  // 1. Проверяем наличие ошибки, присланной бэкендом (JsonFailResponse)
   if (body && body.error) {
     throw new Error(body.error);
   }
-
-  // 2. Проверяем наличие результата (JsonSuccessResponse)
   if (!body || body.result === undefined) {
-    // Если статус 200, но результата нет — это аномалия
     throw new Error('Response does not contain a result');
   }
-
-  // Возвращаем чистый результат (тип T)
   return body.result;
 }
 
@@ -51,64 +57,53 @@ function action<RequestParams = unknown, ResponseData = unknown>({
     if (method === 'GET' || method === 'DELETE') {
       config.params = params;
     } else {
-      // Axios сам выставит правильный Content-Type для FormData
       config.data = params;
-
       if (params instanceof FormData) {
         config.headers = {
           ...config.headers,
-          'Content-Type': undefined,
+          'Content-Type': undefined, // Axios сам выставит boundary
         };
       }
     }
 
-    // Здесь указываем обертку { result: ResponseData; error?: string }
     return client.request<{result: ResponseData; error?: string}>(config).then(handleResponse);
   };
 }
 
+// --- API Объект с типизацией ---
+
 export const api = {
   messages: {
-    list: action<
-      {
-        limit?: number;
-        last_id?: number;
-        last_order?: number;
-        tags?: string;
-        q?: string;
-        archived?: string;
-      },
-      Note[]
-    >({
+    list: action<ListMessagesRequest, ListMessagesResponse>({
       path: '/api/messages/list',
     }),
-    send: action<FormData, string>({
+    send: action<SendMessageRequest, SendMessageResponse>({
       method: 'POST',
       path: '/api/messages/send',
     }),
-    update: action<FormData, string>({
+    update: action<UpdateMessageRequest, UpdateMessageResponse>({
       method: 'POST',
       path: '/api/messages/update',
     }),
-    delete: action<{id: number}, string>({
+    delete: action<DeleteMessageRequest, DeleteMessageResponse>({
       method: 'DELETE',
       path: '/api/messages/delete',
     }),
-    batchDelete: action<{ids: number[]}, string>({
+    batchDelete: action<BatchDeleteRequest, BatchDeleteResponse>({
       method: 'POST',
       path: '/api/messages/batch-delete',
     }),
-    archive: action<{id: number; archive: number}, string>({
+    archive: action<ArchiveMessageRequest, ArchiveMessageResponse>({
       method: 'POST',
       path: '/api/messages/archive',
     }),
-    reorder: action<{ids: number[]}, string>({
+    reorder: action<ReorderMessagesRequest, ReorderMessagesResponse>({
       method: 'POST',
       path: '/api/messages/reorder',
     }),
   },
   tags: {
-    list: action<void, string[]>({
+    list: action<void, ListTagsResponse>({
       path: '/api/tags/list',
     }),
   },

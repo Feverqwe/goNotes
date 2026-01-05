@@ -1,12 +1,10 @@
-import React, {FC, useCallback, useContext, useEffect, useState} from 'react';
+import React, {FC, useCallback} from 'react';
 
 // MUI Core Components
 import {Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
 // MUI Icons
 import {Archive, Check} from '@mui/icons-material';
-import {Note} from '../../types';
-import {SnackCtx} from '../../ctx/SnackCtx';
-import {api} from '../../tools/api';
+import {useTags} from '../../hooks/useTags';
 
 // Markdown & Syntax Highlighting
 
@@ -15,7 +13,6 @@ interface TagsMenuProps {
   handleCloseTagMenu: () => void;
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
-  messages: Note[];
   showArchived: boolean;
   setShowArchived: (v: boolean) => void;
 }
@@ -25,26 +22,10 @@ const TagsMenu: FC<TagsMenuProps> = ({
   handleCloseTagMenu,
   currentTags,
   setCurrentTags,
-  messages,
   showArchived,
   setShowArchived,
 }) => {
-  const showSnackbar = useContext(SnackCtx);
-  const [allTags, setAllTags] = useState<string[]>([]);
-
-  const fetchTags = useCallback(async () => {
-    try {
-      const data = await api.tags.list();
-      setAllTags(data);
-    } catch (e) {
-      showSnackbar('Не удалось загрузить теги', 'error');
-    }
-  }, [showSnackbar]);
-
-  // Вызываем при старте и после изменений данных
-  useEffect(() => {
-    fetchTags();
-  }, [messages, fetchTags]); // Обновляем список, если изменились сообщения
+  const {data: allTags = []} = useTags();
 
   const toggleTag = useCallback(
     (tag: string) => {

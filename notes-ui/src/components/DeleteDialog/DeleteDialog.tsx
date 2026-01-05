@@ -7,38 +7,47 @@ import {
   DialogContentText,
   DialogTitle,
 } from '@mui/material';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {api} from '../../tools/api';
+import {DeleteMessageRequest} from '../../tools/types';
 
 interface DeleteDialogProps {
   deleteDialogOpen: boolean;
   closeDeleteDialog: () => void;
-  fetchMessages: (isInitial?: boolean) => Promise<void>;
   refMsgToDelete: React.RefObject<number | null>;
 }
 
 const DeleteDialog: FC<DeleteDialogProps> = ({
   deleteDialogOpen,
   closeDeleteDialog,
-  fetchMessages,
   refMsgToDelete,
 }) => {
   const showSnackbar = useContext(SnackCtx);
+  const queryClient = useQueryClient();
+
+  // МУТАЦИЯ УДАЛЕНИЯ
+  const deleteMutation = useMutation({
+    mutationFn: (params: DeleteMessageRequest) => api.messages.delete(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      queryClient.invalidateQueries({queryKey: ['tags']});
+      showSnackbar('Заметка удалена', 'info');
+      closeDeleteDialog();
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка при удалении', 'error');
+      closeDeleteDialog();
+    },
+  });
 
   // Сама функция удаления (обновленная)
   const confirmDelete = useCallback(async () => {
     const msgToDelete = refMsgToDelete.current;
     if (!msgToDelete) return;
-    try {
-      await api.messages.delete({id: msgToDelete});
-      fetchMessages(true);
-      showSnackbar('Заметка удалена', 'info');
-    } catch (e) {
-      showSnackbar('Ошибка при удалении', 'error');
-    } finally {
-      closeDeleteDialog();
-    }
-  }, [refMsgToDelete, fetchMessages, showSnackbar, closeDeleteDialog]);
+    deleteMutation.mutate({id: msgToDelete});
+  }, [refMsgToDelete, deleteMutation]);
 
   return (
     <Dialog open={deleteDialogOpen} onClose={closeDeleteDialog} transitionDuration={250}>

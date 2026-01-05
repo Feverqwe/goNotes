@@ -1,21 +1,11 @@
-import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 // MUI Core Components
-import {
-  Alert,
-  Box,
-  CircularProgress,
-  Container,
-  createTheme,
-  CssBaseline,
-  Snackbar,
-  Stack,
-  ThemeProvider,
-} from '@mui/material';
+import {Box, CircularProgress, Container, Stack} from '@mui/material';
 
 // MUI Icons
 // Markdown & Syntax Highlighting
-import {AlertColor} from '@mui/material/Alert/Alert';
 import {
   closestCenter,
   DndContext,
@@ -24,10 +14,9 @@ import {
   useSensor,
   useSensors,
 } from '@dnd-kit/core';
-import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
+import {SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {Note} from './types';
 import MessageItem from './components/MessageItem/MessageItem';
-import {themeProps} from './constants';
 import {SnackCtx} from './ctx/SnackCtx';
 import TagsMenu from './components/TagsMenu/TagsMenu';
 import SearchBox from './components/SearchBox/SearchBox';
@@ -40,10 +29,13 @@ import EmptyState from './components/EmptyState/EmptyState';
 
 import ReorderMenu from './components/ReorderMenu/ReorderMenu';
 import {api} from './tools/api';
-
-const LIMIT = 6; // Сколько сообщений грузим за раз
+import {useNotes} from './hooks/useNotes';
+import {ArchiveMessageRequest, ReorderMessagesRequest} from './tools/types';
 
 function App() {
+  const queryClient = useQueryClient();
+  const showSnackbar = useContext(SnackCtx); // Предположим, контекст снаружи или передан
+
   const [searchQuery, setSearchQuery] = useState(() => {
     const params = new URLSearchParams(window.location.search);
     const tagsStr = params.get('q');
@@ -51,10 +43,6 @@ function App() {
   });
   const refSearchQuery = useRef(searchQuery);
   refSearchQuery.current = searchQuery;
-
-  const [messages, setMessages] = useState<Note[]>([]);
-  const refMessages = useRef<Note[]>(messages);
-  refMessages.current = messages;
 
   const [files, setFiles] = useState<File[]>([]);
 
@@ -76,17 +64,6 @@ function App() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [anchorEl, setAnchorEl] = useState<Element | null>(null);
   const [selectedMsg, setSelectedMsg] = useState<Note | null>(null);
-  const [hasMore, setHasMore] = useState(true);
-  const refHasMore = useRef(hasMore);
-  refHasMore.current = hasMore;
-
-  const [isLoading, setIsLoading] = useState(true);
-  const refIsLoading = useRef(isLoading);
-  refIsLoading.current = isLoading;
-
-  const [snackbarOpen, setSnackbarOpen] = useState(false);
-  const [snackbarMessage, setSnackbarMessage] = useState('');
-  const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>('info');
 
   // Состояния для диалога подтверждения
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -108,19 +85,6 @@ function App() {
     setTagMenuAnchor(event.currentTarget);
   }, []);
   const handleCloseTagMenu = useCallback(() => setTagMenuAnchor(null), []);
-
-  const handleCloseSnackbar = useCallback((event: unknown, reason?: string) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setSnackbarOpen(false);
-  }, []);
-
-  const showSnackbar = useCallback((message: string, severity: AlertColor = 'info') => {
-    setSnackbarMessage(message);
-    setSnackbarSeverity(severity);
-    setSnackbarOpen(true);
-  }, []);
 
   // 3. Обработка кнопок "Назад/Вперед" в браузере
   useEffect(() => {
@@ -158,44 +122,58 @@ function App() {
     setBatchDeleteDialogOpen(false);
   }, []);
 
-  // Загрузка сообщений
-  const fetchMessages = useCallback(
-    async (isInitial = false) => {
-      setIsLoading(true);
-      const messages = refMessages.current;
-      const currentTags = refCurrentTags.current;
-      const searchQuery = refSearchQuery.current;
-      const showArchived = refShowArchived.current;
+  const {data, fetchNextPage, hasNextPage, isFetchingNextPage, isLoading} = useNotes({
+    q: searchQuery,
+    tags: currentTags,
+    archived: showArchived,
+  });
+  const refIsLoading = useRef(isLoading);
+  refIsLoading.current = isLoading;
 
-      const lastOrder =
-        !isInitial && messages.length > 0 ? messages[messages.length - 1].sort_order : 0;
+  const messages = useMemo(() => data?.pages.flatMap((page) => page) ?? [], [data]);
+  const refMessages = useRef<Note[]>(messages);
+  refMessages.current = messages;
 
-      try {
-        const newMessages = await api.messages.list({
-          limit: LIMIT,
-          last_order: lastOrder,
-          tags: currentTags.join(','),
-          q: searchQuery,
-          archived: showArchived ? '1' : '0',
-        });
+  const refHasNextPage = useRef(hasNextPage);
+  refHasNextPage.current = hasNextPage;
 
-        if (isInitial) {
-          setMessages(newMessages);
-          setHasMore(newMessages.length === LIMIT);
-        } else {
-          if (newMessages.length > 0) {
-            setMessages((prev) => [...prev, ...newMessages]);
-          }
-          if (newMessages.length < LIMIT) setHasMore(false);
-        }
-      } catch (e) {
-        showSnackbar(e instanceof Error ? e.message : 'Ошибка загрузки', 'error');
-      } finally {
-        setIsLoading(false);
-      }
+  // МУТАЦИЯ ДЛЯ АРХИВАЦИИ (пример частичного обновления)
+  const reorderMutation = useMutation({
+    mutationFn: (params: ReorderMessagesRequest) => api.messages.reorder(params),
+    onSuccess: () => {
+      // Вместо перезагрузки всего, просто говорим Query, что данные устарели
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      showSnackbar('Порядок сохранен');
+      setIsReorderMode(false);
     },
-    [showSnackbar],
-  );
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка сохранения порядка', 'error');
+    },
+  });
+
+  // МУТАЦИЯ ДЛЯ АРХИВАЦИИ (пример частичного обновления)
+  const archiveMutation = useMutation({
+    mutationFn: (params: ArchiveMessageRequest) => api.messages.archive(params),
+    onSuccess: (_, {archive}) => {
+      // Вместо перезагрузки всего, просто говорим Query, что данные устарели
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      showSnackbar(archive ? 'Заметка в архиве' : 'Заметка восстановлена');
+      handleCloseMenu();
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка архивации', 'error');
+      handleCloseMenu();
+    },
+  });
+
+  // Метод для MessageItem, чтобы триггерить подгрузку
+  const loadMore = useCallback(() => {
+    if (hasNextPage && !isFetchingNextPage) {
+      fetchNextPage();
+    }
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   // Синхронизация с URL и загрузка данных
   useEffect(() => {
@@ -230,16 +208,12 @@ function App() {
 
     // 2. Дебаунс загрузки данных (особенно важно для поиска)
     const delayDebounceFn = setTimeout(() => {
-      setHasMore(true);
-      fetchMessages(true); // Загружаем с нуля при любом изменении фильтров
+      queryClient.invalidateQueries({queryKey: ['notes']});
     }, 400); // 400мс — оптимальное время задержки
 
     // Очистка таймера при следующем изменении (если пользователь нажал клавишу быстрее чем 400мс)
     return () => clearTimeout(delayDebounceFn);
-  }, [currentTags, searchQuery, fetchMessages, showArchived]); // Добавили searchQuery в зависимости
-
-  // Только темная тема
-  const theme = useMemo(() => createTheme(themeProps), []);
+  }, [currentTags, queryClient, searchQuery, showArchived]); // Добавили searchQuery в зависимости
 
   const startEditing = useCallback((msg: Note) => {
     setEditingId(msg.id);
@@ -301,17 +275,14 @@ function App() {
 
   const onArchiveClick = useCallback(async () => {
     if (!selectedMsg) return;
-    const newStatus = selectedMsg.is_archived ? 0 : 1;
-    try {
-      await api.messages.archive({id: selectedMsg.id, archive: newStatus});
-      showSnackbar(newStatus ? 'Заметка в архиве' : 'Заметка восстановлена');
-      fetchMessages(true);
-    } catch (e) {
-      showSnackbar('Ошибка архивации', 'error');
-    } finally {
-      handleCloseMenu();
-    }
-  }, [selectedMsg, fetchMessages, showSnackbar, handleCloseMenu]);
+
+    archiveMutation.mutate({
+      id: selectedMsg.id,
+      archive: selectedMsg.is_archived ? 0 : 1, // Инвертируем текущий статус
+    });
+
+    handleCloseMenu();
+  }, [archiveMutation, handleCloseMenu, selectedMsg]);
 
   const hasActiveFilters = useMemo(
     () => searchQuery.length > 0 || currentTags.length > 0 || showArchived,
@@ -325,29 +296,24 @@ function App() {
   );
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    const {active, over} = event;
+    /* const {active, over} = event;
     if (over && active.id !== over.id) {
       setMessages((items) => {
         const oldIndex = items.findIndex((i) => i.id === active.id);
         const newIndex = items.findIndex((i) => i.id === over.id);
         return arrayMove(items, oldIndex, newIndex);
       });
-    }
+    } */
   }, []);
 
   const saveOrder = useCallback(async () => {
-    try {
-      const ids = messages.map((m) => m.id);
-      await api.messages.reorder({ids});
-      showSnackbar('Порядок сохранен');
-      setIsReorderMode(false);
-    } catch (e) {
-      showSnackbar('Ошибка сохранения порядка', 'error');
-    }
-  }, [messages, showSnackbar]);
+    const messages = refMessages.current;
+    const ids = messages.map((m) => m.id);
+    reorderMutation.mutate({ids});
+  }, [reorderMutation]);
 
   const moveStep = useCallback((id: number, direction: 'up' | 'down') => {
-    setMessages((prev) => {
+    /* setMessages((prev) => {
       const idx = prev.findIndex((m) => m.id === id);
       if (idx === -1) return prev;
 
@@ -358,151 +324,129 @@ function App() {
       const [movedItem] = newArray.splice(idx, 1);
       newArray.splice(newIdx, 0, movedItem);
       return newArray;
-    });
+    }); */
   }, []);
 
   return (
-    <ThemeProvider theme={theme}>
-      <SnackCtx.Provider value={showSnackbar}>
-        <CssBaseline />
-        <Box sx={{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
-          <SearchBox
-            searchQuery={searchQuery}
-            setSearchQuery={setSearchQuery}
-            currentTags={currentTags}
-            setCurrentTags={setCurrentTags}
-            handleOpenTagMenu={handleOpenTagMenu}
-            showArchived={showArchived}
-            setShowArchived={setShowArchived}
-          />
-
-          <Container
-            maxWidth="sm"
-            sx={{
-              flexGrow: 1,
-              pt: 1,
-              pb: 7.5 + (files.length ? 8 : 0) + (currentTags.length ? 7 : 0),
-            }}
-          >
-            {messages.length === 0 && !isLoading && <EmptyState hasFilters={hasActiveFilters} />}
-
-            <DndContext
-              sensors={sensors}
-              collisionDetection={closestCenter}
-              onDragEnd={handleDragEnd}
-            >
-              <SortableContext
-                items={messages.map((m) => m.id)}
-                strategy={verticalListSortingStrategy}
-              >
-                <Stack spacing={1.5}>
-                  {messages.map((msg, index) => (
-                    <MessageItem
-                      key={msg.id}
-                      msg={msg}
-                      onTagClick={setCurrentTags}
-                      isLast={index === messages.length - 1}
-                      handleOpenMenu={handleOpenMenu}
-                      isSelectMode={isSelectMode}
-                      selectedIds={selectedIds}
-                      toggleSelect={toggleSelect}
-                      refIsLoading={refIsLoading}
-                      refHasMore={refHasMore}
-                      fetchMessages={fetchMessages}
-                      startEditing={startEditing}
-                      isReorderMode={isReorderMode}
-                      index={index}
-                      totalCount={messages.length}
-                      moveStep={moveStep}
-                    />
-                  ))}
-                </Stack>
-              </SortableContext>
-            </DndContext>
-
-            {hasMore && (
-              <Box sx={{display: 'flex', justifyContent: 'center', p: 2}}>
-                <CircularProgress size={20} />
-              </Box>
-            )}
-          </Container>
-
-          <BottomInputForm
-            editingId={editingId}
-            setEditingId={setEditingId}
-            files={files}
-            currentTags={currentTags}
-            setCurrentTags={setCurrentTags}
-            setFiles={setFiles}
-            fetchMessages={fetchMessages}
-            messages={messages}
-          />
-
-          {isSelectMode && (
-            <MultiSelectMenu
-              cancelSelectMode={cancelSelectMode}
-              selectedIds={selectedIds}
-              askBatchDeleteConfirmation={askBatchDeleteConfirmation}
-            />
-          )}
-
-          {isReorderMode && (
-            <ReorderMenu cancelReorderMode={cancelReorderMode} saveOrder={saveOrder} />
-          )}
-        </Box>
-
-        <NoteMenu
-          anchorEl={anchorEl}
-          handleCloseMenu={handleCloseMenu}
-          selectedMsg={selectedMsg}
-          enterSelectMode={enterSelectMode}
-          onEditClick={onEditClick}
-          onDeleteClick={onDeleteClick}
-          onArchiveClick={onArchiveClick}
-          enterReorderMode={enterReorderMode}
-        />
-
-        <Snackbar
-          open={snackbarOpen}
-          autoHideDuration={3000}
-          onClose={handleCloseSnackbar}
-          anchorOrigin={{vertical: 'top', horizontal: 'center'}}
-        >
-          <Alert
-            onClose={handleCloseSnackbar}
-            severity={snackbarSeverity}
-            sx={{width: '100%', bgcolor: theme.palette.background.paper}}
-          >
-            {snackbarMessage}
-          </Alert>
-        </Snackbar>
-
-        <DeleteDialog
-          deleteDialogOpen={deleteDialogOpen}
-          closeDeleteDialog={closeDeleteDialog}
-          fetchMessages={fetchMessages}
-          refMsgToDelete={refMsgToDelete}
-        />
-
-        <BatchDeleteDialog
-          deleteBatchDialogOpen={deleteBatchDialogOpen}
-          closeBatchDeleteDialog={closeBatchDeleteDialog}
-          selectedIds={selectedIds}
-          fetchMessages={fetchMessages}
-          cancelSelectMode={cancelSelectMode}
-        />
-
-        <TagsMenu
-          tagMenuAnchor={tagMenuAnchor}
-          handleCloseTagMenu={handleCloseTagMenu}
+    <>
+      <Box sx={{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
+        <SearchBox
+          searchQuery={searchQuery}
+          setSearchQuery={setSearchQuery}
           currentTags={currentTags}
           setCurrentTags={setCurrentTags}
-          messages={messages}
+          handleOpenTagMenu={handleOpenTagMenu}
           showArchived={showArchived}
           setShowArchived={setShowArchived}
         />
-      </SnackCtx.Provider>
-    </ThemeProvider>
+
+        <Container
+          maxWidth="sm"
+          sx={{
+            flexGrow: 1,
+            pt: 1,
+            pb: 7.5 + (files.length ? 8 : 0) + (currentTags.length ? 7 : 0),
+          }}
+        >
+          {messages.length === 0 && !isLoading && <EmptyState hasFilters={hasActiveFilters} />}
+
+          <DndContext
+            sensors={sensors}
+            collisionDetection={closestCenter}
+            onDragEnd={handleDragEnd}
+          >
+            <SortableContext
+              items={messages.map((m) => m.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              <Stack spacing={1.5}>
+                {messages.map((msg, index) => (
+                  <MessageItem
+                    key={msg.id}
+                    msg={msg}
+                    onTagClick={setCurrentTags}
+                    isLast={index === messages.length - 1}
+                    handleOpenMenu={handleOpenMenu}
+                    isSelectMode={isSelectMode}
+                    selectedIds={selectedIds}
+                    toggleSelect={toggleSelect}
+                    refIsLoading={refIsLoading}
+                    refHasNextPage={refHasNextPage}
+                    startEditing={startEditing}
+                    isReorderMode={isReorderMode}
+                    index={index}
+                    totalCount={messages.length}
+                    moveStep={moveStep}
+                    loadMore={loadMore}
+                  />
+                ))}
+              </Stack>
+            </SortableContext>
+          </DndContext>
+
+          {hasNextPage && (
+            <Box sx={{display: 'flex', justifyContent: 'center', p: 2}}>
+              <CircularProgress size={20} />
+            </Box>
+          )}
+        </Container>
+
+        <BottomInputForm
+          editingId={editingId}
+          setEditingId={setEditingId}
+          files={files}
+          currentTags={currentTags}
+          setCurrentTags={setCurrentTags}
+          setFiles={setFiles}
+          messages={messages}
+        />
+
+        {isSelectMode && (
+          <MultiSelectMenu
+            cancelSelectMode={cancelSelectMode}
+            selectedIds={selectedIds}
+            askBatchDeleteConfirmation={askBatchDeleteConfirmation}
+          />
+        )}
+
+        {isReorderMode && (
+          <ReorderMenu cancelReorderMode={cancelReorderMode} saveOrder={saveOrder} />
+        )}
+      </Box>
+
+      <NoteMenu
+        anchorEl={anchorEl}
+        handleCloseMenu={handleCloseMenu}
+        selectedMsg={selectedMsg}
+        enterSelectMode={enterSelectMode}
+        onEditClick={onEditClick}
+        onDeleteClick={onDeleteClick}
+        onArchiveClick={onArchiveClick}
+        enterReorderMode={enterReorderMode}
+      />
+
+      <DeleteDialog
+        deleteDialogOpen={deleteDialogOpen}
+        closeDeleteDialog={closeDeleteDialog}
+        refMsgToDelete={refMsgToDelete}
+      />
+
+      <BatchDeleteDialog
+        deleteBatchDialogOpen={deleteBatchDialogOpen}
+        closeBatchDeleteDialog={closeBatchDeleteDialog}
+        selectedIds={selectedIds}
+        cancelSelectMode={cancelSelectMode}
+      />
+
+      <TagsMenu
+        tagMenuAnchor={tagMenuAnchor}
+        handleCloseTagMenu={handleCloseTagMenu}
+        currentTags={currentTags}
+        setCurrentTags={setCurrentTags}
+        showArchived={showArchived}
+        setShowArchived={setShowArchived}
+      />
+    </>
   );
 }
 

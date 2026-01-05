@@ -7,14 +7,15 @@ import {
   DialogContentText,
   DialogTitle,
 } from '@mui/material';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {api} from '../../tools/api';
+import {BatchDeleteRequest} from '../../tools/types';
 
 interface BatchDeleteDialogProps {
   deleteBatchDialogOpen: boolean;
   closeBatchDeleteDialog: () => void;
   selectedIds: number[];
-  fetchMessages: (isInitial?: boolean) => Promise<void>;
   cancelSelectMode: () => void;
 }
 
@@ -22,23 +23,28 @@ const BatchDeleteDialog: FC<BatchDeleteDialogProps> = ({
   deleteBatchDialogOpen,
   closeBatchDeleteDialog,
   selectedIds,
-  fetchMessages,
   cancelSelectMode,
 }) => {
   const showSnackbar = useContext(SnackCtx);
+  const queryClient = useQueryClient();
+
+  const batchDeleteMutation = useMutation({
+    mutationFn: (params: BatchDeleteRequest) => api.messages.batchDelete(params),
+    onSuccess: (_, {ids}) => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      queryClient.invalidateQueries({queryKey: ['tags']});
+      showSnackbar(`Удалено сообщений: ${ids.length}`, 'info');
+      cancelSelectMode();
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка при массовом удалении', 'error');
+    },
+  });
 
   const confirmBatchDelete = useCallback(async () => {
-    try {
-      await api.messages.batchDelete({ids: selectedIds});
-      fetchMessages(true);
-      showSnackbar(`Удалено сообщений: ${selectedIds.length}`, 'info');
-      cancelSelectMode();
-    } catch (e) {
-      showSnackbar('Ошибка при массовом удалении', 'error');
-    } finally {
-      closeBatchDeleteDialog();
-    }
-  }, [selectedIds, fetchMessages, showSnackbar, cancelSelectMode, closeBatchDeleteDialog]);
+    batchDeleteMutation.mutate({ids: selectedIds});
+  }, [batchDeleteMutation, selectedIds]);
 
   return (
     <Dialog open={deleteBatchDialogOpen} onClose={closeBatchDeleteDialog} transitionDuration={250}>

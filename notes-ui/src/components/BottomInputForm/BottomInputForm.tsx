@@ -1,9 +1,11 @@
 import React, {FC, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {Box, Chip, Container, IconButton, Paper, TextField, Typography} from '@mui/material';
 import {AttachFile, Check, Close, DeleteForever, Edit, Send} from '@mui/icons-material';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {Attachment, Note} from '../../types';
 import {api} from '../../tools/api';
+import {SendMessageRequest, UpdateMessageRequest} from '../../tools/types';
 
 interface BottomInputFormProps {
   editingId: number | null;
@@ -12,7 +14,6 @@ interface BottomInputFormProps {
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   setEditingId: React.Dispatch<React.SetStateAction<number | null>>;
-  fetchMessages: (isInitial?: boolean) => Promise<void>;
   messages: Note[]; // Добавьте этот пропс в App.tsx при вызове
 }
 
@@ -23,13 +24,13 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   setCurrentTags,
   setFiles,
   setEditingId,
-  fetchMessages,
   messages,
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const [isDragging, setIsDragging] = useState(false);
   const [inputText, setInputText] = useState('');
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
+  const queryClient = useQueryClient();
 
   // Состояния для редактирования существующих вложений
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
@@ -117,46 +118,68 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     return hasText || hasNewFiles || hasRemainingFiles;
   }, [inputText, files, existingAttachments, deletedAttachIds]);
 
+  const onSuccess = useCallback(() => {
+    setEditingId(null);
+    setInputText('');
+    setFiles([]);
+    setExistingAttachments([]);
+    setDeletedAttachIds([]);
+  }, [setEditingId, setFiles]);
+
+  const updateMessageMutation = useMutation({
+    mutationFn: (params: UpdateMessageRequest) => api.messages.update(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      queryClient.invalidateQueries({queryKey: ['tags']});
+      showSnackbar('Заметка обновлена', 'success');
+      onSuccess();
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка при сохранении заметки', 'error');
+    },
+  });
+
+  const sendMessageMutation = useMutation({
+    mutationFn: (params: SendMessageRequest) => api.messages.send(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      queryClient.invalidateQueries({queryKey: ['tags']});
+      showSnackbar('Заметка отправлена', 'success');
+      onSuccess();
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка при отправкезаметки', 'error');
+    },
+  });
+
   const handleSend = useCallback(async () => {
     if (!canSend) return;
     const formData = new FormData();
-    formData.append('content', refInputText.current);
     files.forEach((f) => formData.append('attachments', f));
 
-    try {
-      if (editingId) {
-        formData.append('id', editingId.toString());
-        formData.append('delete_attachments', deletedAttachIds.join(','));
-        await api.messages.update(formData);
-        showSnackbar('Сообщение обновлено', 'success');
-      } else {
-        // Добавляем теги к новому сообщению
-        let finalContent = refInputText.current;
-        currentTags.forEach((tag) => {
-          if (!finalContent.includes(`#${tag}`)) finalContent += ` #${tag}`;
-        });
-        formData.set('content', finalContent);
-        await api.messages.send(formData);
-      }
-
-      setInputText('');
-      setFiles([]);
-      setEditingId(null);
-      fetchMessages(true);
-    } catch (e) {
-      showSnackbar('Ошибка при сохранении', 'error');
+    let finalContent = refInputText.current;
+    if (editingId) {
+      formData.append('id', editingId.toString());
+      formData.append('content', finalContent);
+      formData.append('delete_attachments', deletedAttachIds.join(','));
+      updateMessageMutation.mutate(formData);
+    } else {
+      currentTags.forEach((tag) => {
+        if (!finalContent.includes(`#${tag}`)) finalContent += ` #${tag}`;
+      });
+      formData.append('content', finalContent);
+      sendMessageMutation.mutate(formData);
     }
   }, [
     canSend,
-    editingId,
     files,
+    editingId,
     deletedAttachIds,
+    updateMessageMutation,
     currentTags,
-    fetchMessages,
-    showSnackbar,
-    setEditingId,
-    setFiles,
-    setInputText,
+    sendMessageMutation,
   ]);
 
   const handleKeyDown = useCallback(

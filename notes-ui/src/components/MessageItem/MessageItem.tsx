@@ -31,6 +31,7 @@ import {CSS} from '@dnd-kit/utilities';
 // Markdown & Syntax Highlighting
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import {useQueryClient} from '@tanstack/react-query';
 import {Note} from '../../types';
 import {API_BASE} from '../../constants';
 import {formatFullDate, formatShortDate} from './utils';
@@ -48,13 +49,13 @@ interface MessageItemProps {
   selectedIds: number[];
   isLast: boolean;
   refIsLoading: React.RefObject<boolean>;
-  refHasMore: React.RefObject<boolean>;
-  fetchMessages: (isInitial?: boolean) => Promise<void>;
+  refHasNextPage: React.RefObject<boolean>;
   startEditing: (note: Note) => void;
   isReorderMode: boolean;
   moveStep?: (id: number, direction: 'up' | 'down') => void;
   index: number;
   totalCount: number;
+  loadMore: () => void;
 }
 
 const MessageItem: FC<MessageItemProps> = ({
@@ -66,17 +67,18 @@ const MessageItem: FC<MessageItemProps> = ({
   toggleSelect,
   selectedIds,
   refIsLoading,
-  refHasMore,
-  fetchMessages,
+  refHasNextPage,
   startEditing,
   isReorderMode,
   moveStep,
   index,
   totalCount,
+  loadMore,
 }) => {
   const observer = useRef<IntersectionObserver | undefined>(undefined);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  const queryClient = useQueryClient();
 
   const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({
     id: msg.id,
@@ -97,19 +99,19 @@ const MessageItem: FC<MessageItemProps> = ({
   const firstMessageRef = useCallback(
     (node: Element) => {
       const isLoading = refIsLoading.current;
-      const hasMore = refHasMore.current;
       if (isLoading) return;
       if (observer.current) observer.current.disconnect();
 
       observer.current = new IntersectionObserver((entries) => {
+        const hasMore = refHasNextPage.current;
         if (entries[0].isIntersecting && hasMore) {
-          fetchMessages(false);
+          loadMore();
         }
       });
 
       if (node) observer.current.observe(node);
     },
-    [fetchMessages, refHasMore, refIsLoading],
+    [loadMore, refHasNextPage, refIsLoading],
   );
 
   const handleKeyDown = useCallback(
