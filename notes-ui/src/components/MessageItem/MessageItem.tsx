@@ -156,7 +156,6 @@ const MessageItem: FC<MessageItemProps> = ({
           <Box
             sx={{
               color: msg.is_archived ? '#8e8e93' : '#fff',
-              pr: 3,
               // Стилизуем элементы Markdown под наш интерфейс
               '& p': {m: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6},
               '& code': {
