@@ -6,15 +6,8 @@ import {Box, CircularProgress, Container, Stack} from '@mui/material';
 
 // MUI Icons
 // Markdown & Syntax Highlighting
-import {
-  closestCenter,
-  DndContext,
-  DragEndEvent,
-  PointerSensor,
-  useSensor,
-  useSensors,
-} from '@dnd-kit/core';
-import {SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
+import {closestCenter, DndContext, DragEndEvent} from '@dnd-kit/core';
+import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {Note} from './types';
 import MessageItem from './components/MessageItem/MessageItem';
 import {SnackCtx} from './ctx/SnackCtx';
@@ -81,6 +74,10 @@ function App() {
   const [tagMenuAnchor, setTagMenuAnchor] = useState<HTMLButtonElement | null>(null);
   const [isReorderMode, setIsReorderMode] = useState(false);
 
+  const [dndMessages, setDndMessages] = useState<Note[]>([]);
+  const refDndMessages = useRef(dndMessages);
+  refDndMessages.current = dndMessages;
+
   const handleOpenTagMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setTagMenuAnchor(event.currentTarget);
   }, []);
@@ -130,9 +127,9 @@ function App() {
   const refIsLoading = useRef(isLoading);
   refIsLoading.current = isLoading;
 
-  const messages = useMemo(() => data?.pages.flatMap((page) => page) ?? [], [data]);
-  const refMessages = useRef<Note[]>(messages);
-  refMessages.current = messages;
+  const serverMessages = useMemo(() => data?.pages.flatMap((page) => page) ?? [], [data]);
+  const refServerMessages = useRef(serverMessages);
+  refServerMessages.current = serverMessages;
 
   const refHasNextPage = useRef(hasNextPage);
   refHasNextPage.current = hasNextPage;
@@ -140,11 +137,14 @@ function App() {
   // МУТАЦИЯ ДЛЯ АРХИВАЦИИ (пример частичного обновления)
   const reorderMutation = useMutation({
     mutationFn: (params: ReorderMessagesRequest) => api.messages.reorder(params),
-    onSuccess: () => {
-      // Вместо перезагрузки всего, просто говорим Query, что данные устарели
-      queryClient.invalidateQueries({queryKey: ['notes']});
-      showSnackbar('Порядок сохранен');
-      setIsReorderMode(false);
+    onSuccess: async () => {
+      try {
+        await queryClient.invalidateQueries({queryKey: ['notes']});
+      } finally {
+        showSnackbar('Порядок сохранен');
+        setIsReorderMode(false);
+        setDndMessages([]);
+      }
     },
     onError: (err) => {
       console.error(err);
@@ -266,11 +266,13 @@ function App() {
   // Вход в режим выбора через меню
   const enterReorderMode = useCallback(() => {
     setIsReorderMode(true);
+    setDndMessages(refServerMessages.current);
     handleCloseMenu();
   }, [handleCloseMenu]);
 
   const cancelReorderMode = useCallback(() => {
     setIsReorderMode(false);
+    setDndMessages([]);
   }, []);
 
   const onArchiveClick = useCallback(async () => {
@@ -289,31 +291,25 @@ function App() {
     [currentTags.length, searchQuery.length, showArchived],
   );
 
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {distance: 8}, // Чтобы не срабатывало при случайном клике
-    }),
-  );
-
   const handleDragEnd = useCallback((event: DragEndEvent) => {
-    /* const {active, over} = event;
+    const {active, over} = event;
     if (over && active.id !== over.id) {
-      setMessages((items) => {
+      setDndMessages((items) => {
         const oldIndex = items.findIndex((i) => i.id === active.id);
         const newIndex = items.findIndex((i) => i.id === over.id);
         return arrayMove(items, oldIndex, newIndex);
       });
-    } */
+    }
   }, []);
 
   const saveOrder = useCallback(async () => {
-    const messages = refMessages.current;
-    const ids = messages.map((m) => m.id);
+    const dndMessages = refDndMessages.current;
+    const ids = dndMessages.map((m) => m.id);
     reorderMutation.mutate({ids});
   }, [reorderMutation]);
 
   const moveStep = useCallback((id: number, direction: 'up' | 'down') => {
-    /* setMessages((prev) => {
+    setDndMessages((prev) => {
       const idx = prev.findIndex((m) => m.id === id);
       if (idx === -1) return prev;
 
@@ -324,8 +320,10 @@ function App() {
       const [movedItem] = newArray.splice(idx, 1);
       newArray.splice(newIdx, 0, movedItem);
       return newArray;
-    }); */
+    });
   }, []);
+
+  const displayMessages = isReorderMode ? dndMessages : serverMessages;
 
   return (
     <>
@@ -348,24 +346,22 @@ function App() {
             pb: 7.5 + (files.length ? 8 : 0) + (currentTags.length ? 7 : 0),
           }}
         >
-          {messages.length === 0 && !isLoading && <EmptyState hasFilters={hasActiveFilters} />}
+          {displayMessages.length === 0 && !isLoading && (
+            <EmptyState hasFilters={hasActiveFilters} />
+          )}
 
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={handleDragEnd}
-          >
+          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
             <SortableContext
-              items={messages.map((m) => m.id)}
+              items={displayMessages.map((m) => m.id)}
               strategy={verticalListSortingStrategy}
             >
               <Stack spacing={1.5}>
-                {messages.map((msg, index) => (
+                {displayMessages.map((msg, index) => (
                   <MessageItem
                     key={msg.id}
                     msg={msg}
                     onTagClick={setCurrentTags}
-                    isLast={index === messages.length - 1}
+                    isLast={index === displayMessages.length - 1}
                     handleOpenMenu={handleOpenMenu}
                     isSelectMode={isSelectMode}
                     selectedIds={selectedIds}
@@ -375,7 +371,7 @@ function App() {
                     startEditing={startEditing}
                     isReorderMode={isReorderMode}
                     index={index}
-                    totalCount={messages.length}
+                    totalCount={displayMessages.length}
                     moveStep={moveStep}
                     loadMore={loadMore}
                   />
@@ -398,7 +394,7 @@ function App() {
           currentTags={currentTags}
           setCurrentTags={setCurrentTags}
           setFiles={setFiles}
-          messages={messages}
+          messages={displayMessages}
         />
 
         {isSelectMode && (
