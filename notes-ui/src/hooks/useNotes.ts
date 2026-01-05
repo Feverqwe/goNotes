@@ -1,13 +1,20 @@
 import {useInfiniteQuery} from '@tanstack/react-query';
 import {api} from '../tools/api';
+import {ListMessagesRequest} from '../tools/types';
 
-const LIMIT = 6; // Сколько сообщений грузим за раз
+const LIMIT = 6;
 
-export const useNotes = (filters: {q: string; tags: string[]; archived: boolean}) => {
+export const useNotes = (filters: {
+  id: ListMessagesRequest['id'];
+  q: string;
+  tags: string[];
+  archived: boolean;
+}) => {
   return useInfiniteQuery({
     queryKey: ['notes', filters],
     queryFn: async ({pageParam = 0}) => {
       return api.messages.list({
+        id: filters.id,
         limit: LIMIT,
         last_order: pageParam,
         q: filters.q,
@@ -17,14 +24,13 @@ export const useNotes = (filters: {q: string; tags: string[]; archived: boolean}
     },
     initialPageParam: 0,
     getNextPageParam: (lastPage) => {
-      // Если пришло меньше 6, значит больше страниц нет
       if (lastPage.length < LIMIT) return undefined;
-      // Берем sort_order последней заметки для следующего запроса
+
       return lastPage[lastPage.length - 1].sort_order;
     },
-    // АВТООБНОВЛЕНИЕ: Опрашивать сервер каждые 10 секунд
+
     refetchInterval: 10000,
-    // Не показывать индикатор загрузки при фоновом обновлении
+
     refetchOnWindowFocus: true,
   });
 };

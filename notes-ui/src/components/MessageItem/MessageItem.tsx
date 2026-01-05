@@ -1,6 +1,5 @@
 import React, {FC, useCallback, useMemo, useRef} from 'react';
 
-// MUI Core Components
 import {
   Box,
   Button,
@@ -9,6 +8,7 @@ import {
   Checkbox,
   Chip,
   IconButton,
+  Link,
   Stack,
   Tooltip,
   Typography,
@@ -16,7 +16,6 @@ import {
   useTheme,
 } from '@mui/material';
 
-// MUI Icons
 import {
   ArrowDownward,
   ArrowUpward,
@@ -28,7 +27,6 @@ import {
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 
-// Markdown & Syntax Highlighting
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {useQueryClient} from '@tanstack/react-query';
@@ -95,7 +93,6 @@ const MessageItem: FC<MessageItemProps> = ({
     [isDragging, transform, transition],
   );
 
-  // Коллбэк для отслеживания самого верхнего элемента
   const firstMessageRef = useCallback(
     (node: Element) => {
       const isLoading = refIsLoading.current;
@@ -116,7 +113,6 @@ const MessageItem: FC<MessageItemProps> = ({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      // Если фокус на кнопке внутри карточки (например, меню), не перехватываем
       if (e.target !== e.currentTarget) return;
 
       if (e.key.toLowerCase() === 'e' || e.key.toLowerCase() === 'у') {
@@ -149,9 +145,9 @@ const MessageItem: FC<MessageItemProps> = ({
         }}
         variant="outlined"
         sx={{
-          position: 'relative', // Для позиционирования кнопки
-          '&:hover .message-action': {opacity: 1}, // Показываем кнопку при наведении (на десктопе)
-          // Подсветка выбранного сообщения
+          position: 'relative',
+          '&:hover .message-action': {opacity: 1},
+
           bgcolor: selectedIds.includes(msg.id)
             ? 'rgba(144, 202, 249, 0.05)'
             : msg.is_archived
@@ -182,7 +178,7 @@ const MessageItem: FC<MessageItemProps> = ({
                 display: 'flex',
                 gap: 0.5,
                 zIndex: 10,
-                // Немного увеличим фон для кнопок на мобилках, чтобы в них было легче попасть
+
                 bgcolor: isMobile ? 'rgba(18, 18, 18, 0.6)' : 'transparent',
                 borderRadius: '8px',
                 p: 0.2,
@@ -191,7 +187,7 @@ const MessageItem: FC<MessageItemProps> = ({
               {isMobile ? (
                 <>
                   <IconButton
-                    size="medium" // Размер medium лучше для тача
+                    size="medium"
                     disabled={index === 0}
                     onClick={(e) => {
                       e.stopPropagation();
@@ -225,14 +221,12 @@ const MessageItem: FC<MessageItemProps> = ({
               )}
             </Box>
           )}
-          {/* Добавим чекбокс в режиме выбора */}
           {!isReorderMode && isSelectMode && (
             <Checkbox
               checked={selectedIds.includes(msg.id)}
               sx={{position: 'absolute', top: 4, right: 4, color: '#8e8e93'}}
             />
           )}
-          {/* КНОПКА ВЫЗОВА МЕНЮ (в углу) */}
           {!isReorderMode && !isSelectMode && (
             <IconButton
               className="message-action"
@@ -242,7 +236,7 @@ const MessageItem: FC<MessageItemProps> = ({
                 position: 'absolute',
                 top: 4,
                 right: 4,
-                opacity: {xs: 1, sm: 0}, // На мобилках видна всегда, на ПК — при наведении
+                opacity: {xs: 1, sm: 0},
                 transition: 'opacity 0.2s',
                 color: '#8e8e93',
                 '&:focus-visible': {
@@ -258,7 +252,7 @@ const MessageItem: FC<MessageItemProps> = ({
           <Box
             sx={{
               color: msg.is_archived ? '#8e8e93' : '#fff',
-              // Стилизуем элементы Markdown под наш интерфейс
+
               '& p': {m: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6},
               '& code': {
                 bgcolor: '#2c2c2e',
@@ -276,7 +270,6 @@ const MessageItem: FC<MessageItemProps> = ({
               components={{
                 // @ts-expect-error cause!
                 code: CodeCode,
-                // Улучшим отображение других элементов для чата
                 p: CodeP,
                 ul: CodeUl,
                 li: CodeLi,
@@ -288,12 +281,10 @@ const MessageItem: FC<MessageItemProps> = ({
           {msg.attachments && msg.attachments?.length > 0 && (
             <Stack spacing={1} sx={{mt: 1, pr: 0}}>
               {msg.attachments?.map((att) => {
-                // Определяем URL для отображения: сначала миниатюра, если есть, иначе оригинал
                 const displayUrl = att.thumbnail_path
                   ? `${API_BASE}/files/${att.thumbnail_path}`
                   : `${API_BASE}/files/${att.file_path}`;
 
-                // URL для открытия в новой вкладке (всегда оригинал)
                 const originalUrl = `${API_BASE}/files/${att.file_path}`;
 
                 if (att.file_type === 'image') {
@@ -301,9 +292,9 @@ const MessageItem: FC<MessageItemProps> = ({
                     <Box
                       key={att.id}
                       component="img"
-                      src={displayUrl} // Используем миниатюру
+                      src={displayUrl}
                       onClick={(e) => {
-                        window.open(originalUrl, '_blank'); // Открываем оригинал
+                        window.open(originalUrl, '_blank');
                       }}
                       sx={{
                         width: '100%',
@@ -334,14 +325,13 @@ const MessageItem: FC<MessageItemProps> = ({
                         style={{width: '100%', display: 'block', maxHeight: '500px'}}
                       >
                         <source src={originalUrl} type="video/mp4" />
-                        <source src={originalUrl} type="video/quicktime" /> {/* Для .mov файлов */}
+                        <source src={originalUrl} type="video/quicktime" />
                         Ваш браузер не поддерживает видео.
                       </video>
                     </Box>
                   );
                 }
 
-                // ОБРАБОТКА АУДИО
                 if (att.file_type === 'audio') {
                   return (
                     <Box
@@ -386,7 +376,6 @@ const MessageItem: FC<MessageItemProps> = ({
               })}
             </Stack>
           )}
-          {/* НИЖНЯЯ ПАНЕЛЬ: Теги + Дата */}
           <Box
             sx={{
               mt: 1,
@@ -395,7 +384,6 @@ const MessageItem: FC<MessageItemProps> = ({
               alignItems: 'flex-end',
             }}
           >
-            {/* Теги слева */}
             <Box sx={{display: 'flex', flexWrap: 'wrap', gap: 0.5, pr: 1}}>
               {msg.tags?.map((t) => (
                 <Chip
@@ -411,23 +399,24 @@ const MessageItem: FC<MessageItemProps> = ({
               ))}
             </Box>
 
-            {/* Дата справа БЕЗ отступа */}
             <Tooltip title={formatFullDate(msg.created_at)} arrow placement="top" enterDelay={500}>
               <Typography
                 variant="caption"
                 sx={{
                   color: '#8e8e93',
                   fontSize: '0.7rem',
-                  // Убираем ml: 1, выравниваем по правому краю контейнера
+
                   whiteSpace: 'nowrap',
                   cursor: 'default',
                   lineHeight: 1,
-                  mb: '2px', // Небольшая корректировка для выравнивания по базовой линии тегов
+                  mb: '2px',
                   textAlign: 'right',
                 }}
               >
-                {formatShortDate(msg.created_at)}
-                {msg.updated_at !== msg.created_at && ' (ред.)'}
+                <Link color="textDisabled" underline="none" href={`?id=${msg.id}`}>
+                  {formatShortDate(msg.created_at)}
+                  {msg.updated_at !== msg.created_at && ' (ред.)'}
+                </Link>
               </Typography>
             </Tooltip>
           </Box>

@@ -1,11 +1,8 @@
 import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-// MUI Core Components
 import {Alert, Box, CircularProgress, Container, Stack} from '@mui/material';
 
-// MUI Icons
-// Markdown & Syntax Highlighting
 import {closestCenter, DndContext, DragEndEvent} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {Note} from './types';
@@ -27,7 +24,15 @@ import {ArchiveMessageRequest, ReorderMessagesRequest} from './tools/types';
 
 function App() {
   const queryClient = useQueryClient();
-  const showSnackbar = useContext(SnackCtx); // Предположим, контекст снаружи или передан
+  const showSnackbar = useContext(SnackCtx);
+
+  const [selectedNoteId] = useState<number | undefined>(() => {
+    const params = new URLSearchParams(window.location.search);
+    const id = params.get('id');
+    return id ? parseInt(id, 10) : undefined;
+  });
+  const refSelectedNoteId = useRef(selectedNoteId);
+  refSelectedNoteId.current = selectedNoteId;
 
   const [searchQuery, setSearchQuery] = useState(() => {
     const params = new URLSearchParams(window.location.search);
@@ -58,7 +63,6 @@ function App() {
   const [anchorEl, setAnchorEl] = useState<Element | null>(null);
   const [selectedMsg, setSelectedMsg] = useState<Note | null>(null);
 
-  // Состояния для диалога подтверждения
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [msgToDelete, setMsgToDelete] = useState<number | null>(null);
   const refMsgToDelete = useRef(msgToDelete);
@@ -68,7 +72,7 @@ function App() {
 
   const [deleteBatchDialogOpen, setBatchDeleteDialogOpen] = useState(false);
 
-  const [selectedIds, setSelectedIds] = useState<number[]>([]); // Массив ID выбранных сообщений
+  const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
 
   const [tagMenuAnchor, setTagMenuAnchor] = useState<HTMLButtonElement | null>(null);
@@ -83,7 +87,6 @@ function App() {
   }, []);
   const handleCloseTagMenu = useCallback(() => setTagMenuAnchor(null), []);
 
-  // 3. Обработка кнопок "Назад/Вперед" в браузере
   useEffect(() => {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
@@ -97,24 +100,20 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // Функция открытия диалога
   const askDeleteConfirmation = useCallback((id: number) => {
     setMsgToDelete(id);
     setDeleteDialogOpen(true);
   }, []);
 
-  // Функция закрытия диалога
   const closeDeleteDialog = useCallback(() => {
     setDeleteDialogOpen(false);
     setMsgToDelete(null);
   }, []);
 
-  // Функция открытия диалога
   const askBatchDeleteConfirmation = useCallback(() => {
     setBatchDeleteDialogOpen(true);
   }, []);
 
-  // Функция закрытия диалога
   const closeBatchDeleteDialog = useCallback(() => {
     setBatchDeleteDialogOpen(false);
   }, []);
@@ -128,6 +127,7 @@ function App() {
     isError,
     error: useNoteError,
   } = useNotes({
+    id: selectedNoteId,
     q: searchQuery,
     tags: currentTags,
     archived: showArchived,
@@ -142,7 +142,6 @@ function App() {
   const refHasNextPage = useRef(hasNextPage);
   refHasNextPage.current = hasNextPage;
 
-  // МУТАЦИЯ ДЛЯ АРХИВАЦИИ (пример частичного обновления)
   const reorderMutation = useMutation({
     mutationFn: (params: ReorderMessagesRequest) => api.messages.reorder(params),
     onSuccess: async () => {
@@ -160,11 +159,9 @@ function App() {
     },
   });
 
-  // МУТАЦИЯ ДЛЯ АРХИВАЦИИ (пример частичного обновления)
   const archiveMutation = useMutation({
     mutationFn: (params: ArchiveMessageRequest) => api.messages.archive(params),
     onSuccess: (_, {archive}) => {
-      // Вместо перезагрузки всего, просто говорим Query, что данные устарели
       queryClient.invalidateQueries({queryKey: ['notes']});
       showSnackbar(archive ? 'Заметка в архиве' : 'Заметка восстановлена');
       handleCloseMenu();
@@ -176,16 +173,13 @@ function App() {
     },
   });
 
-  // Метод для MessageItem, чтобы триггерить подгрузку
   const loadMore = useCallback(() => {
     if (hasNextPage && !isFetchingNextPage) {
       fetchNextPage();
     }
   }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
-  // Синхронизация с URL и загрузка данных
   useEffect(() => {
-    // 1. Мгновенно обновляем URL
     if (!refGoBack.current) {
       const url = new URL(window.location.href);
 
@@ -195,18 +189,22 @@ function App() {
         url.searchParams.delete('archived');
       }
 
-      // Работа с тегами
       if (currentTags.length > 0) {
         url.searchParams.set('tags', currentTags.join(','));
       } else {
         url.searchParams.delete('tags');
       }
 
-      // Работа с поиском (q)
       if (searchQuery) {
         url.searchParams.set('q', searchQuery);
       } else {
         url.searchParams.delete('q');
+      }
+
+      if (selectedNoteId) {
+        url.searchParams.set('id', String(selectedNoteId));
+      } else {
+        url.searchParams.delete('id');
       }
 
       window.history.replaceState({}, '', url);
@@ -214,18 +212,15 @@ function App() {
 
     refGoBack.current = false;
 
-    // 2. Дебаунс загрузки данных (особенно важно для поиска)
     const delayDebounceFn = setTimeout(() => {
       queryClient.invalidateQueries({queryKey: ['notes']});
-    }, 400); // 400мс — оптимальное время задержки
+    }, 400);
 
-    // Очистка таймера при следующем изменении (если пользователь нажал клавишу быстрее чем 400мс)
     return () => clearTimeout(delayDebounceFn);
-  }, [currentTags, queryClient, searchQuery, showArchived]); // Добавили searchQuery в зависимости
+  }, [currentTags, queryClient, searchQuery, selectedNoteId, showArchived]);
 
   const startEditing = useCallback((msg: Note) => {
     setEditingId(msg.id);
-    // Скроллим к полю ввода
     window.scrollTo({top: document.documentElement.scrollHeight});
   }, []);
 
@@ -251,12 +246,10 @@ function App() {
     handleCloseMenu();
   }, [selectedMsg, handleCloseMenu, askDeleteConfirmation]);
 
-  // Функция переключения выбора
   const toggleSelect = useCallback((id: number) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
   }, []);
 
-  // Вход в режим выбора через меню
   const enterSelectMode = useCallback(
     (msg: Note) => {
       setIsSelectMode(true);
@@ -271,7 +264,6 @@ function App() {
     setSelectedIds([]);
   }, []);
 
-  // Вход в режим выбора через меню
   const enterReorderMode = useCallback(() => {
     setIsReorderMode(true);
     setDndMessages(refServerMessages.current);
@@ -288,7 +280,7 @@ function App() {
 
     archiveMutation.mutate({
       id: selectedMsg.id,
-      archive: selectedMsg.is_archived ? 0 : 1, // Инвертируем текущий статус
+      archive: selectedMsg.is_archived ? 0 : 1,
     });
 
     handleCloseMenu();

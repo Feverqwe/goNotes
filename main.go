@@ -34,7 +34,6 @@ func main() {
 
 	var config = cfg.LoadConfig()
 
-	// Открываем БД с включенным режимом WAL для стабильности
 	db, err = sql.Open("sqlite", filepath.Join(cfg.GetProfilePath(), "notes.db?_pragma=journal_mode(WAL)&_pragma=foreign_keys(ON)"))
 	if err != nil {
 		log.Fatal(err)
@@ -45,20 +44,17 @@ func main() {
 		log.Printf("Migrate query error: %v", err)
 	}
 
-	// Инициализируем схему прямо из встроенной переменной
 	if _, err := db.Exec(schemaSQL); err != nil {
 		log.Fatalf("Init DB error: %v", err)
 	}
 
-	// Создаем папку для вложений
 	os.Mkdir(filepath.Join(cfg.GetProfilePath(), "uploads"), 0755)
 
 	router := internal.NewRouter()
 
 	internal.HandleApi(router, db, &config)
 
-	// Файлы и Share
-	router.Get("^/files/", handleGetFile) // Раздача файлов
+	router.Get("^/files/", handleGetFile)
 
 	handleWww(router, &config)
 
@@ -77,17 +73,15 @@ func main() {
 }
 
 func handleGetFile(w http.ResponseWriter, r *http.Request) {
-	// Извлекаем имя файла из URL (например, /files/123_test.jpg -> 123_test.jpg)
+
 	fileName := filepath.Base(r.URL.Path)
 	fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
 
-	// Проверяем, существует ли файл
 	if _, err := os.Stat(fullPath); os.IsNotExist(err) {
 		http.Error(w, "File not found", http.StatusNotFound)
 		return
 	}
 
-	// Отдаем файл. Go сам определит Content-Type (image/jpeg, и т.д.)
 	http.ServeFile(w, r, fullPath)
 }
 

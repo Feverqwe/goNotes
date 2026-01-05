@@ -8,16 +8,16 @@ export const themeProps = {
     primary: {main: '#90caf9'},
     background: {default: '#000', paper: '#121212'},
   },
-  // Глобальное отключение эффектов
+
   components: {
     MuiButtonBase: {
       defaultProps: {
-        disableRipple: true, // Отключает пульсацию для всех кнопок и иконок
+        disableRipple: true,
       },
     },
     MuiButton: {
       defaultProps: {
-        disableElevation: true, // Опционально: убирает тени у кнопок для плоского стиля
+        disableElevation: true,
       },
     },
   },

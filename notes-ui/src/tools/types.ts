@@ -1,8 +1,7 @@
-// --- Types for Messages ---
-
 import {Note} from '../types';
 
 export interface ListMessagesRequest {
+  id?: number;
   limit?: number;
   last_order?: number;
   tags?: string;
@@ -12,10 +11,10 @@ export interface ListMessagesRequest {
 
 export type ListMessagesResponse = Note[];
 
-export type SendMessageRequest = FormData; // Ожидает content и attachments
+export type SendMessageRequest = FormData;
 export type SendMessageResponse = 'ok';
 
-export type UpdateMessageRequest = FormData; // Ожидает id, content, delete_attachments и attachments
+export type UpdateMessageRequest = FormData;
 export type UpdateMessageResponse = 'ok';
 
 export interface DeleteMessageRequest {
@@ -30,7 +29,7 @@ export type BatchDeleteResponse = 'ok';
 
 export interface ArchiveMessageRequest {
   id: number;
-  archive: number; // 0 или 1
+  archive: number;
 }
 export type ArchiveMessageResponse = 'ok';
 
@@ -39,8 +38,4 @@ export interface ReorderMessagesRequest {
 }
 export type ReorderMessagesResponse = 'ok';
 
-// --- Types for Tags ---
-
 export type ListTagsResponse = string[];
-
-// --- API Infrastructure ---

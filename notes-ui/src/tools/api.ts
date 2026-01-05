@@ -61,7 +61,7 @@ function action<RequestParams = unknown, ResponseData = unknown>({
       if (params instanceof FormData) {
         config.headers = {
           ...config.headers,
-          'Content-Type': undefined, // Axios сам выставит boundary
+          'Content-Type': undefined,
         };
       }
     }
@@ -69,8 +69,6 @@ function action<RequestParams = unknown, ResponseData = unknown>({
     return client.request<{result: ResponseData; error?: string}>(config).then(handleResponse);
   };
 }
-
-// --- API Объект с типизацией ---
 
 export const api = {
   messages: {

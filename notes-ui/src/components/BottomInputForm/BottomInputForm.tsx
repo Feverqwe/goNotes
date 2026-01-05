@@ -14,7 +14,7 @@ interface BottomInputFormProps {
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   setEditingId: React.Dispatch<React.SetStateAction<number | null>>;
-  messages: Note[]; // Добавьте этот пропс в App.tsx при вызове
+  messages: Note[];
 }
 
 const BottomInputForm: FC<BottomInputFormProps> = ({
@@ -32,7 +32,6 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
-  // Состояния для редактирования существующих вложений
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [deletedAttachIds, setDeletedAttachIds] = useState<number[]>([]);
 
@@ -50,14 +49,12 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
 
     navigator.serviceWorker.addEventListener('message', handleMessage);
 
-    // Как только компонент смонтирован, спрашиваем у SW: "Есть что для меня?"
     const askForData = () => {
       if (navigator.serviceWorker.controller) {
         navigator.serviceWorker.controller.postMessage({action: 'GET_SHARED_DATA'});
       }
     };
 
-    // Небольшая задержка, чтобы стейты инициализировались
     const timeout = setTimeout(askForData, 500);
 
     return () => {
@@ -66,7 +63,6 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     };
   }, [setFiles, setInputText]);
 
-  // Инициализация при входе в режим редактирования
   useEffect(() => {
     if (editingId) {
       const msg = messages.find((m) => m.id === editingId);
@@ -81,7 +77,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       setTimeout(() => {
         if (inputRef.current) {
           inputRef.current.focus();
-          // Перемещаем курсор в конец текста
+
           const {length} = inputRef.current.value;
           inputRef.current.setSelectionRange(length, length);
         }
@@ -192,7 +188,6 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     [handleSend],
   );
 
-  // Drag & Drop логика
   const handleDrag = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -231,14 +226,14 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         bottom: 0,
         left: 0,
         right: 0,
-        // Используем тот же цвет и прозрачность, что и в поиске
+
         bgcolor: isDragging ? 'rgba(26, 31, 36, 0.9)' : 'rgba(18, 18, 18, 0.8)',
-        // Тот же эффект блюра и насыщенности
+
         backdropFilter: 'blur(20px) saturate(180%)',
-        // Убираем стандартную тень Paper для чистого вида
+
         backgroundImage: 'none',
         borderTop: '1px solid',
-        // Сохраняем синюю рамку при редактировании, иначе используем стандартную
+
         borderColor: editingId ? 'rgba(144, 202, 249, 0.5)' : '#2c2c2e',
         zIndex: 1000,
         transition: 'background-color 0.2s, border-color 0.2s',
@@ -267,7 +262,6 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </Box>
         )}
 
-        {/* СУЩЕСТВУЮЩИЕ ВЛОЖЕНИЯ — адаптированы под тач */}
         {existingAttachments.length > 0 && editingId && (
           <Box
             sx={{
@@ -321,12 +315,11 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </Box>
         )}
 
-        {/* КРАСИВЫЙ СПИСОК НОВЫХ ФАЙЛОВ — адаптирован под тач */}
         {files.length > 0 && (
           <Box
             sx={{
               display: 'flex',
-              gap: 1.5, // Увеличили расстояние между файлами
+              gap: 1.5,
               px: 2,
               pt: 1.5,
               pb: 0.5,
@@ -341,13 +334,13 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
                   display: 'flex',
                   alignItems: 'center',
                   bgcolor: '#1c1c1e',
-                  pl: 2, // Больше отступ слева
+                  pl: 2,
                   pr: 0.5,
-                  py: 0.5, // Добавили вертикальный отступ для высоты
+                  py: 0.5,
                   borderRadius: '8px',
                   border: '1px solid #90caf9',
                   minWidth: 'fit-content',
-                  height: '42px', // Фиксированная высота для удобства нажатия
+                  height: '42px',
                 }}
               >
                 <Typography
@@ -359,7 +352,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
                   {file.name}
                 </Typography>
                 <IconButton
-                  size="medium" // Увеличили размер кнопки
+                  size="medium"
                   onClick={() => removeNewFile(idx)}
                   sx={{ml: 1, color: '#90caf9'}}
                 >
@@ -370,7 +363,6 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </Box>
         )}
 
-        {/* ЭСТЕТИЧНЫЕ ТЕГИ — адаптированы под тач */}
         {currentTags.length > 0 && !editingId && (
           <Box sx={{px: 2, pt: 1.5, pb: 1, display: 'flex', gap: 1, flexWrap: 'wrap'}}>
             {currentTags.map((tag) => (
@@ -378,23 +370,22 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
                 key={tag}
                 label={tag}
                 onDelete={() => setCurrentTags((prev) => prev.filter((t) => t !== tag))}
-                // Убрали size="small" для стандартного (крупного) размера
                 sx={{
                   bgcolor: 'rgba(144, 202, 249, 0.08)',
                   color: '#90caf9',
                   border: '1px solid rgba(144, 202, 249, 0.2)',
-                  borderRadius: '6px', // Более строгий радиус
+                  borderRadius: '6px',
                   fontWeight: 600,
-                  fontSize: '0.85rem', // Крупнее шрифт
-                  height: '36px', // Комфортная высота для тапа
+                  fontSize: '0.85rem',
+                  height: '36px',
                   '& .MuiChip-deleteIcon': {
-                    fontSize: 20, // Увеличили крестик
+                    fontSize: 20,
                     color: '#90caf9',
                     ml: 1,
                     mr: 0.5,
                     '&:hover': {color: '#fff'},
                   },
-                  '& .MuiChip-label': {px: 1.5}, // Больше места для текста
+                  '& .MuiChip-label': {px: 1.5},
                 }}
               />
             ))}

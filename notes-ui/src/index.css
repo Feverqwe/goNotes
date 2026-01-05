@@ -1,5 +1,5 @@
 html {
-  overflow-anchor: auto; /* Помогает браузеру удерживать фокус на контенте при вставке сверху */
+  overflow-anchor: auto;
 }
 
 body {

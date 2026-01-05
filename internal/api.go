@@ -31,17 +31,15 @@ func HandleApi(router *Router, database *sql.DB, config *cfg.Config) {
 	db = database
 	apiRouter := NewRouter()
 
-	// Применяем Gzip ко всем ответам API
 	gzipHandler := gziphandler.GzipHandler(apiRouter)
 
 	handleAction(apiRouter, config)
 
-	// Регистрируем API роутер в основном роутере с префиксом
 	router.All("^/api/", gzipHandler.ServeHTTP)
 }
 
 func handleAction(router *Router, config *cfg.Config) {
-	// Список сообщений (GET /api/messages/list)
+
 	router.Get("/api/messages/list", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (interface{}, error) {
 			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -49,6 +47,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			tagsParam := r.URL.Query().Get("tags")
 			searchQuery := r.URL.Query().Get("q")
 			onlyArchived := r.URL.Query().Get("archived") == "1"
+			noteID, _ := strconv.Atoi(r.URL.Query().Get("id"))
 
 			if limit <= 0 {
 				limit = 15
@@ -57,54 +56,57 @@ func handleAction(router *Router, config *cfg.Config) {
 			var clauses []string
 			var args []interface{}
 
-			if lastOrder > 0 {
-				clauses = append(clauses, "sort_order < ?")
-				args = append(args, lastOrder)
-			}
-
-			// Поиск по тексту (учитываем регистр для кириллицы)
-			if searchQuery != "" {
-				searchQuery = strings.TrimSpace(searchQuery)
-				words := strings.Fields(searchQuery)
-
-				for _, word := range words {
-					// Приводим поисковое слово к нижнему регистру в Go
-					processedWord := strings.ToLower(strings.ReplaceAll(word, "*", "%"))
-
-					if !strings.Contains(word, "*") {
-						processedWord = "%" + processedWord + "%"
-					}
-
-					// Используем LOWER(content) для сравнения без учета регистра
-					clauses = append(clauses, "LOWER(content) LIKE ?")
-					args = append(args, processedWord)
-				}
-			}
-
-			if tagsParam != "" {
-				tagList := strings.Split(tagsParam, ",")
-				clauses = append(clauses, fmt.Sprintf(`id IN (
-			SELECT message_id FROM message_tags mt 
-			JOIN tags t ON mt.tag_id = t.id 
-			WHERE t.name IN (%s)
-			GROUP BY message_id
-			HAVING COUNT(DISTINCT t.name) = ?
-		)`, generatePlaceholders(len(tagList))))
-
-				for _, t := range tagList {
-					args = append(args, strings.ToLower(strings.TrimSpace(t)))
-				}
-				args = append(args, len(tagList))
-			}
-
-			if searchQuery != "" || tagsParam != "" {
-				// Если есть поиск или теги — показываем всё (и архив, и обычные)
-			} else if onlyArchived {
-				// Если выбран режим "Архив" — показываем ТОЛЬКО архивные
-				clauses = append(clauses, "is_archived = 1")
+			if noteID > 0 {
+				clauses = append(clauses, "id = ?")
+				args = append(args, noteID)
 			} else {
-				// Обычный режим — показываем только НЕ архивные
-				clauses = append(clauses, "is_archived = 0")
+				if lastOrder > 0 {
+					clauses = append(clauses, "sort_order < ?")
+					args = append(args, lastOrder)
+				}
+
+				if searchQuery != "" {
+					searchQuery = strings.TrimSpace(searchQuery)
+					words := strings.Fields(searchQuery)
+
+					for _, word := range words {
+
+						processedWord := strings.ToLower(strings.ReplaceAll(word, "*", "%"))
+
+						if !strings.Contains(word, "*") {
+							processedWord = "%" + processedWord + "%"
+						}
+
+						clauses = append(clauses, "LOWER(content) LIKE ?")
+						args = append(args, processedWord)
+					}
+				}
+
+				if tagsParam != "" {
+					tagList := strings.Split(tagsParam, ",")
+					clauses = append(clauses, fmt.Sprintf(`id IN (
+						SELECT message_id FROM message_tags mt 
+						JOIN tags t ON mt.tag_id = t.id 
+						WHERE t.name IN (%s)
+						GROUP BY message_id
+						HAVING COUNT(DISTINCT t.name) = ?
+					)`, generatePlaceholders(len(tagList))))
+
+					for _, t := range tagList {
+						args = append(args, strings.ToLower(strings.TrimSpace(t)))
+					}
+					args = append(args, len(tagList))
+				}
+
+				if searchQuery != "" || tagsParam != "" {
+
+				} else if onlyArchived {
+
+					clauses = append(clauses, "is_archived = 1")
+				} else {
+
+					clauses = append(clauses, "is_archived = 0")
+				}
 			}
 
 			whereSQL := ""
@@ -133,7 +135,7 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			for rows.Next() {
 				var m MessageDTO
-				// Если проблема с NULL решена в БД, Scan пройдет без ошибок
+
 				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.IsArchived, &m.SortOrder); err != nil {
 					log.Printf("Scan error: %v", err)
 					continue
@@ -144,7 +146,6 @@ func handleAction(router *Router, config *cfg.Config) {
 				messageIDs = append(messageIDs, m.ID)
 			}
 
-			// 4. Batch Loading (Теги и Вложения)
 			if len(messages) > 0 {
 				tagsMap := fetchTagsForMessages(messageIDs)
 				attachMap := fetchAttachmentsForMessages(messageIDs)
@@ -161,17 +162,15 @@ func handleAction(router *Router, config *cfg.Config) {
 		})
 	})
 
-	// Создание сообщения (POST /api/messages/send)
 	router.Post("/api/messages/send", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (interface{}, error) {
-			// Лимит 32МБ на запрос
+
 			if err := r.ParseMultipartForm(32 << 20); err != nil {
 				return nil, err
 			}
 
 			content := r.FormValue("content")
 
-			// --- ТРАНЗАКЦИЯ ---
 			tx, err := db.Begin()
 			if err != nil {
 				return nil, err
@@ -181,21 +180,18 @@ func handleAction(router *Router, config *cfg.Config) {
 			var maxOrder int
 			db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM messages").Scan(&maxOrder)
 
-			// 1. Создаем само сообщение
 			res, err := tx.Exec("INSERT INTO messages (content, sort_order) VALUES (?, ?)", content, maxOrder+1)
 			if err != nil {
 				return nil, err
 			}
 			msgID, _ := res.LastInsertId()
 
-			// 2. Парсим и сохраняем теги
 			tags := extractHashtags(content)
 			for _, t := range tags {
 				tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
 				tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", msgID, t)
 			}
 
-			// 3. Сохраняем вложения
 			files := r.MultipartForm.File["attachments"]
 			for _, fHeader := range files {
 				fileName := fmt.Sprintf("%d_%s", msgID, fHeader.Filename)
@@ -206,20 +202,18 @@ func handleAction(router *Router, config *cfg.Config) {
 					continue
 				}
 
-				// Определяем тип файла по расширению
 				ext := strings.ToLower(filepath.Ext(fileName))
-				fileType := "document" // по умолчанию
+				fileType := "document"
 				thumbnailPath := ""
 				if isImage(fileName) {
 					fileType = "image"
 					thumbName := "thumb_" + fileName
 					fullThumbPath := filepath.Join(cfg.GetProfilePath(), "uploads", thumbName)
 
-					// Генерируем миниатюру
 					if err := generateThumbnail(fullPath, fullThumbPath); err != nil {
 						log.Printf("Ошибка генерации миниатюры: %v", err)
 					} else {
-						thumbnailPath = thumbName // Сохраняем имя миниатюры в БД
+						thumbnailPath = thumbName
 					}
 				} else if isAudio(fileName) {
 					fileType = "audio"
@@ -227,30 +221,28 @@ func handleAction(router *Router, config *cfg.Config) {
 					fileType = "video"
 				}
 
-				// Сохраняем в БД
 				_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
-					msgID, fileName, thumbnailPath, fileType) // Сохраняем только имя файла, а не весь путь
+					msgID, fileName, thumbnailPath, fileType)
 			}
 
 			if err := tx.Commit(); err != nil {
 				return nil, err
 			}
 
-			return "ok", nil // TODO: Перенести из main.go
+			return "ok", nil
 		})
 	})
 
-	// Обновление сообщения (POST /api/messages/update)
 	router.Post("/api/messages/update", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (interface{}, error) {
-			// Лимит 32МБ
+
 			if err := r.ParseMultipartForm(32 << 20); err != nil {
 				return nil, err
 			}
 
 			idStr := r.FormValue("id")
 			content := r.FormValue("content")
-			// Список ID вложений, которые нужно УДАЛИТЬ (придет строкой через запятую)
+
 			deleteAttachIDs := r.FormValue("delete_attachments")
 
 			id, _ := strconv.ParseInt(idStr, 10, 64)
@@ -258,17 +250,15 @@ func handleAction(router *Router, config *cfg.Config) {
 			tx, _ := db.Begin()
 			defer tx.Rollback()
 
-			// 1. Обновляем текст
 			_, err := tx.Exec("UPDATE messages SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", content, id)
 			if err != nil {
 				return nil, err
 			}
 
-			// 2. Удаляем помеченные вложения
 			if deleteAttachIDs != "" {
 				ids := strings.Split(deleteAttachIDs, ",")
 				for _, aid := range ids {
-					// Сначала удаляем физически
+
 					var filePath, thumbPath string
 					err := tx.QueryRow("SELECT file_path, thumbnail_path FROM attachments WHERE id = ? AND message_id = ?", aid, id).Scan(&filePath, &thumbPath)
 					if err == nil {
@@ -277,12 +267,11 @@ func handleAction(router *Router, config *cfg.Config) {
 							deletePhysicalFile(thumbPath)
 						}
 					}
-					// Затем из базы
+
 					tx.Exec("DELETE FROM attachments WHERE id = ?", aid)
 				}
 			}
 
-			// 3. Добавляем новые вложения (та же логика, что в handleSendMessage)
 			files := r.MultipartForm.File["attachments"]
 			for _, fHeader := range files {
 				fileName := fmt.Sprintf("%d_%s", id, fHeader.Filename)
@@ -302,7 +291,6 @@ func handleAction(router *Router, config *cfg.Config) {
 				}
 			}
 
-			// 4. Обновляем теги
 			tx.Exec("DELETE FROM message_tags WHERE message_id = ?", id)
 			tags := extractHashtags(content)
 			for _, t := range tags {
@@ -314,11 +302,10 @@ func handleAction(router *Router, config *cfg.Config) {
 				return nil, err
 			}
 
-			return "ok", nil // TODO: Перенести из main.go
+			return "ok", nil
 		})
 	})
 
-	// Сообщения: Удаление
 	router.Delete("/api/messages/delete", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (string, error) {
 			id := r.URL.Query().Get("id")
@@ -328,7 +315,6 @@ func handleAction(router *Router, config *cfg.Config) {
 				return "", err
 			}
 
-			// 1. Получаем список всех вложений для этого сообщения перед удалением
 			rows, err := db.Query("SELECT file_path, thumbnail_path FROM attachments WHERE message_id = ?", id)
 			if err != nil {
 				log.Printf("Error fetching attachments: %v", err)
@@ -337,9 +323,9 @@ func handleAction(router *Router, config *cfg.Config) {
 				for rows.Next() {
 					var filePath, thumbPath string
 					if err := rows.Scan(&filePath, &thumbPath); err == nil {
-						// Удаляем оригинал
+
 						deletePhysicalFile(filePath)
-						// Удаляем миниатюру (если есть)
+
 						if thumbPath != "" {
 							deletePhysicalFile(thumbPath)
 						}
@@ -347,8 +333,6 @@ func handleAction(router *Router, config *cfg.Config) {
 				}
 			}
 
-			// Выполняем удаление. Благодаря FOREIGN KEY ON DELETE CASCADE в db.sql,
-			// все вложения и теги удалятся автоматически.
 			result, err := db.Exec("DELETE FROM messages WHERE id = ?", id)
 			if err != nil {
 				log.Printf("Error deleting message %s: %v", id, err)
@@ -364,7 +348,6 @@ func handleAction(router *Router, config *cfg.Config) {
 		})
 	})
 
-	// Массовое удаление (POST /api/messages/batch-delete)
 	router.Post("/api/messages/batch-delete", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (interface{}, error) {
 			var data struct {
@@ -380,7 +363,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			}
 
 			for _, id := range data.IDs {
-				// 1. Получаем список всех вложений для этого сообщения перед удалением
+
 				rows, err := db.Query("SELECT file_path, thumbnail_path FROM attachments WHERE message_id = ?", id)
 				if err != nil {
 					log.Printf("Error fetching attachments: %v", err)
@@ -389,9 +372,9 @@ func handleAction(router *Router, config *cfg.Config) {
 					for rows.Next() {
 						var filePath, thumbPath string
 						if err := rows.Scan(&filePath, &thumbPath); err == nil {
-							// Удаляем оригинал
+
 							deletePhysicalFile(filePath)
-							// Удаляем миниатюру (если есть)
+
 							if thumbPath != "" {
 								deletePhysicalFile(thumbPath)
 							}
@@ -400,7 +383,6 @@ func handleAction(router *Router, config *cfg.Config) {
 				}
 			}
 
-			// SQLite эффективно удаляет через WHERE id IN (...)
 			query := fmt.Sprintf("DELETE FROM messages WHERE id IN (%s)", generatePlaceholders(len(data.IDs)))
 
 			args := make([]interface{}, len(data.IDs))
@@ -417,7 +399,6 @@ func handleAction(router *Router, config *cfg.Config) {
 		})
 	})
 
-	// Архивация (POST /api/messages/archive)
 	router.Post("/api/messages/archive", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (interface{}, error) {
 			var data struct {
@@ -436,7 +417,6 @@ func handleAction(router *Router, config *cfg.Config) {
 		})
 	})
 
-	// Изменение порядка (POST /api/messages/reorder)
 	router.Post("/api/messages/reorder", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (interface{}, error) {
 			var data struct {
@@ -450,7 +430,6 @@ func handleAction(router *Router, config *cfg.Config) {
 			}
 			defer tx.Rollback()
 
-			// 1. Получаем текущие значения sort_order для этих ID из базы, чтобы знать границы "окна"
 			rows, err := tx.Query(fmt.Sprintf("SELECT sort_order FROM messages WHERE id IN (%s) ORDER BY sort_order DESC", joinIDs(data.IDs)))
 			if err != nil {
 				return nil, err
@@ -463,7 +442,6 @@ func handleAction(router *Router, config *cfg.Config) {
 			}
 			rows.Close()
 
-			// 2. Присваиваем эти же значения, но в новом порядке
 			for i, id := range data.IDs {
 				tx.Exec("UPDATE messages SET sort_order = ? WHERE id = ?", orders[i], id)
 			}
@@ -472,14 +450,13 @@ func handleAction(router *Router, config *cfg.Config) {
 				return nil, err
 			}
 
-			return "ok", nil // TODO: Перенести из main.go
+			return "ok", nil
 		})
 	})
 
-	// Список тегов (GET /api/tags/list)
 	router.Get("/api/tags/list", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() ([]string, error) {
-			// Выбираем только те теги, которые привязаны хотя бы к одному сообщению
+
 			rows, err := db.Query(`
 				SELECT DISTINCT t.name 
 				FROM tags t 

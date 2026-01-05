@@ -18,7 +18,6 @@ export class HTTPError extends Error {
 export async function handleApiResponse<T>(response: Response): Promise<T> {
   const body = await response.json().catch(() => null);
 
-  // Если бэкенд прислал ошибку в формате {error: "text"}
   if (body !== null && typeof body === 'object' && 'error' in body) {
     throw new ApiError(body.error);
   }
@@ -31,7 +30,5 @@ export async function handleApiResponse<T>(response: Response): Promise<T> {
     throw new Error('Empty body');
   }
 
-  // Твой бэкенд сейчас возвращает данные напрямую (без поля .result)
-  // Поэтому возвращаем body целиком как T
   return body as T;
 }

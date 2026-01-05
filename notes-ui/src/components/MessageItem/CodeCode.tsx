@@ -27,7 +27,6 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      // Если фокус на кнопке внутри карточки (например, меню), не перехватываем
       if (e.target !== e.currentTarget) return;
 
       if (e.key.toLowerCase() === 'enter') {
@@ -46,15 +45,15 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         onKeyDown={handleKeyDown}
         onClick={handleCopy}
         style={{
-          backgroundColor: 'rgba(144, 202, 249, 0.1)', // Полупрозрачный голубой фон
-          color: '#90caf9', // Цвет текста в тон темы
-          padding: '2px 5px', // Чуть более компактные отступы
+          backgroundColor: 'rgba(144, 202, 249, 0.1)',
+          color: '#90caf9',
+          padding: '2px 5px',
           borderRadius: '4px',
           fontFamily: 'monospace',
-          fontSize: '0.85em', // Чуть меньше основного текста
+          fontSize: '0.85em',
           cursor: 'pointer',
-          border: '1px solid rgba(144, 202, 249, 0.2)', // Тонкая рамка для четкости
-          wordBreak: 'break-word', // Чтобы не ломало верстку
+          border: '1px solid rgba(144, 202, 249, 0.2)',
+          wordBreak: 'break-word',
           transition: 'all 0.1s',
         }}
         onMouseEnter={(e) => {
@@ -77,21 +76,20 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         borderRadius: 2,
         overflow: 'hidden',
         border: '1px solid rgba(255, 255, 255, 0.08)',
-        bgcolor: '#282c34', // Основной фон OneDark
+        bgcolor: '#282c34',
         code: {
           bgcolor: '#282c34',
         },
       }}
     >
-      {/* Постоянная сервисная панель */}
       <Box
         sx={{
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'space-between',
           px: 1.5,
-          py: 0.2, // Узкая и аккуратная
-          bgcolor: 'rgba(0, 0, 0, 0.3)', // Тёмная подложка
+          py: 0.2,
+          bgcolor: 'rgba(0, 0, 0, 0.3)',
           borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
         }}
       >
@@ -110,7 +108,7 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
 
         <IconButton
           onClick={handleCopy}
-          size="medium" // Крупная область нажатия для тача
+          size="medium"
           sx={{
             color: '#8e8e93',
             p: 1,

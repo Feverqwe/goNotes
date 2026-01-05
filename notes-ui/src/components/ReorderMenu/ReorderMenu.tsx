@@ -2,8 +2,6 @@ import React, {FC} from 'react';
 import {Box, Button, Container, IconButton, Paper, Typography} from '@mui/material';
 import {Close, Done} from '@mui/icons-material';
 
-// MUI Icons
-
 interface ReorderMenuProps {
   cancelReorderMode: () => void;
   saveOrder: () => void;
@@ -22,8 +20,8 @@ const ReorderMenu: FC<ReorderMenuProps> = ({cancelReorderMode, saveOrder}) => {
         bgcolor: 'rgba(18, 18, 18, 0.85)',
         backdropFilter: 'blur(20px) saturate(180%)',
         backgroundImage: 'none',
-        borderTop: '1px solid rgba(144, 202, 249, 0.5)', // Голубая граница для акцента
-        zIndex: 1200, // Выше чем BottomInputForm
+        borderTop: '1px solid rgba(144, 202, 249, 0.5)',
+        zIndex: 1200,
         animation: 'slideUp 0.2s ease-out',
       }}
     >

@@ -26,7 +26,6 @@ const DeleteDialog: FC<DeleteDialogProps> = ({
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
 
-  // МУТАЦИЯ УДАЛЕНИЯ
   const deleteMutation = useMutation({
     mutationFn: (params: DeleteMessageRequest) => api.messages.delete(params),
     onSuccess: () => {
@@ -42,7 +41,6 @@ const DeleteDialog: FC<DeleteDialogProps> = ({
     },
   });
 
-  // Сама функция удаления (обновленная)
   const confirmDelete = useCallback(async () => {
     const msgToDelete = refMsgToDelete.current;
     if (!msgToDelete) return;

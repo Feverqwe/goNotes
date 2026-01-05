@@ -12,6 +12,6 @@ export interface Note {
   created_at: string;
   updated_at: string;
   tags?: string[];
-  is_archived: number; // 0 или 1
+  is_archived: number;
   sort_order: number;
 }

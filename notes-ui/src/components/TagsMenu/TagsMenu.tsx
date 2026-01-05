@@ -1,12 +1,9 @@
 import React, {FC, useCallback} from 'react';
 
-// MUI Core Components
 import {Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
-// MUI Icons
+
 import {Archive, Check} from '@mui/icons-material';
 import {useTags} from '../../hooks/useTags';
-
-// Markdown & Syntax Highlighting
 
 interface TagsMenuProps {
   tagMenuAnchor: HTMLButtonElement | null;
@@ -31,10 +28,9 @@ const TagsMenu: FC<TagsMenuProps> = ({
     (tag: string) => {
       setCurrentTags((prev) => {
         if (prev.includes(tag)) {
-          // Если тег уже есть — удаляем его
           return prev.filter((t) => t !== tag);
         }
-        // Если нет — добавляем в массив
+
         return [...prev, tag];
       });
     },
@@ -53,7 +49,7 @@ const TagsMenu: FC<TagsMenuProps> = ({
             backdropFilter: 'blur(15px) saturate(140%)',
             minWidth: 240,
             maxHeight: 450,
-            borderRadius: '4px', // Тот же строгий радиус
+            borderRadius: '4px',
             border: '1px solid rgba(255, 255, 255, 0.12)',
             boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
             mt: 0.5,

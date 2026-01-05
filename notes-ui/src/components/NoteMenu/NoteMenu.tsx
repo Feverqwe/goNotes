@@ -53,10 +53,10 @@ const NoteMenu: FC<NoteMenuProps> = ({
         list: {sx: {py: 0.5}},
         paper: {
           sx: {
-            bgcolor: 'rgba(24, 24, 26, 0.85)', // Чуть плотнее фон
+            bgcolor: 'rgba(24, 24, 26, 0.85)',
             backdropFilter: 'blur(15px) saturate(140%)',
             minWidth: 200,
-            borderRadius: '4px', // Строгий радиус
+            borderRadius: '4px',
             border: '1px solid rgba(255, 255, 255, 0.12)',
             boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
             backgroundImage: 'none',
@@ -92,7 +92,7 @@ const NoteMenu: FC<NoteMenuProps> = ({
           sx={{
             py: 1,
             px: 2,
-            borderRadius: 0, // Пункты на всю ширину без скруглений
+            borderRadius: 0,
             transition: 'background-color 0.1s',
             '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.05)'},
           }}

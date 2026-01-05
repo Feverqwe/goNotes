@@ -6,7 +6,7 @@ interface SearchBoxProps {
   searchQuery: string;
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   currentTags: string[];
-  setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>; // Добавили сеттер для сброса тегов
+  setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   handleOpenTagMenu: (event: React.MouseEvent<HTMLButtonElement>) => void;
   showArchived: boolean;
   setShowArchived: (v: boolean) => void;
@@ -21,7 +21,6 @@ const SearchBox: FC<SearchBoxProps> = ({
   showArchived,
   setShowArchived,
 }) => {
-  // Функция для полной очистки поиска и тегов
   const handleClearAll = useCallback(() => {
     setSearchQuery('');
     setCurrentTags([]);
@@ -33,7 +32,6 @@ const SearchBox: FC<SearchBoxProps> = ({
     [currentTags.length, showArchived],
   );
 
-  // Определяем, активен ли какой-либо фильтр
   const hasFilters = useMemo(
     () => searchQuery.length > 0 || activeFiltersCount > 0 || showArchived,
     [activeFiltersCount, searchQuery.length, showArchived],
@@ -49,8 +47,8 @@ const SearchBox: FC<SearchBoxProps> = ({
         zIndex: 11,
         bgcolor: 'rgba(18, 18, 18, 0.8)',
         backdropFilter: 'blur(20px) saturate(180%)',
-        borderBottom: '1px solid #2c2c2e', // Тонкая линия как в BottomInputForm
-        py: 0.5, // Минимальный вертикальный отступ
+        borderBottom: '1px solid #2c2c2e',
+        py: 0.5,
         px: 1,
       }}
     >
@@ -60,7 +58,7 @@ const SearchBox: FC<SearchBoxProps> = ({
           alignItems: 'center',
           maxWidth: 'sm',
           mx: 'auto',
-          height: '48px', // Соразмерно с нижней панелью
+          height: '48px',
         }}
       >
         <TextField
@@ -100,7 +98,7 @@ const SearchBox: FC<SearchBoxProps> = ({
                     sx={{
                       p: 1,
                       color: activeFiltersCount > 0 ? '#90caf9' : '#8e8e93',
-                      // Используем тот же стиль фона, что и у кнопок вложений внизу
+
                       bgcolor: activeFiltersCount > 0 ? 'rgba(144, 202, 249, 0.1)' : 'transparent',
                       '&:focus-visible': {
                         boxShadow: '0 0 0 2px #90caf9',
@@ -131,12 +129,12 @@ const SearchBox: FC<SearchBoxProps> = ({
                 </IconButton>
               ),
               sx: {
-                bgcolor: '#1c1c1e', // Тот же фон, что и у элементов внизу
+                bgcolor: '#1c1c1e',
                 px: 1,
-                borderRadius: '8px', // Тот же радиус, что у кнопок в BottomInputForm
-                height: '40px', // Высота самого поля (внутри Box 48px)
+                borderRadius: '8px',
+                height: '40px',
                 fontSize: '0.95rem',
-                border: '1px solid #2c2c2e', // Стиль границ из нижней панели
+                border: '1px solid #2c2c2e',
                 '&:focus-within': {
                   bgcolor: '#252527',
                   borderColor: 'rgba(144, 202, 249, 0.5)',
