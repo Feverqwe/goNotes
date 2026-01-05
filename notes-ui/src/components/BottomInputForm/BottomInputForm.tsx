@@ -211,11 +211,17 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         bottom: 0,
         left: 0,
         right: 0,
-        bgcolor: isDragging ? '#1a1f24' : '#121212',
+        // Используем тот же цвет и прозрачность, что и в поиске
+        bgcolor: isDragging ? 'rgba(26, 31, 36, 0.9)' : 'rgba(18, 18, 18, 0.8)',
+        // Тот же эффект блюра и насыщенности
+        backdropFilter: 'blur(20px) saturate(180%)',
+        // Убираем стандартную тень Paper для чистого вида
+        backgroundImage: 'none',
         borderTop: '1px solid',
+        // Сохраняем синюю рамку при редактировании, иначе используем стандартную
         borderColor: editingId ? 'rgba(144, 202, 249, 0.5)' : '#2c2c2e',
         zIndex: 1000,
-        transition: 'background-color 0.2s',
+        transition: 'background-color 0.2s, border-color 0.2s',
       }}
     >
       <Container maxWidth="sm" disableGutters>
