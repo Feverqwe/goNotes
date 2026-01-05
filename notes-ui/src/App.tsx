@@ -17,6 +17,15 @@ import {
 // MUI Icons
 // Markdown & Syntax Highlighting
 import {AlertColor} from '@mui/material/Alert/Alert';
+import {
+  closestCenter,
+  DndContext,
+  DragEndEvent,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {Note} from './types';
 import MessageItem from './components/MessageItem/MessageItem';
 import {API_BASE, themeProps} from './constants';
@@ -29,6 +38,8 @@ import NoteMenu from './components/NoteMenu/NoteMenu';
 import BatchDeleteDialog from './components/BatchDeleteDialog/BatchDeleteDialog';
 import DeleteDialog from './components/DeleteDialog/DeleteDialog';
 import EmptyState from './components/EmptyState/EmptyState';
+
+import ReorderMenu from './components/ReorderMenu/ReorderMenu';
 
 const LIMIT = 6; // Сколько сообщений грузим за раз
 
@@ -91,6 +102,7 @@ function App() {
   const [isSelectMode, setIsSelectMode] = useState(false);
 
   const [tagMenuAnchor, setTagMenuAnchor] = useState<HTMLButtonElement | null>(null);
+  const [isReorderMode, setIsReorderMode] = useState(false);
 
   const handleOpenTagMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setTagMenuAnchor(event.currentTarget);
@@ -154,12 +166,13 @@ function App() {
     const searchQuery = refSearchQuery.current;
     const showArchived = refShowArchived.current;
     try {
-      const lastId = !isInitial && messages.length > 0 ? messages[messages.length - 1].id : 0;
+      const lastOrder =
+        !isInitial && messages.length > 0 ? messages[messages.length - 1].sort_order : 0;
 
       const res = await axios.get(`${API_BASE}/messages/list`, {
         params: {
           limit: LIMIT,
-          last_id: lastId,
+          last_order: lastOrder,
           tags: currentTags.join(','),
           q: searchQuery,
           archived: showArchived ? '1' : '0',
@@ -276,6 +289,16 @@ function App() {
     setSelectedIds([]);
   }, []);
 
+  // Вход в режим выбора через меню
+  const enterReorderMode = useCallback(() => {
+    setIsReorderMode(true);
+    handleCloseMenu();
+  }, [handleCloseMenu]);
+
+  const cancelReorderMode = useCallback(() => {
+    setIsReorderMode(false);
+  }, []);
+
   const onArchiveClick = useCallback(async () => {
     if (!selectedMsg) return;
     const newStatus = selectedMsg.is_archived ? 0 : 1;
@@ -296,6 +319,35 @@ function App() {
     () => searchQuery.length > 0 || currentTags.length > 0 || showArchived,
     [currentTags.length, searchQuery.length, showArchived],
   );
+
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {distance: 8}, // Чтобы не срабатывало при случайном клике
+    }),
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const {active, over} = event;
+    if (over && active.id !== over.id) {
+      setMessages((items) => {
+        const oldIndex = items.findIndex((i) => i.id === active.id);
+        const newIndex = items.findIndex((i) => i.id === over.id);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  };
+
+  const saveOrder = async () => {
+    try {
+      // Отправляем массив ID в новом порядке на бэкенд
+      const ids = messages.map((m) => m.id);
+      await axios.post(`${API_BASE}/messages/reorder`, {ids});
+      showSnackbar('Порядок сохранен');
+      setIsReorderMode(false);
+    } catch (e) {
+      showSnackbar('Ошибка сохранения порядка', 'error');
+    }
+  };
 
   return (
     <ThemeProvider theme={theme}>
@@ -322,24 +374,36 @@ function App() {
           >
             {messages.length === 0 && !isLoading && <EmptyState hasFilters={hasActiveFilters} />}
 
-            <Stack spacing={1.5}>
-              {messages.map((msg, index) => (
-                <MessageItem
-                  key={msg.id}
-                  msg={msg}
-                  onTagClick={setCurrentTags}
-                  isLast={index === messages.length - 1}
-                  handleOpenMenu={handleOpenMenu}
-                  isSelectMode={isSelectMode}
-                  selectedIds={selectedIds}
-                  toggleSelect={toggleSelect}
-                  refIsLoading={refIsLoading}
-                  refHasMore={refHasMore}
-                  fetchMessages={fetchMessages}
-                  startEditing={startEditing}
-                />
-              ))}
-            </Stack>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={messages.map((m) => m.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <Stack spacing={1.5}>
+                  {messages.map((msg, index) => (
+                    <MessageItem
+                      key={msg.id}
+                      msg={msg}
+                      onTagClick={setCurrentTags}
+                      isLast={index === messages.length - 1}
+                      handleOpenMenu={handleOpenMenu}
+                      isSelectMode={isSelectMode}
+                      selectedIds={selectedIds}
+                      toggleSelect={toggleSelect}
+                      refIsLoading={refIsLoading}
+                      refHasMore={refHasMore}
+                      fetchMessages={fetchMessages}
+                      startEditing={startEditing}
+                      isReorderMode={isReorderMode}
+                    />
+                  ))}
+                </Stack>
+              </SortableContext>
+            </DndContext>
 
             {hasMore && (
               <Box sx={{display: 'flex', justifyContent: 'center', p: 2}}>
@@ -366,6 +430,10 @@ function App() {
               askBatchDeleteConfirmation={askBatchDeleteConfirmation}
             />
           )}
+
+          {isReorderMode && (
+            <ReorderMenu cancelReorderMode={cancelReorderMode} saveOrder={saveOrder} />
+          )}
         </Box>
 
         <NoteMenu
@@ -376,6 +444,7 @@ function App() {
           onEditClick={onEditClick}
           onDeleteClick={onDeleteClick}
           onArchiveClick={onArchiveClick}
+          enterReorderMode={enterReorderMode}
         />
 
         <Snackbar

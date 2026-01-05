@@ -49,10 +49,10 @@ func main() {
 		log.Fatal(err)
 	}
 
-	/*_, err = db.Query("ALTER TABLE messages ADD COLUMN is_archived INTEGER DEFAULT 0;")
+	_, err = db.Query("ALTER TABLE messages ADD COLUMN sort_order INTEGER DEFAULT 0; UPDATE messages SET sort_order = id WHERE sort_order = 0;")
 	if err != nil {
 		log.Printf("Migrate query error: %v", err)
-	}*/
+	}
 
 	// Инициализируем схему прямо из встроенной переменной
 	if _, err := db.Exec(schemaSQL); err != nil {
@@ -70,6 +70,7 @@ func main() {
 	router.Post("/messages/update", handleUpdateMessage)             // Обновление (Multipart)
 	router.Post("/messages/batch-delete", handleBatchDeleteMessages) // Массовое удаление
 	router.Post("/messages/archive", handleArchiveMessage)
+	router.Post("/messages/reorder", handleReorderMessages)
 
 	// Теги
 	router.Get("/tags/list", handleListTags) // Получение списка тегов
@@ -159,8 +160,11 @@ func handleSendMessage(w http.ResponseWriter, r *http.Request) {
 	}
 	defer tx.Rollback()
 
+	var maxOrder int
+	db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM messages").Scan(&maxOrder)
+
 	// 1. Создаем само сообщение
-	res, err := tx.Exec("INSERT INTO messages (content) VALUES (?)", content)
+	res, err := tx.Exec("INSERT INTO messages (content, sort_order) VALUES (?, ?)", content, maxOrder+1)
 	if err != nil {
 		http.Error(w, "Failed to save message", http.StatusInternalServerError)
 		return
@@ -340,6 +344,45 @@ func handleArchiveMessage(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
+func handleReorderMessages(w http.ResponseWriter, r *http.Request) {
+	var data struct {
+		IDs []int64 `json:"ids"`
+	}
+	json.NewDecoder(r.Body).Decode(&data)
+
+	tx, err := db.Begin()
+	if err != nil {
+		http.Error(w, "DB Error", http.StatusInternalServerError)
+		return
+	}
+	defer tx.Rollback()
+
+	// 1. Получаем текущие значения sort_order для этих ID из базы, чтобы знать границы "окна"
+	rows, err := tx.Query(fmt.Sprintf("SELECT sort_order FROM messages WHERE id IN (%s) ORDER BY sort_order DESC", joinIDs(data.IDs)))
+	if err != nil {
+		http.Error(w, "Failed to save order", http.StatusInternalServerError)
+		return
+	}
+	var orders []int
+	for rows.Next() {
+		var o int
+		rows.Scan(&o)
+		orders = append(orders, o)
+	}
+	rows.Close()
+
+	// 2. Присваиваем эти же значения, но в новом порядке
+	for i, id := range data.IDs {
+		tx.Exec("UPDATE messages SET sort_order = ? WHERE id = ?", orders[i], id)
+	}
+
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "Commit error", http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
+}
+
 // --- Вспомогательные функции ---
 
 // --- Хелперы ---
@@ -386,6 +429,7 @@ func extractHashtags(text string) []string {
 
 type MessageDTO struct {
 	ID          int64           `json:"id"`
+	SortOrder   int             `json:"sort_order"`
 	Content     string          `json:"content"`
 	CreatedAt   string          `json:"created_at"`
 	UpdatedAt   string          `json:"updated_at"`
@@ -403,7 +447,7 @@ type AttachmentDTO struct {
 
 func handleListMessages(w http.ResponseWriter, r *http.Request) {
 	limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-	lastID, _ := strconv.Atoi(r.URL.Query().Get("last_id"))
+	lastOrder, _ := strconv.Atoi(r.URL.Query().Get("last_order"))
 	tagsParam := r.URL.Query().Get("tags")
 	searchQuery := r.URL.Query().Get("q")
 	onlyArchived := r.URL.Query().Get("archived") == "1"
@@ -415,9 +459,9 @@ func handleListMessages(w http.ResponseWriter, r *http.Request) {
 	var clauses []string
 	var args []interface{}
 
-	if lastID > 0 {
-		clauses = append(clauses, "id < ?")
-		args = append(args, lastID)
+	if lastOrder > 0 {
+		clauses = append(clauses, "sort_order < ?")
+		args = append(args, lastOrder)
 	}
 
 	// Поиск по тексту (учитываем регистр для кириллицы)
@@ -471,10 +515,10 @@ func handleListMessages(w http.ResponseWriter, r *http.Request) {
 	}
 
 	query := fmt.Sprintf(`
-		SELECT id, content, created_at, updated_at, is_archived
+		SELECT id, content, created_at, updated_at, is_archived, sort_order
 			FROM messages 
 			%s 
-			ORDER BY id DESC 
+			ORDER BY sort_order DESC
 			LIMIT ?`, whereSQL)
 
 	args = append(args, limit)
@@ -493,7 +537,7 @@ func handleListMessages(w http.ResponseWriter, r *http.Request) {
 	for rows.Next() {
 		var m MessageDTO
 		// Если проблема с NULL решена в БД, Scan пройдет без ошибок
-		if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.IsArchived); err != nil {
+		if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.IsArchived, &m.SortOrder); err != nil {
 			log.Printf("Scan error: %v", err)
 			continue
 		}
@@ -644,7 +688,10 @@ func handleUpdateMessage(w http.ResponseWriter, r *http.Request) {
 		tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", id, t)
 	}
 
-	tx.Commit()
+	if err := tx.Commit(); err != nil {
+		http.Error(w, "Commit error", http.StatusInternalServerError)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 

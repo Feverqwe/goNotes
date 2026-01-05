@@ -1,4 +1,4 @@
-import React, {FC, useCallback, useRef} from 'react';
+import React, {FC, useCallback, useMemo, useRef} from 'react';
 
 // MUI Core Components
 import {
@@ -15,7 +15,10 @@ import {
 } from '@mui/material';
 
 // MUI Icons
-import {InsertDriveFile, MoreVert} from '@mui/icons-material';
+import {DragHandle, InsertDriveFile, MoreVert} from '@mui/icons-material';
+
+import {useSortable} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
 
 // Markdown & Syntax Highlighting
 import ReactMarkdown from 'react-markdown';
@@ -40,6 +43,7 @@ interface MessageItemProps {
   refHasMore: React.RefObject<boolean>;
   fetchMessages: (isInitial?: boolean) => Promise<void>;
   startEditing: (note: Note) => void;
+  isReorderMode: boolean;
 }
 
 const MessageItem: FC<MessageItemProps> = ({
@@ -54,8 +58,24 @@ const MessageItem: FC<MessageItemProps> = ({
   refHasMore,
   fetchMessages,
   startEditing,
+  isReorderMode,
 }) => {
   const observer = useRef<IntersectionObserver | undefined>(undefined);
+
+  const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({
+    id: msg.id,
+    disabled: !isReorderMode,
+  });
+
+  const style = useMemo(
+    () => ({
+      transform: CSS.Transform.toString(transform),
+      transition,
+      zIndex: isDragging ? 1300 : 'auto',
+      opacity: isDragging ? 0.5 : 1,
+    }),
+    [isDragging, transform, transition],
+  );
 
   // Коллбэк для отслеживания самого верхнего элемента
   const firstMessageRef = useCallback(
@@ -89,8 +109,17 @@ const MessageItem: FC<MessageItemProps> = ({
     [startEditing, msg],
   );
 
+  const ref = useMemo(() => {
+    const parentRef = isLast ? firstMessageRef : undefined;
+
+    return (node: HTMLDivElement) => {
+      setNodeRef(node);
+      parentRef?.(node);
+    };
+  }, [isLast, firstMessageRef, setNodeRef]);
+
   return (
-    <Box ref={isLast ? firstMessageRef : undefined}>
+    <Box ref={ref} style={style}>
       <Card
         tabIndex={0}
         onKeyDown={handleKeyDown}
@@ -114,23 +143,36 @@ const MessageItem: FC<MessageItemProps> = ({
           backgroundImage: msg.is_archived
             ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 10px)'
             : 'none',
-          border: msg.is_archived ? '1px solid rgba(255, 255, 255, 0.05)' : 'none',
           '&:focus-visible': {
             boxShadow: '0 0 0 2px #90caf9',
             borderColor: '#90caf9',
           },
+          border: isReorderMode
+            ? '1px dashed #90caf9'
+            : msg.is_archived
+              ? '1px solid rgba(255, 255, 255, 0.05)'
+              : 'none',
         }}
       >
         <CardContent sx={{'&:last-child': {pb: 1.5}, pr: 1.5, pl: 2, pt: 1.5}}>
+          {!isSelectMode && isReorderMode && (
+            <IconButton
+              {...attributes}
+              {...listeners} // Слушатели событий только на иконке
+              sx={{position: 'absolute', top: 4, right: 4, cursor: 'grab', color: '#90caf9'}}
+            >
+              <DragHandle />
+            </IconButton>
+          )}
           {/* Добавим чекбокс в режиме выбора */}
-          {isSelectMode && (
+          {!isReorderMode && isSelectMode && (
             <Checkbox
               checked={selectedIds.includes(msg.id)}
               sx={{position: 'absolute', top: 4, right: 4, color: '#8e8e93'}}
             />
           )}
           {/* КНОПКА ВЫЗОВА МЕНЮ (в углу) */}
-          {!isSelectMode && (
+          {!isReorderMode && !isSelectMode && (
             <IconButton
               className="message-action"
               size="medium"
@@ -152,7 +194,6 @@ const MessageItem: FC<MessageItemProps> = ({
               <MoreVert fontSize="inherit" />
             </IconButton>
           )}
-
           <Box
             sx={{
               color: msg.is_archived ? '#8e8e93' : '#fff',
@@ -183,7 +224,6 @@ const MessageItem: FC<MessageItemProps> = ({
               {msg.content}
             </ReactMarkdown>
           </Box>
-
           {msg.attachments && msg.attachments?.length > 0 && (
             <Stack spacing={1} sx={{mt: 1, pr: 0}}>
               {msg.attachments?.map((att) => {
@@ -285,7 +325,6 @@ const MessageItem: FC<MessageItemProps> = ({
               })}
             </Stack>
           )}
-
           {/* НИЖНЯЯ ПАНЕЛЬ: Теги + Дата */}
           <Box
             sx={{

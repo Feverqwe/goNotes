@@ -45,3 +45,6 @@ CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at DESC);
 
 -- И индекс для быстрой фильтрации
 CREATE INDEX IF NOT EXISTS idx_messages_is_archived ON messages(is_archived);
+
+-- Индекс для быстрой выборки по порядку
+CREATE INDEX IF NOT EXISTS idx_messages_sort_order ON messages(sort_order DESC, id DESC);

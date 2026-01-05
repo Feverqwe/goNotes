@@ -6,6 +6,7 @@ import {
   ContentCopy,
   Delete,
   Edit,
+  Sort,
   Unarchive,
 } from '@mui/icons-material';
 import {Note} from '../../types';
@@ -19,6 +20,7 @@ interface NoteMenuProps {
   onEditClick: () => void;
   onDeleteClick: () => void;
   onArchiveClick: () => void;
+  enterReorderMode: () => void;
 }
 
 const NoteMenu: FC<NoteMenuProps> = ({
@@ -29,6 +31,7 @@ const NoteMenu: FC<NoteMenuProps> = ({
   onEditClick,
   onDeleteClick,
   onArchiveClick,
+  enterReorderMode,
 }) => {
   const showSnackbar = useContext(SnackCtx);
 
@@ -66,6 +69,12 @@ const NoteMenu: FC<NoteMenuProps> = ({
           icon: <CheckCircleOutline />,
           text: 'Выбрать',
           onClick: () => enterSelectMode(selectedMsg!),
+          color: '#8e8e93',
+        },
+        {
+          icon: <Sort />,
+          text: 'Сортировать',
+          onClick: enterReorderMode,
           color: '#8e8e93',
         },
         {icon: <ContentCopy />, text: 'Копировать', onClick: handleCopy, color: '#8e8e93'},
