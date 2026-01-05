@@ -39,7 +39,6 @@ func HandleApi(router *Router, database *sql.DB, config *cfg.Config) {
 }
 
 func handleAction(router *Router, config *cfg.Config) {
-
 	router.Get("/api/messages/list", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (interface{}, error) {
 			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -70,14 +69,13 @@ func handleAction(router *Router, config *cfg.Config) {
 					words := strings.Fields(searchQuery)
 
 					for _, word := range words {
-
 						processedWord := strings.ToLower(strings.ReplaceAll(word, "*", "%"))
 
 						if !strings.Contains(word, "*") {
 							processedWord = "%" + processedWord + "%"
 						}
 
-						clauses = append(clauses, "LOWER(content) LIKE ?")
+						clauses = append(clauses, "content_lower LIKE ?")
 						args = append(args, processedWord)
 					}
 				}
@@ -170,6 +168,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			}
 
 			content := r.FormValue("content")
+			contentLower := strings.ToLower(content)
 
 			tx, err := db.Begin()
 			if err != nil {
@@ -180,7 +179,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			var maxOrder int
 			db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM messages").Scan(&maxOrder)
 
-			res, err := tx.Exec("INSERT INTO messages (content, sort_order) VALUES (?, ?)", content, maxOrder+1)
+			res, err := tx.Exec("INSERT INTO messages (content, content_lower, sort_order) VALUES (?, ?, ?)", content, contentLower, maxOrder+1)
 			if err != nil {
 				return nil, err
 			}
@@ -242,6 +241,7 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			idStr := r.FormValue("id")
 			content := r.FormValue("content")
+			contentLower := strings.ToLower(content)
 
 			deleteAttachIDs := r.FormValue("delete_attachments")
 
@@ -250,7 +250,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			tx, _ := db.Begin()
 			defer tx.Rollback()
 
-			_, err := tx.Exec("UPDATE messages SET content = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", content, id)
+			_, err := tx.Exec("UPDATE messages SET content = ?, content_lower = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", content, contentLower, id)
 			if err != nil {
 				return nil, err
 			}

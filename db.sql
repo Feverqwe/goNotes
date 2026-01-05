@@ -2,6 +2,7 @@
 CREATE TABLE IF NOT EXISTS messages (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     content TEXT,
+    content_lower TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     is_archived INTEGER DEFAULT 0
@@ -31,9 +32,6 @@ CREATE TABLE IF NOT EXISTS message_tags (
     FOREIGN KEY (tag_id) REFERENCES tags(id) ON DELETE CASCADE
 );
 
--- Ускорение поиска без учета регистра
-CREATE INDEX IF NOT EXISTS idx_messages_content_lower ON messages(LOWER(content));
-
 -- Ускорение загрузки вложений
 CREATE INDEX IF NOT EXISTS idx_attachments_message_id ON attachments(message_id);
 
@@ -48,3 +46,6 @@ CREATE INDEX IF NOT EXISTS idx_messages_is_archived ON messages(is_archived);
 
 -- Индекс для быстрой выборки по порядку
 CREATE INDEX IF NOT EXISTS idx_messages_sort_order ON messages(sort_order DESC, id DESC);
+
+-- Создаем индекс для мгновенного поиска
+CREATE INDEX IF NOT EXISTS idx_messages_content_lower_fast ON messages(content_lower);

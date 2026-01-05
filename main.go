@@ -44,6 +44,11 @@ func main() {
 		log.Printf("Migrate query error: %v", err)
 	}
 
+	_, err = db.Query("ALTER TABLE messages ADD COLUMN content_lower TEXT; UPDATE messages SET content_lower = LOWER(content) WHERE content_lower IS NULL; DROP INDEX IF EXISTS idx_messages_content_lower;")
+	if err != nil {
+		log.Printf("Migrate query error: %v", err)
+	}
+
 	if _, err := db.Exec(schemaSQL); err != nil {
 		log.Fatalf("Init DB error: %v", err)
 	}
