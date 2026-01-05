@@ -78,6 +78,9 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         overflow: 'hidden',
         border: '1px solid rgba(255, 255, 255, 0.08)',
         bgcolor: '#282c34', // Основной фон OneDark
+        code: {
+          bgcolor: '#282c34',
+        },
       }}
     >
       {/* Постоянная сервисная панель */}
@@ -123,7 +126,7 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         language={lang}
         PreTag="div"
         wrapLines={true}
-        lineProps={{style: {wordBreak: 'break-all', whiteSpace: 'pre-wrap'}}}
+        wrapLongLines={true}
         codeTagProps={{
           style: {
             padding: 0,
@@ -133,7 +136,6 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         customStyle={{
           margin: 0,
           padding: '12px',
-          background: 'transparent', // Прозрачность, чтобы видеть фон родителя
         }}
         {...props}
       >
