@@ -16,7 +16,8 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
   const isMultiline = /\n/.test(String(children));
   const match = /language-(\w+)/.exec(className || '');
   const lang = match ? match[1] : '';
-  const codeContent = String(children).replace(/\n$/, '');
+
+  const codeContent = String(children).trim();
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -123,6 +124,12 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         PreTag="div"
         wrapLines={true}
         lineProps={{style: {wordBreak: 'break-all', whiteSpace: 'pre-wrap'}}}
+        codeTagProps={{
+          style: {
+            padding: 0,
+            display: 'block',
+          },
+        }}
         customStyle={{
           margin: 0,
           padding: '12px',
