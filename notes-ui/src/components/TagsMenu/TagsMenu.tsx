@@ -70,7 +70,7 @@ const TagsMenu: FC<TagsMenuProps> = ({
     },
   });
 
-  const saveTagsOrder = useCallback(async () => {
+  const saveTagsOrder = useCallback(() => {
     const localTags = refDndTags.current;
     reorderMutation.mutate({names: localTags});
   }, [reorderMutation]);
@@ -105,6 +105,17 @@ const TagsMenu: FC<TagsMenuProps> = ({
     setShowArchived((v) => !v);
     handleCloseTagMenu();
   }, [handleCloseTagMenu, setShowArchived]);
+
+  const handleToggleOrder = useCallback(() => {
+    if (isReorderMode) {
+      saveTagsOrder();
+    } else {
+      setIsReorderMode(true);
+      setDndTags(allTags);
+    }
+  }, [allTags, isReorderMode, saveTagsOrder]);
+
+  const handleClearFilters = useCallback(() => setCurrentTags([]), [setCurrentTags]);
 
   const displayTags = isReorderMode ? dndTags : allTags;
 
@@ -152,7 +163,7 @@ const TagsMenu: FC<TagsMenuProps> = ({
           <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
 
           <MenuItem
-            onClick={() => setCurrentTags([])}
+            onClick={handleClearFilters}
             sx={{
               px: 2,
               display: 'flex',
@@ -177,27 +188,6 @@ const TagsMenu: FC<TagsMenuProps> = ({
 
           <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
 
-          <MenuItem
-            onClick={() => {
-              if (isReorderMode) {
-                saveTagsOrder();
-              } else {
-                setIsReorderMode(true);
-                setDndTags(allTags);
-              }
-            }}
-          >
-            <ListItemIcon>{isReorderMode ? <Check color="primary" /> : <Sort />}</ListItemIcon>
-            <ListItemText
-              primary={isReorderMode ? 'Сохранить порядок' : 'Изменить порядок'}
-              slotProps={{
-                primary: {fontSize: '0.85rem'},
-              }}
-            />
-          </MenuItem>
-
-          <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
-
           <DndContext onDragEnd={handleDragEnd}>
             <SortableContext items={displayTags} disabled={!isReorderMode}>
               {displayTags.map((tag, index) => (
@@ -214,6 +204,22 @@ const TagsMenu: FC<TagsMenuProps> = ({
               ))}
             </SortableContext>
           </DndContext>
+
+          {displayTags.length > 1 && (
+            <>
+              <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
+
+              <MenuItem onClick={handleToggleOrder}>
+                <ListItemIcon>{isReorderMode ? <Check color="primary" /> : <Sort />}</ListItemIcon>
+                <ListItemText
+                  primary={isReorderMode ? 'Сохранить порядок' : 'Изменить порядок'}
+                  slotProps={{
+                    primary: {fontSize: '0.85rem'},
+                  }}
+                />
+              </MenuItem>
+            </>
+          )}
         </>
       )}
     </Menu>
