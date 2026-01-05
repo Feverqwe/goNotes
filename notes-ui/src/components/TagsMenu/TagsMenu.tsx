@@ -18,7 +18,7 @@ interface TagsMenuProps {
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   showArchived: boolean;
-  setShowArchived: (v: boolean) => void;
+  setShowArchived: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const TagsMenu: FC<TagsMenuProps> = ({
@@ -48,8 +48,9 @@ const TagsMenu: FC<TagsMenuProps> = ({
 
         return [...prev, tag];
       });
+      handleCloseTagMenu();
     },
-    [setCurrentTags],
+    [handleCloseTagMenu, setCurrentTags],
   );
 
   const reorderMutation = useMutation({
@@ -100,6 +101,11 @@ const TagsMenu: FC<TagsMenuProps> = ({
     });
   }, []);
 
+  const handleToggleArchive = useCallback(() => {
+    setShowArchived((v) => !v);
+    handleCloseTagMenu();
+  }, [handleCloseTagMenu, setShowArchived]);
+
   const displayTags = isReorderMode ? dndTags : allTags;
 
   return (
@@ -124,10 +130,7 @@ const TagsMenu: FC<TagsMenuProps> = ({
       }}
     >
       <MenuItem
-        onClick={() => {
-          setShowArchived(!showArchived);
-          handleCloseTagMenu();
-        }}
+        onClick={handleToggleArchive}
         sx={{
           py: 1.2,
           px: 2,
