@@ -131,7 +131,7 @@ func handleWww(router *internal.Router, config *cfg.Config) {
 			storeJson, err := json.Marshal(store)
 
 			body := string(content)
-			body = strings.Replace(body, "{{TITLE}}", "goNotes", 1)
+			body = strings.Replace(body, "{{TITLE}}", utils.EscapeHtmlInJson(config.Name), 1)
 			if err == nil {
 				body = strings.Replace(body, "<script id=\"root_store\"></script>", "<script id=\"root_store\">window.ROOT_STORE="+utils.EscapeHtmlInJson(string(storeJson))+"</script>", 1)
 			}
