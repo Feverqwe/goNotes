@@ -1,5 +1,4 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import axios from 'axios';
 
 // MUI Core Components
 import {
@@ -28,7 +27,7 @@ import {
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {Note} from './types';
 import MessageItem from './components/MessageItem/MessageItem';
-import {API_BASE, themeProps} from './constants';
+import {themeProps} from './constants';
 import {SnackCtx} from './ctx/SnackCtx';
 import TagsMenu from './components/TagsMenu/TagsMenu';
 import SearchBox from './components/SearchBox/SearchBox';
@@ -40,6 +39,7 @@ import DeleteDialog from './components/DeleteDialog/DeleteDialog';
 import EmptyState from './components/EmptyState/EmptyState';
 
 import ReorderMenu from './components/ReorderMenu/ReorderMenu';
+import {api} from './tools/api';
 
 const LIMIT = 6; // Сколько сообщений грузим за раз
 
@@ -159,43 +159,43 @@ function App() {
   }, []);
 
   // Загрузка сообщений
-  const fetchMessages = useCallback(async (isInitial = false) => {
-    setIsLoading(true);
-    const messages = refMessages.current;
-    const currentTags = refCurrentTags.current;
-    const searchQuery = refSearchQuery.current;
-    const showArchived = refShowArchived.current;
-    try {
+  const fetchMessages = useCallback(
+    async (isInitial = false) => {
+      setIsLoading(true);
+      const messages = refMessages.current;
+      const currentTags = refCurrentTags.current;
+      const searchQuery = refSearchQuery.current;
+      const showArchived = refShowArchived.current;
+
       const lastOrder =
         !isInitial && messages.length > 0 ? messages[messages.length - 1].sort_order : 0;
 
-      const res = await axios.get(`${API_BASE}/messages/list`, {
-        params: {
+      try {
+        const newMessages = await api.messages.list({
           limit: LIMIT,
           last_order: lastOrder,
           tags: currentTags.join(','),
           q: searchQuery,
           archived: showArchived ? '1' : '0',
-        },
-      });
+        });
 
-      const newMessages = res.data;
-
-      if (isInitial) {
-        setMessages(newMessages);
-        setHasMore(newMessages.length === LIMIT);
-      } else {
-        if (newMessages.length > 0) {
-          setMessages((prev) => [...prev, ...newMessages]);
+        if (isInitial) {
+          setMessages(newMessages);
+          setHasMore(newMessages.length === LIMIT);
+        } else {
+          if (newMessages.length > 0) {
+            setMessages((prev) => [...prev, ...newMessages]);
+          }
+          if (newMessages.length < LIMIT) setHasMore(false);
         }
-        if (newMessages.length < LIMIT) setHasMore(false);
+      } catch (e) {
+        showSnackbar(e instanceof Error ? e.message : 'Ошибка загрузки', 'error');
+      } finally {
+        setIsLoading(false);
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [showSnackbar],
+  );
 
   // Синхронизация с URL и загрузка данных
   useEffect(() => {
@@ -303,11 +303,9 @@ function App() {
     if (!selectedMsg) return;
     const newStatus = selectedMsg.is_archived ? 0 : 1;
     try {
-      await axios.post(`${API_BASE}/messages/archive`, null, {
-        params: {id: selectedMsg.id, archive: newStatus},
-      });
+      await api.messages.archive({id: selectedMsg.id, archive: newStatus});
       showSnackbar(newStatus ? 'Заметка в архиве' : 'Заметка восстановлена');
-      fetchMessages(true); // Перезагружаем список
+      fetchMessages(true);
     } catch (e) {
       showSnackbar('Ошибка архивации', 'error');
     } finally {
@@ -339,9 +337,8 @@ function App() {
 
   const saveOrder = useCallback(async () => {
     try {
-      // Отправляем массив ID в новом порядке на бэкенд
       const ids = messages.map((m) => m.id);
-      await axios.post(`${API_BASE}/messages/reorder`, {ids});
+      await api.messages.reorder({ids});
       showSnackbar('Порядок сохранен');
       setIsReorderMode(false);
     } catch (e) {

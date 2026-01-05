@@ -7,9 +7,8 @@ import {
   DialogContentText,
   DialogTitle,
 } from '@mui/material';
-import axios from 'axios';
-import {API_BASE} from '../../constants';
 import {SnackCtx} from '../../ctx/SnackCtx';
+import {api} from '../../tools/api';
 
 interface DeleteDialogProps {
   deleteDialogOpen: boolean;
@@ -30,9 +29,8 @@ const DeleteDialog: FC<DeleteDialogProps> = ({
   const confirmDelete = useCallback(async () => {
     const msgToDelete = refMsgToDelete.current;
     if (!msgToDelete) return;
-
     try {
-      await axios.delete(`${API_BASE}/messages/delete`, {params: {id: msgToDelete}});
+      await api.messages.delete({id: msgToDelete});
       fetchMessages(true);
       showSnackbar('Заметка удалена', 'info');
     } catch (e) {

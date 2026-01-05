@@ -4,10 +4,9 @@ import React, {FC, useCallback, useContext, useEffect, useState} from 'react';
 import {Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
 // MUI Icons
 import {Archive, Check} from '@mui/icons-material';
-import axios from 'axios';
-import {API_BASE} from '../../constants';
 import {Note} from '../../types';
 import {SnackCtx} from '../../ctx/SnackCtx';
+import {api} from '../../tools/api';
 
 // Markdown & Syntax Highlighting
 
@@ -31,14 +30,13 @@ const TagsMenu: FC<TagsMenuProps> = ({
   setShowArchived,
 }) => {
   const showSnackbar = useContext(SnackCtx);
-  const [allTags, setAllTags] = useState([]);
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   const fetchTags = useCallback(async () => {
     try {
-      const res = await axios.get(`${API_BASE}/tags/list`);
-      setAllTags(res.data);
+      const data = await api.tags.list();
+      setAllTags(data);
     } catch (e) {
-      console.error('Ошибка загрузки тегов', e);
       showSnackbar('Не удалось загрузить теги', 'error');
     }
   }, [showSnackbar]);

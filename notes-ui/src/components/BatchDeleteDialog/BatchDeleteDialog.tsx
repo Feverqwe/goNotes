@@ -7,9 +7,8 @@ import {
   DialogContentText,
   DialogTitle,
 } from '@mui/material';
-import axios from 'axios';
-import {API_BASE} from '../../constants';
 import {SnackCtx} from '../../ctx/SnackCtx';
+import {api} from '../../tools/api';
 
 interface BatchDeleteDialogProps {
   deleteBatchDialogOpen: boolean;
@@ -30,7 +29,7 @@ const BatchDeleteDialog: FC<BatchDeleteDialogProps> = ({
 
   const confirmBatchDelete = useCallback(async () => {
     try {
-      await axios.post(`${API_BASE}/messages/batch-delete`, {ids: selectedIds});
+      await api.messages.batchDelete({ids: selectedIds});
       fetchMessages(true);
       showSnackbar(`Удалено сообщений: ${selectedIds.length}`, 'info');
       cancelSelectMode();

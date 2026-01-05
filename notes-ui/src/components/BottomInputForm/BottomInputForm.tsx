@@ -1,10 +1,9 @@
 import React, {FC, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {Box, Chip, Container, IconButton, Paper, TextField, Typography} from '@mui/material';
 import {AttachFile, Check, Close, DeleteForever, Edit, Send} from '@mui/icons-material';
-import axios from 'axios';
-import {API_BASE} from '../../constants';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {Attachment, Note} from '../../types';
+import {api} from '../../tools/api';
 
 interface BottomInputFormProps {
   editingId: number | null;
@@ -120,26 +119,24 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
 
   const handleSend = useCallback(async () => {
     if (!canSend) return;
-    const content = refInputText.current;
     const formData = new FormData();
-
-    formData.append('content', content);
+    formData.append('content', refInputText.current);
     files.forEach((f) => formData.append('attachments', f));
 
     try {
       if (editingId) {
         formData.append('id', editingId.toString());
         formData.append('delete_attachments', deletedAttachIds.join(','));
-        await axios.post(`${API_BASE}/messages/update`, formData);
+        await api.messages.update(formData);
         showSnackbar('Сообщение обновлено', 'success');
       } else {
-        // Добавляем активные теги к новому сообщению
-        let finalContent = content;
+        // Добавляем теги к новому сообщению
+        let finalContent = refInputText.current;
         currentTags.forEach((tag) => {
           if (!finalContent.includes(`#${tag}`)) finalContent += ` #${tag}`;
         });
         formData.set('content', finalContent);
-        await axios.post(`${API_BASE}/messages/send`, formData);
+        await api.messages.send(formData);
       }
 
       setInputText('');
