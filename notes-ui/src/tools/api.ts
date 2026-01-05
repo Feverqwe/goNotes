@@ -12,6 +12,8 @@ import {
   ListTagsResponse,
   ReorderMessagesRequest,
   ReorderMessagesResponse,
+  ReorderTagsRequest,
+  ReorderTagsResponse,
   SendMessageRequest,
   SendMessageResponse,
   UpdateMessageRequest,
@@ -103,6 +105,10 @@ export const api = {
   tags: {
     list: action<void, ListTagsResponse>({
       path: '/api/tags/list',
+    }),
+    reorder: action<ReorderTagsRequest, ReorderTagsResponse>({
+      method: 'POST',
+      path: '/api/tags/reorder',
     }),
   },
 };

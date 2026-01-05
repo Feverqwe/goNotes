@@ -461,7 +461,7 @@ func handleAction(router *Router, config *cfg.Config) {
 				SELECT DISTINCT t.name 
 				FROM tags t 
 				JOIN message_tags mt ON t.id = mt.tag_id 
-				ORDER BY t.name ASC`)
+				ORDER BY t.sort_order DESC`)
 			if err != nil {
 				return nil, err
 			}
@@ -478,6 +478,23 @@ func handleAction(router *Router, config *cfg.Config) {
 		})
 	})
 
+	router.Post("/api/tags/reorder", func(w http.ResponseWriter, r *http.Request) {
+		apiCall(w, func() (interface{}, error) {
+			var data struct {
+				Names []string `json:"names"`
+			}
+			json.NewDecoder(r.Body).Decode(&data)
+
+			tx, _ := db.Begin()
+			defer tx.Rollback()
+
+			for i, name := range data.Names {
+				newOrder := len(data.Names) - i
+				tx.Exec("UPDATE tags SET sort_order = ? WHERE name = ?", newOrder, name)
+			}
+			return "ok", tx.Commit()
+		})
+	})
 }
 
 func apiCall[T any](w http.ResponseWriter, action ActionAny[T]) {

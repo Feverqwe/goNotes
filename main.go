@@ -39,12 +39,22 @@ func main() {
 		log.Fatal(err)
 	}
 
+	_, err = db.Query("ALTER TABLE messages ADD COLUMN is_archived INTEGER DEFAULT 0;")
+	if err != nil {
+		log.Printf("Migrate query error: %v", err)
+	}
+
 	_, err = db.Query("ALTER TABLE messages ADD COLUMN sort_order INTEGER DEFAULT 0; UPDATE messages SET sort_order = id WHERE sort_order = 0;")
 	if err != nil {
 		log.Printf("Migrate query error: %v", err)
 	}
 
 	_, err = db.Query("ALTER TABLE messages ADD COLUMN content_lower TEXT; UPDATE messages SET content_lower = LOWER(content) WHERE content_lower IS NULL; DROP INDEX IF EXISTS idx_messages_content_lower;")
+	if err != nil {
+		log.Printf("Migrate query error: %v", err)
+	}
+
+	_, err = db.Query("ALTER TABLE tags ADD COLUMN sort_order INTEGER DEFAULT 0; UPDATE tags SET sort_order = id WHERE sort_order = 0;")
 	if err != nil {
 		log.Printf("Migrate query error: %v", err)
 	}

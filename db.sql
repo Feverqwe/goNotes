@@ -21,7 +21,8 @@ CREATE TABLE IF NOT EXISTS attachments (
 -- Таблицы тегов (остаются без изменений)
 CREATE TABLE IF NOT EXISTS tags (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    name TEXT UNIQUE
+    name TEXT UNIQUE,
+    sort_order INTEGER DEFAULT 0
 );
 
 CREATE TABLE IF NOT EXISTS message_tags (
@@ -49,3 +50,6 @@ CREATE INDEX IF NOT EXISTS idx_messages_sort_order ON messages(sort_order DESC, 
 
 -- Создаем индекс для мгновенного поиска
 CREATE INDEX IF NOT EXISTS idx_messages_content_lower_fast ON messages(content_lower);
+
+-- Ускорение сортировки тегов в меню
+CREATE INDEX IF NOT EXISTS idx_tags_sort_order ON tags(sort_order DESC);

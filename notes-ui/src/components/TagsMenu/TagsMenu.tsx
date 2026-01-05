@@ -1,9 +1,16 @@
-import React, {FC, useCallback} from 'react';
+import React, {FC, Fragment, useCallback, useContext, useRef, useState} from 'react';
 
 import {Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
 
-import {Archive, Check} from '@mui/icons-material';
+import {Archive, Check, Sort} from '@mui/icons-material';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {DndContext, DragEndEvent} from '@dnd-kit/core';
+import {arrayMove, SortableContext} from '@dnd-kit/sortable';
+import {api} from '../../tools/api';
 import {useTags} from '../../hooks/useTags';
+import SortableTagItem from './SortableTagItem';
+import {ReorderTagsRequest} from '../../tools/types';
+import {SnackCtx} from '../../ctx/SnackCtx';
 
 interface TagsMenuProps {
   tagMenuAnchor: HTMLButtonElement | null;
@@ -22,7 +29,15 @@ const TagsMenu: FC<TagsMenuProps> = ({
   showArchived,
   setShowArchived,
 }) => {
-  const {data: allTags = []} = useTags();
+  const showSnackbar = useContext(SnackCtx);
+  const queryClient = useQueryClient();
+  const [isReorderMode, setIsReorderMode] = useState(false);
+
+  const [dndTags, setDndTags] = useState<string[]>([]);
+  const refDndTags = useRef(dndTags);
+  refDndTags.current = dndTags;
+
+  const {data: allTags = [] as string[]} = useTags();
 
   const toggleTag = useCallback(
     (tag: string) => {
@@ -36,6 +51,56 @@ const TagsMenu: FC<TagsMenuProps> = ({
     },
     [setCurrentTags],
   );
+
+  const reorderMutation = useMutation({
+    mutationFn: (params: ReorderTagsRequest) => api.tags.reorder(params),
+    onSuccess: async () => {
+      try {
+        await queryClient.invalidateQueries({queryKey: ['tags']});
+      } finally {
+        showSnackbar('Порядок сохранен');
+        setIsReorderMode(false);
+        setDndTags([]);
+      }
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка сохранения порядка', 'error');
+    },
+  });
+
+  const saveTagsOrder = useCallback(async () => {
+    const localTags = refDndTags.current;
+    reorderMutation.mutate({names: localTags});
+  }, [reorderMutation]);
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const {active, over} = event;
+    if (over && active.id !== over.id) {
+      setDndTags((items) => {
+        const oldIndex = items.indexOf(active.id as string);
+        const newIndex = items.indexOf(over.id as string);
+        return arrayMove(items, oldIndex, newIndex);
+      });
+    }
+  }, []);
+
+  const moveStep = useCallback((tag: string, direction: 'up' | 'down') => {
+    setDndTags((prev) => {
+      const idx = prev.indexOf(tag);
+      if (idx === -1) return prev;
+
+      const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+
+      const newArray = [...prev];
+      const [movedItem] = newArray.splice(idx, 1);
+      newArray.splice(newIdx, 0, movedItem);
+      return newArray;
+    });
+  }, []);
+
+  const displayTags = isReorderMode ? dndTags : allTags;
 
   return (
     <Menu
@@ -79,67 +144,75 @@ const TagsMenu: FC<TagsMenuProps> = ({
         />
       </MenuItem>
 
-      <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
+      {displayTags.length > 0 && (
+        <>
+          <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
 
-      <MenuItem
-        onClick={() => setCurrentTags([])}
-        sx={{
-          px: 2,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          height: '20px',
-        }}
-        disabled={currentTags.length === 0}
-      >
-        <Typography sx={{color: '#8e8e93', fontSize: '0.7rem', fontWeight: 700}}>
-          ФИЛЬТРЫ
-        </Typography>
-        {currentTags.length > 0 && (
-          <Typography
-            variant="caption"
-            sx={{color: '#90caf9', cursor: 'pointer', fontSize: '0.7rem'}}
-          >
-            Сбросить
-          </Typography>
-        )}
-      </MenuItem>
-
-      <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
-
-      {allTags.map((tag) => {
-        const isActive = currentTags.includes(tag);
-        return (
           <MenuItem
-            key={tag}
-            tabIndex={0}
-            onClick={() => toggleTag(tag)}
+            onClick={() => setCurrentTags([])}
             sx={{
-              py: 0.8,
               px: 2,
-              bgcolor: isActive ? 'rgba(144, 202, 249, 0.05)' : 'transparent',
-              '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.05)'},
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              height: '20px',
+            }}
+            disabled={currentTags.length === 0}
+          >
+            <Typography sx={{color: '#8e8e93', fontSize: '0.7rem', fontWeight: 700}}>
+              ФИЛЬТРЫ
+            </Typography>
+            {currentTags.length > 0 && (
+              <Typography
+                variant="caption"
+                sx={{color: '#90caf9', cursor: 'pointer', fontSize: '0.7rem'}}
+              >
+                Сбросить
+              </Typography>
+            )}
+          </MenuItem>
+
+          <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
+
+          <MenuItem
+            onClick={() => {
+              if (isReorderMode) {
+                saveTagsOrder();
+              } else {
+                setIsReorderMode(true);
+                setDndTags(allTags);
+              }
             }}
           >
-            <ListItemIcon sx={{minWidth: '28px !important'}}>
-              <Typography
-                sx={{
-                  fontSize: 14,
-                  color: isActive ? '#90caf9' : '#48484a',
-                  fontWeight: isActive ? 700 : 400,
-                }}
-              >
-                #
-              </Typography>
-            </ListItemIcon>
+            <ListItemIcon>{isReorderMode ? <Check color="primary" /> : <Sort />}</ListItemIcon>
             <ListItemText
-              primary={tag}
-              slotProps={{primary: {fontSize: '0.85rem', color: isActive ? '#fff' : '#8e8e93'}}}
+              primary={isReorderMode ? 'Сохранить порядок' : 'Изменить порядок'}
+              slotProps={{
+                primary: {fontSize: '0.85rem'},
+              }}
             />
-            {isActive && <Check sx={{fontSize: 14, color: '#90caf9'}} />}
           </MenuItem>
-        );
-      })}
+
+          <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
+
+          <DndContext onDragEnd={handleDragEnd}>
+            <SortableContext items={displayTags} disabled={!isReorderMode}>
+              {displayTags.map((tag, index) => (
+                <SortableTagItem
+                  key={tag}
+                  tag={tag}
+                  isReordering={isReorderMode}
+                  isActive={currentTags.includes(tag)}
+                  toggleTag={toggleTag}
+                  moveStep={moveStep}
+                  index={index}
+                  totalCount={tag.length}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </>
+      )}
     </Menu>
   );
 };

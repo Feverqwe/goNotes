@@ -39,3 +39,8 @@ export interface ReorderMessagesRequest {
 export type ReorderMessagesResponse = 'ok';
 
 export type ListTagsResponse = string[];
+
+export interface ReorderTagsRequest {
+  names: string[];
+}
+export type ReorderTagsResponse = 'ok';

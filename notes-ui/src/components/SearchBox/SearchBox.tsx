@@ -38,7 +38,8 @@ const SearchBox: FC<SearchBoxProps> = ({
   );
 
   const hasFilters = useMemo(
-    () => searchQuery.length > 0 ||
+    () =>
+      searchQuery.length > 0 ||
       activeFiltersCount > 0 ||
       showArchived ||
       selectedNoteId !== undefined,
