@@ -71,18 +71,18 @@ const NoteMenu: FC<NoteMenuProps> = ({
           onClick: () => enterSelectMode(selectedMsg!),
           color: '#8e8e93',
         },
-        {
-          icon: <Sort />,
-          text: 'Сортировать',
-          onClick: enterReorderMode,
-          color: '#8e8e93',
-        },
         {icon: <ContentCopy />, text: 'Копировать', onClick: handleCopy, color: '#8e8e93'},
         {icon: <Edit />, text: 'Изменить', onClick: onEditClick, color: '#90caf9'},
         {
           icon: selectedMsg?.is_archived ? <Unarchive /> : <Archive />,
           text: selectedMsg?.is_archived ? 'Разархивировать' : 'В архив',
           onClick: onArchiveClick,
+          color: '#8e8e93',
+        },
+        {
+          icon: <Sort />,
+          text: 'Сортировать',
+          onClick: enterReorderMode,
           color: '#8e8e93',
         },
       ].map((item, idx) => (
