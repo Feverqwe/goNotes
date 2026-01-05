@@ -14,9 +14,10 @@ import (
 )
 
 type Config struct {
-	Port    int
-	Address string
-	Name    string
+	Port       int
+	Address    string
+	Name       string
+	UploadsDir string
 }
 
 var APP_ID = "com.rndnm.gonotes"
@@ -35,8 +36,9 @@ func (s *Config) GetBrowserAddress() string {
 
 func getNewConfig() Config {
 	var config = Config{
-		Port: 80,
-		Name: "Notes",
+		Port:       80,
+		Name:       "Notes",
+		UploadsDir: "uploads",
 	}
 	return config
 }
@@ -62,6 +64,10 @@ func LoadConfig() Config {
 		if err := json.Unmarshal(data, &config); err != nil {
 			log.Println("Load config error", err)
 		}
+	}
+
+	if config.UploadsDir == "" {
+		config.UploadsDir = newConfig.UploadsDir
 	}
 
 	return config
@@ -121,4 +127,11 @@ func getDefaultProfilePath() string {
 		place = filepath.Dir(ex)
 	}
 	return place
+}
+
+func (s *Config) GetUploadsPath() string {
+	if !filepath.IsAbs(s.UploadsDir) {
+		return filepath.Join(GetProfilePath(), s.UploadsDir)
+	}
+	return s.UploadsDir
 }
