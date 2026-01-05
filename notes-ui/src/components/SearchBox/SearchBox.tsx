@@ -10,6 +10,8 @@ interface SearchBoxProps {
   handleOpenTagMenu: (event: React.MouseEvent<HTMLButtonElement>) => void;
   showArchived: boolean;
   setShowArchived: (v: boolean) => void;
+  selectedNoteId: number | undefined;
+  setSelectedNoteId: (id: number | undefined) => void;
 }
 
 const SearchBox: FC<SearchBoxProps> = ({
@@ -20,12 +22,15 @@ const SearchBox: FC<SearchBoxProps> = ({
   handleOpenTagMenu,
   showArchived,
   setShowArchived,
+  selectedNoteId,
+  setSelectedNoteId,
 }) => {
   const handleClearAll = useCallback(() => {
     setSearchQuery('');
     setCurrentTags([]);
     setShowArchived(false);
-  }, [setSearchQuery, setCurrentTags, setShowArchived]);
+    setSelectedNoteId(undefined);
+  }, [setSearchQuery, setCurrentTags, setShowArchived, setSelectedNoteId]);
 
   const activeFiltersCount = useMemo(
     () => currentTags.length + (showArchived ? 1 : 0),
@@ -33,8 +38,11 @@ const SearchBox: FC<SearchBoxProps> = ({
   );
 
   const hasFilters = useMemo(
-    () => searchQuery.length > 0 || activeFiltersCount > 0 || showArchived,
-    [activeFiltersCount, searchQuery.length, showArchived],
+    () => searchQuery.length > 0 ||
+      activeFiltersCount > 0 ||
+      showArchived ||
+      selectedNoteId !== undefined,
+    [activeFiltersCount, searchQuery.length, selectedNoteId, showArchived],
   );
 
   return (

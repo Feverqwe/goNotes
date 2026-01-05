@@ -26,7 +26,7 @@ function App() {
   const queryClient = useQueryClient();
   const showSnackbar = useContext(SnackCtx);
 
-  const [selectedNoteId] = useState<number | undefined>(() => {
+  const [selectedNoteId, setSelectedNoteId] = useState<number | undefined>(() => {
     const params = new URLSearchParams(window.location.search);
     const id = params.get('id');
     return id ? parseInt(id, 10) : undefined;
@@ -336,6 +336,8 @@ function App() {
           handleOpenTagMenu={handleOpenTagMenu}
           showArchived={showArchived}
           setShowArchived={setShowArchived}
+          selectedNoteId={selectedNoteId}
+          setSelectedNoteId={setSelectedNoteId}
         />
 
         <Container
