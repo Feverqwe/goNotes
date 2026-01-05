@@ -47,23 +47,35 @@ const SearchBox: FC<SearchBoxProps> = ({
         position: 'sticky',
         top: 0,
         zIndex: 11,
-        bgcolor: 'rgba(18, 18, 18, 0.7)',
+        bgcolor: 'rgba(18, 18, 18, 0.8)',
         backdropFilter: 'blur(20px) saturate(180%)',
-        borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
-        py: 1,
+        borderBottom: '1px solid #2c2c2e', // Тонкая линия как в BottomInputForm
+        py: 0.5, // Минимальный вертикальный отступ
+        px: 1,
       }}
     >
-      <Box sx={{display: 'flex', alignItems: 'center', maxWidth: 'sm', mx: 'auto'}}>
+      <Box
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          maxWidth: 'sm',
+          mx: 'auto',
+          height: '48px', // Соразмерно с нижней панелью
+        }}
+      >
         <TextField
           fullWidth
-          size="medium"
           variant="standard"
           placeholder="Поиск..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
           slotProps={{
             input: {
-              tabIndex: 1,
+              slotProps: {
+                input: {
+                  tabIndex: 1,
+                },
+              },
               disableUnderline: true,
               startAdornment: (
                 <Badge
@@ -78,48 +90,56 @@ const SearchBox: FC<SearchBoxProps> = ({
                       top: 4,
                       right: 4,
                       border: '2px solid #1c1c1e',
-                      transition: 'background-color 0.3s',
                     },
                   }}
                 >
                   <IconButton
-                    size="small"
+                    tabIndex={1}
+                    size="medium"
                     onClick={handleOpenTagMenu}
                     sx={{
+                      p: 1,
                       color: activeFiltersCount > 0 ? '#90caf9' : '#8e8e93',
+                      // Используем тот же стиль фона, что и у кнопок вложений внизу
                       bgcolor: activeFiltersCount > 0 ? 'rgba(144, 202, 249, 0.1)' : 'transparent',
-                      '&:hover': {bgcolor: 'rgba(255,255,255,0.05)'},
                       '&:focus-visible': {
                         boxShadow: '0 0 0 2px #90caf9',
                         borderColor: '#90caf9',
                       },
                     }}
                   >
-                    <FilterList sx={{fontSize: 20}} />
+                    <FilterList sx={{fontSize: 22}} />
                   </IconButton>
                 </Badge>
               ),
               endAdornment: hasFilters && (
                 <IconButton
-                  size="small"
+                  tabIndex={1}
+                  size="medium"
                   onClick={handleClearAll}
                   sx={{
+                    p: 1,
                     color: '#8e8e93',
                     '&:hover': {color: '#ff453a'},
+                    '&:focus-visible': {
+                      boxShadow: '0 0 0 2px #90caf9',
+                      borderColor: '#90caf9',
+                    },
                   }}
                 >
-                  <Clear sx={{fontSize: 18}} />
+                  <Clear sx={{fontSize: 20}} />
                 </IconButton>
               ),
               sx: {
-                bgcolor: '#1c1c1e',
-                px: 0.5,
-                borderRadius: '4px',
-                border: '1px solid transparent',
+                bgcolor: '#1c1c1e', // Тот же фон, что и у элементов внизу
+                px: 1,
+                borderRadius: '8px', // Тот же радиус, что у кнопок в BottomInputForm
+                height: '40px', // Высота самого поля (внутри Box 48px)
+                fontSize: '0.95rem',
+                border: '1px solid #2c2c2e', // Стиль границ из нижней панели
                 '&:focus-within': {
                   bgcolor: '#252527',
-                  border: '1px solid rgba(144, 202, 249, 0.3)',
-                  boxShadow: '0 0 0 2px rgba(144, 202, 249, 0.05)',
+                  borderColor: 'rgba(144, 202, 249, 0.5)',
                 },
               },
             },
