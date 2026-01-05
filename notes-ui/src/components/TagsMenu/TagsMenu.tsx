@@ -1,6 +1,6 @@
 import React, {FC, Fragment, useCallback, useContext, useRef, useState} from 'react';
 
-import {Divider, ListItemIcon, ListItemText, Menu, MenuItem, Typography} from '@mui/material';
+import {Divider, ListItemIcon, ListItemText, Menu, MenuItem} from '@mui/material';
 
 import {Archive, Check, Sort} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
@@ -115,8 +115,6 @@ const TagsMenu: FC<TagsMenuProps> = ({
     }
   }, [allTags, isReorderMode, saveTagsOrder]);
 
-  const handleClearFilters = useCallback(() => setCurrentTags([]), [setCurrentTags]);
-
   const displayTags = isReorderMode ? dndTags : allTags;
 
   return (
@@ -160,32 +158,6 @@ const TagsMenu: FC<TagsMenuProps> = ({
 
       {displayTags.length > 0 && (
         <>
-          <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
-
-          <MenuItem
-            onClick={handleClearFilters}
-            sx={{
-              px: 2,
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              height: '20px',
-            }}
-            disabled={currentTags.length === 0}
-          >
-            <Typography sx={{color: '#8e8e93', fontSize: '0.7rem', fontWeight: 700}}>
-              ФИЛЬТРЫ
-            </Typography>
-            {currentTags.length > 0 && (
-              <Typography
-                variant="caption"
-                sx={{color: '#90caf9', cursor: 'pointer', fontSize: '0.7rem'}}
-              >
-                Сбросить
-              </Typography>
-            )}
-          </MenuItem>
-
           <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
 
           <DndContext onDragEnd={handleDragEnd}>
