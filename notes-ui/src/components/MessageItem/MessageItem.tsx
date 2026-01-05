@@ -12,10 +12,18 @@ import {
   Stack,
   Tooltip,
   Typography,
+  useMediaQuery,
+  useTheme,
 } from '@mui/material';
 
 // MUI Icons
-import {DragHandle, InsertDriveFile, MoreVert} from '@mui/icons-material';
+import {
+  ArrowDownward,
+  ArrowUpward,
+  DragHandle,
+  InsertDriveFile,
+  MoreVert,
+} from '@mui/icons-material';
 
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
@@ -44,6 +52,9 @@ interface MessageItemProps {
   fetchMessages: (isInitial?: boolean) => Promise<void>;
   startEditing: (note: Note) => void;
   isReorderMode: boolean;
+  moveStep?: (id: number, direction: 'up' | 'down') => void;
+  index: number;
+  totalCount: number;
 }
 
 const MessageItem: FC<MessageItemProps> = ({
@@ -59,8 +70,13 @@ const MessageItem: FC<MessageItemProps> = ({
   fetchMessages,
   startEditing,
   isReorderMode,
+  moveStep,
+  index,
+  totalCount,
 }) => {
   const observer = useRef<IntersectionObserver | undefined>(undefined);
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
   const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({
     id: msg.id,
@@ -156,13 +172,56 @@ const MessageItem: FC<MessageItemProps> = ({
       >
         <CardContent sx={{'&:last-child': {pb: 1.5}, pr: 1.5, pl: 2, pt: 1.5}}>
           {!isSelectMode && isReorderMode && (
-            <IconButton
-              {...attributes}
-              {...listeners} // Слушатели событий только на иконке
-              sx={{position: 'absolute', top: 4, right: 4, cursor: 'grab', color: '#90caf9'}}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: 4,
+                right: 4,
+                display: 'flex',
+                gap: 0.5,
+                zIndex: 10,
+                // Немного увеличим фон для кнопок на мобилках, чтобы в них было легче попасть
+                bgcolor: isMobile ? 'rgba(18, 18, 18, 0.6)' : 'transparent',
+                borderRadius: '8px',
+                p: 0.2,
+              }}
             >
-              <DragHandle />
-            </IconButton>
+              {isMobile ? (
+                <>
+                  <IconButton
+                    size="medium" // Размер medium лучше для тача
+                    disabled={index === 0}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveStep?.(msg.id, 'up');
+                    }}
+                    sx={{color: '#90caf9'}}
+                  >
+                    <ArrowUpward fontSize="small" />
+                  </IconButton>
+                  <IconButton
+                    size="medium"
+                    disabled={index === totalCount - 1}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      moveStep?.(msg.id, 'down');
+                    }}
+                    sx={{color: '#90caf9'}}
+                  >
+                    <ArrowDownward fontSize="small" />
+                  </IconButton>
+                </>
+              ) : (
+                <IconButton
+                  {...attributes}
+                  {...listeners}
+                  size="small"
+                  sx={{cursor: 'grab', color: '#90caf9', p: 1}}
+                >
+                  <DragHandle />
+                </IconButton>
+              )}
+            </Box>
           )}
           {/* Добавим чекбокс в режиме выбора */}
           {!isReorderMode && isSelectMode && (

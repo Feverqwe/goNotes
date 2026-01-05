@@ -326,7 +326,7 @@ function App() {
     }),
   );
 
-  const handleDragEnd = (event: DragEndEvent) => {
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
     const {active, over} = event;
     if (over && active.id !== over.id) {
       setMessages((items) => {
@@ -335,9 +335,9 @@ function App() {
         return arrayMove(items, oldIndex, newIndex);
       });
     }
-  };
+  }, []);
 
-  const saveOrder = async () => {
+  const saveOrder = useCallback(async () => {
     try {
       // Отправляем массив ID в новом порядке на бэкенд
       const ids = messages.map((m) => m.id);
@@ -347,7 +347,22 @@ function App() {
     } catch (e) {
       showSnackbar('Ошибка сохранения порядка', 'error');
     }
-  };
+  }, [messages, showSnackbar]);
+
+  const moveStep = useCallback((id: number, direction: 'up' | 'down') => {
+    setMessages((prev) => {
+      const idx = prev.findIndex((m) => m.id === id);
+      if (idx === -1) return prev;
+
+      const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+      if (newIdx < 0 || newIdx >= prev.length) return prev;
+
+      const newArray = [...prev];
+      const [movedItem] = newArray.splice(idx, 1);
+      newArray.splice(newIdx, 0, movedItem);
+      return newArray;
+    });
+  }, []);
 
   return (
     <ThemeProvider theme={theme}>
@@ -399,6 +414,9 @@ function App() {
                       fetchMessages={fetchMessages}
                       startEditing={startEditing}
                       isReorderMode={isReorderMode}
+                      index={index}
+                      totalCount={messages.length}
+                      moveStep={moveStep}
                     />
                   ))}
                 </Stack>
