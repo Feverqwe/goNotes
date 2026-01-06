@@ -19,6 +19,7 @@ interface TagsListContentProps {
   handleDragEnd: (event: DragEndEvent) => void;
   moveStep: (tag: string, direction: 'up' | 'down') => void;
   toggleTag: (tag: string) => void;
+  setExclusiveTag: (tag: string) => void;
 }
 
 const TagsListContent: FC<TagsListContentProps> = memo((props: TagsListContentProps) => {
@@ -32,11 +33,13 @@ const TagsListContent: FC<TagsListContentProps> = memo((props: TagsListContentPr
     handleDragEnd,
     moveStep,
     toggleTag,
+    setExclusiveTag,
   } = props;
 
   return (
     <Box>
       <MenuItem
+        tabIndex={0}
         onClick={handleToggleArchive}
         sx={{
           py: 1.2,
@@ -69,6 +72,7 @@ const TagsListContent: FC<TagsListContentProps> = memo((props: TagsListContentPr
                 moveStep={moveStep}
                 index={index}
                 totalCount={displayTags.length}
+                setExclusiveTag={setExclusiveTag}
               />
             ))}
           </SortableContext>
@@ -78,7 +82,7 @@ const TagsListContent: FC<TagsListContentProps> = memo((props: TagsListContentPr
       {displayTags.length > 1 && <Divider sx={dividerSx} />}
 
       {displayTags.length > 1 && (
-        <MenuItem onClick={handleToggleOrder} sx={{py: 1, px: 2}}>
+        <MenuItem tabIndex={0} onClick={handleToggleOrder} sx={{py: 1, px: 2}}>
           <ListItemIcon sx={iconBtnSx}>
             {isReorderMode ? (
               <Check color="primary" sx={commonIconSx} />

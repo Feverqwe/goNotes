@@ -1,5 +1,5 @@
 import React, {FC, useCallback, useContext, useMemo, useRef, useState} from 'react';
-import {Box, Chip, CircularProgress, Container, IconButton, Paper, TextField} from '@mui/material';
+import {Box, Chip, Container, IconButton, Paper, TextField} from '@mui/material';
 import {AttachFile, Check, Send} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {SnackCtx} from '../../ctx/SnackCtx';
@@ -132,7 +132,8 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
 
   const toggleDeleteExisting = useCallback(
     (id: number) => {
-      setDeletedAttachIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]),
+      setDeletedAttachIds((prev) =>
+        prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
       );
     },
     [setDeletedAttachIds],
@@ -380,14 +381,14 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
             slotProps={textFieldSlotProps}
           />
 
-          <IconButton tabIndex={3} onClick={handleSend} disabled={!canSend} sx={sendBtnSx}>
-            {isSending ? (
-              <CircularProgress size={24} sx={progressSx} />
-            ) : editingNote ? (
-              <Check sx={checkIconSx} />
-            ) : (
-              <Send sx={sendIconSx} />
-            )}
+          <IconButton
+            tabIndex={3}
+            loading={isSending}
+            onClick={handleSend}
+            disabled={!canSend}
+            sx={sendBtnSx}
+          >
+            {editingNote ? <Check sx={checkIconSx} /> : <Send sx={sendIconSx} />}
           </IconButton>
         </Box>
       </Container>

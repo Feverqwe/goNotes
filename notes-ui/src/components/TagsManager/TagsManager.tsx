@@ -93,6 +93,14 @@ const TagsManager: FC<TagsManagerProps> = memo(
       }
     }, [allTags, isReorderMode, reorderMutation]);
 
+    const setExclusiveTag = useCallback(
+      (tag: string) => {
+        setCurrentTags((prev) => (prev.length === 1 && prev[0] === tag ? [] : [tag]));
+        onActionFinished?.();
+      },
+      [setCurrentTags, onActionFinished],
+    );
+
     const displayTags = useMemo(
       () => (isReorderMode ? dndTags : allTags),
       [isReorderMode, dndTags, allTags],
@@ -109,6 +117,7 @@ const TagsManager: FC<TagsManagerProps> = memo(
         handleDragEnd={handleDragEnd}
         moveStep={moveStep}
         toggleTag={toggleTag}
+        setExclusiveTag={setExclusiveTag}
       />
     );
   },

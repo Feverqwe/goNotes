@@ -33,6 +33,16 @@ const titleSx = {
   letterSpacing: '0.5px',
 };
 
+const boxSx = {px: 2, mb: 2};
+
+const btnSx = {
+  textTransform: 'none',
+  borderRadius: '8px',
+  '&:focus-visible': {
+    boxShadow: '0 0 0 2px #90caf9',
+  },
+};
+
 interface SideTagsPanelProps extends PropsWithChildren {
   onCreateClick: () => void;
 }
@@ -42,19 +52,13 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
     return (
       <Box component="aside" sx={asideSx}>
         <Box sx={contentWrapperSx}>
-          <Box sx={{px: 2, mb: 2}}>
+          <Box sx={boxSx}>
             <Button
               fullWidth
-              variant="contained"
+              variant="outlined"
               startIcon={<AddIcon />}
               onClick={onCreateClick}
-              sx={{
-                bgcolor: '#90caf9',
-                color: '#000',
-                textTransform: 'none',
-                borderRadius: '8px',
-                '&:hover': {bgcolor: '#64b5f6'},
-              }}
+              sx={btnSx}
             >
               Создать заметку
             </Button>

@@ -65,11 +65,7 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
             {editingNote ? 'Редактировать заметку' : 'Новая заметка'}
           </Typography>
         </Box>
-        <IconButton
-          onClick={onFinish}
-          size="small"
-          sx={closeSx}
-        >
+        <IconButton onClick={onFinish} size="small" sx={closeSx}>
           <Close />
         </IconButton>
       </DialogTitle>

@@ -1,19 +1,20 @@
-import React, {FC, useMemo, useCallback} from 'react';
+import React, {FC, useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {ListItemIcon, ListItemText, MenuItem, Typography} from '@mui/material';
-import {Check} from '@mui/icons-material';
+import {IconButton, ListItemIcon, ListItemText, MenuItem, Typography} from '@mui/material';
+import {AddCircleOutline, CheckCircle} from '@mui/icons-material';
 import TagOrder from './TagOrder';
 
 const listItemIconBaseSx = {minWidth: '32px !important'};
 const hashTypographySx = {fontSize: 14, fontFamily: 'monospace'};
-const checkIconSx = {fontSize: 14, color: '#90caf9'};
+const iconSx = {fontSize: 18};
 
 interface SortableTagItemProps {
   tag: string;
   isActive: boolean;
   isReordering: boolean;
   toggleTag: (tag: string) => void;
+  setExclusiveTag: (tag: string) => void;
   index: number;
   totalCount: number;
   moveStep: (id: string, direction: 'up' | 'down') => void;
@@ -24,6 +25,7 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
   isActive,
   isReordering,
   toggleTag,
+  setExclusiveTag,
   index,
   moveStep,
   totalCount,
@@ -33,9 +35,17 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
     disabled: !isReordering,
   });
 
-  const handleToggle = useCallback(() => {
-    if (!isReordering) toggleTag(tag);
-  }, [isReordering, toggleTag, tag]);
+  const handleMainClick = useCallback(() => {
+    if (!isReordering) setExclusiveTag(tag);
+  }, [isReordering, setExclusiveTag, tag]);
+
+  const handleToggleClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!isReordering) toggleTag(tag);
+    },
+    [isReordering, toggleTag, tag],
+  );
 
   const dndStyle = useMemo(
     () => ({
@@ -55,28 +65,22 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
       bgcolor: isActive ? 'rgba(144, 202, 249, 0.05)' : 'transparent',
       '&:hover': {
         bgcolor: isReordering ? 'transparent' : 'rgba(255, 255, 255, 0.05)',
+        '& .add-tag-btn': {opacity: 1},
       },
       ...(isDragging && {
         bgcolor: 'rgba(144, 202, 249, 0.1) !important',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
       }),
     }),
-    [isActive, isReordering, isDragging],
+    [isActive, isDragging, isReordering],
   );
 
   const listItemIconSx = useMemo(
-    () => ({
-      ...listItemIconBaseSx,
-      color: isActive ? '#90caf9' : '#48484a',
-    }),
+    () => ({...listItemIconBaseSx, color: isActive ? '#90caf9' : '#48484a'}),
     [isActive],
   );
 
   const hashStyles = useMemo(
-    () => ({
-      ...hashTypographySx,
-      fontWeight: isActive ? 700 : 400,
-    }),
+    () => ({...hashTypographySx, fontWeight: isActive ? 700 : 400}),
     [isActive],
   );
 
@@ -84,15 +88,31 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
     () => ({
       primary: {
         fontSize: '0.85rem',
-        color: isActive ? '#fff' : isReordering ? '#efefef' : '#8e8e93',
+        color: isActive ? '#90caf9' : '#efefef',
         fontWeight: isActive ? 600 : 400,
       },
+    }),
+    [isActive],
+  );
+
+  const iconBtnSx = useMemo(
+    () => ({
+      opacity: isActive ? 1 : 0,
+      transition: 'opacity 0.2s',
+      color: isActive ? '#90caf9' : '#8e8e93',
+      visibility: isReordering ? 'hidden' : 'visible',
     }),
     [isActive, isReordering],
   );
 
   return (
-    <MenuItem ref={setNodeRef} style={dndStyle} onClick={handleToggle} sx={menuItemSx}>
+    <MenuItem
+      ref={setNodeRef}
+      style={dndStyle}
+      onClick={handleMainClick}
+      sx={menuItemSx}
+      disableRipple
+    >
       {!isReordering && (
         <ListItemIcon sx={listItemIconSx}>
           <Typography sx={hashStyles}>#</Typography>
@@ -112,7 +132,9 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
 
       <ListItemText primary={tag} slotProps={listItemTextSlotProps} />
 
-      {isActive && !isReordering && <Check sx={checkIconSx} />}
+      <IconButton className="add-tag-btn" size="small" onClick={handleToggleClick} sx={iconBtnSx}>
+        {isActive ? <CheckCircle sx={iconSx} /> : <AddCircleOutline sx={iconSx} />}
+      </IconButton>
     </MenuItem>
   );
 };
