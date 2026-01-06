@@ -28,4 +28,3 @@ export const HEADER_HEIGHT = 57;
 export const SIDE_PANEL_WIDTH = 280;
 
 export const POST_LIMIT = 6;
-

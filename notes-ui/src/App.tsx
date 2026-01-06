@@ -1,7 +1,15 @@
 import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {Alert, Box, CircularProgress, Container, Stack} from '@mui/material';
+import {
+  Alert,
+  Box,
+  CircularProgress,
+  Container,
+  Stack,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 
 import {closestCenter, DndContext, DragEndEvent} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
@@ -23,12 +31,14 @@ import {useNotes} from './hooks/useNotes';
 import {ArchiveMessageRequest, ReorderMessagesRequest} from './tools/types';
 import SideTagsPanel from './components/SideTagsPanel/SideTagsPanel';
 import TagsManager from './components/TagsManager/TagsManager';
+import NoteEditorDialog from './components/NoteEditorDialog/NoteEditorDialog';
 
 const wrapperSx = {minHeight: '100vh', display: 'flex', flexDirection: 'column'};
 
 const alertSx = {mb: 1.5};
 
 function App() {
+  const theme = useTheme();
   const queryClient = useQueryClient();
   const showSnackbar = useContext(SnackCtx);
 
@@ -77,6 +87,17 @@ function App() {
   const [dndMessages, setDndMessages] = useState<Note[]>([]);
   const refDndMessages = useRef(dndMessages);
   refDndMessages.current = dndMessages;
+
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const refIsMobile = useRef(isMobile);
+  refIsMobile.current = isMobile;
+
+  const [isEditorDialogOpen, setIsEditorDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (isMobile) return;
+    return () => setIsEditorDialogOpen(false);
+  }, [isMobile]);
 
   const handleOpenTagMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setTagMenuAnchor(event.currentTarget);
@@ -217,6 +238,14 @@ function App() {
 
   const startEditing = useCallback((msg: Note) => {
     setEditingNote(msg);
+    if (!refIsMobile.current) {
+      setIsEditorDialogOpen(true);
+    }
+  }, []);
+
+  const endEditing = useCallback(() => {
+    setEditingNote(null);
+    setIsEditorDialogOpen(false);
   }, []);
 
   const handleOpenMenu = useCallback((event: React.MouseEvent, msg: Note) => {
@@ -280,6 +309,8 @@ function App() {
 
     handleCloseMenu();
   }, [archiveMutation, handleCloseMenu, selectedMsg]);
+
+  const handleOpenEditor = useCallback(() => setIsEditorDialogOpen(true), []);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const {active, over} = event;
@@ -368,14 +399,16 @@ function App() {
         />
 
         <Box display="flex">
-          <SideTagsPanel>
-            <TagsManager
-              currentTags={currentTags}
-              setCurrentTags={setCurrentTags}
-              showArchived={showArchived}
-              setShowArchived={setShowArchived}
-            />
-          </SideTagsPanel>
+          {!isMobile && (
+            <SideTagsPanel onCreateClick={handleOpenEditor}>
+              <TagsManager
+                currentTags={currentTags}
+                setCurrentTags={setCurrentTags}
+                showArchived={showArchived}
+                setShowArchived={setShowArchived}
+              />
+            </SideTagsPanel>
+          )}
 
           <Container maxWidth="sm" sx={bodyCtrSx}>
             {isError && (
@@ -421,14 +454,26 @@ function App() {
           </Container>
         </Box>
 
-        <BottomInputForm
-          editingNote={editingNote}
-          setEditingNote={setEditingNote}
-          files={files}
-          currentTags={currentTags}
-          setCurrentTags={setCurrentTags}
-          setFiles={setFiles}
-        />
+        {isMobile && (
+          <BottomInputForm
+            editingNote={editingNote}
+            endEditing={endEditing}
+            files={files}
+            currentTags={currentTags}
+            setCurrentTags={setCurrentTags}
+            setFiles={setFiles}
+          />
+        )}
+
+        {!isMobile && (
+          <NoteEditorDialog
+            open={isEditorDialogOpen}
+            editingNote={editingNote}
+            endEditing={endEditing}
+            currentTags={currentTags}
+            setCurrentTags={setCurrentTags}
+          />
+        )}
 
         {isSelectMode && (
           <MultiSelectMenu

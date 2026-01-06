@@ -39,8 +39,6 @@ const tagChipSx = {
   '& .MuiChip-label': {px: 1.5},
 };
 
-const inputRowSx = {display: 'flex', alignItems: 'flex-end', px: 0.5, pb: 0.5};
-
 const attachBtnSx = {
   color: '#8e8e93',
   mb: 0.5,
@@ -73,7 +71,7 @@ const textFieldSlotProps = {
 };
 
 const checkIconSx = {
-  fontSize: 14,
+  fontSize: 26,
   color: '#90caf9',
 };
 
@@ -98,7 +96,8 @@ interface BottomInputFormProps {
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  setEditingNote: React.Dispatch<React.SetStateAction<Note | null>>;
+  endEditing: () => void;
+  isDialogMode?: boolean;
 }
 
 const BottomInputForm: FC<BottomInputFormProps> = ({
@@ -107,7 +106,8 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   currentTags,
   setCurrentTags,
   setFiles,
-  setEditingNote,
+  endEditing,
+  isDialogMode,
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const [isDragging, setIsDragging] = useState(false);
@@ -123,19 +123,26 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
 
   const paperSx = useMemo(
     () => ({
-      position: 'fixed',
+      position: isDialogMode ? 'relative' : 'fixed',
       bottom: 0,
       left: 0,
       right: 0,
-      bgcolor: isDragging ? 'rgba(26, 31, 36, 0.9)' : 'rgba(18, 18, 18, 0.8)',
-      backdropFilter: 'blur(20px) saturate(180%)',
+      bgcolor: isDialogMode
+        ? 'transparent'
+        : isDragging
+          ? 'rgba(26, 31, 36, 0.9)'
+          : 'rgba(18, 18, 18, 0.8)',
+      backdropFilter: isDialogMode ? 'none' : 'blur(20px) saturate(180%)',
       backgroundImage: 'none',
-      borderTop: '1px solid',
-      borderColor: editingNote ? 'rgba(144, 202, 249, 0.5)' : '#2c2c2e',
+      borderTop: isDialogMode
+        ? 'none'
+        : editingNote
+          ? '1px solid rgba(144, 202, 249, 0.5)'
+          : '#2c2c2e',
       zIndex: 1000,
-      transition: 'background-color 0.2s, border-color 0.2s',
+      boxShadow: 'none',
     }),
-    [isDragging, editingNote],
+    [isDragging, editingNote, isDialogMode],
   );
 
   useEffect(() => {
@@ -186,10 +193,10 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   }, [editingNote]);
 
   const cancelEditing = useCallback(() => {
-    setEditingNote(null);
+    endEditing();
     setInputText('');
     setFiles([]);
-  }, [setEditingNote, setInputText, setFiles]);
+  }, [endEditing, setInputText, setFiles]);
 
   const removeNewFile = useCallback(
     (index: number) => {
@@ -205,12 +212,12 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   }, []);
 
   const onSuccess = useCallback(() => {
-    setEditingNote(null);
+    endEditing();
     setInputText('');
     setFiles([]);
     setExistingAttachments([]);
     setDeletedAttachIds([]);
-  }, [setEditingNote, setFiles]);
+  }, [endEditing, setFiles]);
 
   const updateMessageMutation = useMutation({
     mutationFn: (params: UpdateMessageRequest) => api.messages.update(params),
@@ -329,6 +336,38 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     [setFiles],
   );
 
+  const inputContainerSx = useMemo(
+    () => ({
+      display: 'flex',
+      alignItems: 'flex-end',
+      px: isDialogMode ? 1.5 : 0.5,
+      pb: isDialogMode ? 1.5 : 0.5,
+      pt: isDialogMode ? 2 : 0,
+      flexGrow: isDialogMode ? 1 : 0,
+    }),
+    [isDialogMode],
+  );
+
+  const textFieldSx = useMemo(
+    () =>
+      !isDialogMode
+        ? undefined
+        : {
+            '& .MuiInputBase-root': {
+              color: '#fff',
+              fontSize: isDialogMode ? '1.05rem' : '0.95rem', // Крупнее шрифт в диалоге
+              py: isDialogMode ? 1 : 1.5,
+              px: 1,
+              minHeight: isDialogMode ? '200px' : 'auto', // ПОЛЕ СТАНОВИТСЯ БОЛЬШИМ
+              alignItems: 'flex-start', // Чтобы текст начинался сверху, а не центрировался
+            },
+            '& textarea': {
+              lineHeight: 1.6,
+            },
+          },
+    [isDialogMode],
+  );
+
   return (
     <Paper
       square
@@ -338,8 +377,12 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       onDrop={handleDrop}
       sx={paperSx}
     >
-      <Container maxWidth="sm" disableGutters>
-        {editingNote && <EditHeader onCancel={cancelEditing} />}
+      <Container
+        maxWidth={isDialogMode ? 'md' : 'sm'}
+        disableGutters
+        sx={{height: isDialogMode ? '100%' : 'auto', display: 'flex', flexDirection: 'column'}}
+      >
+        {!isDialogMode && editingNote && <EditHeader onCancel={cancelEditing} />}
 
         {existingAttachments.length > 0 && editingNote && (
           <Box sx={attachScrollBoxSx}>
@@ -380,7 +423,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </Box>
         )}
 
-        <Box sx={inputRowSx}>
+        <Box sx={inputContainerSx}>
           <IconButton component="label" onKeyDown={handleFileKeyDown} tabIndex={3} sx={attachBtnSx}>
             <AttachFile sx={attachIconRotationSx} />
             <input {...attachInputProps} onChange={handleFileChange} />
@@ -390,12 +433,14 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
             inputRef={inputRef}
             fullWidth
             multiline
-            maxRows={10}
+            minRows={isDialogMode ? 10 : 1}
+            maxRows={isDialogMode ? 20 : 10}
             variant="standard"
             placeholder={isDragging ? 'Сбросьте файлы...' : 'Заметка...'}
             value={inputText}
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
+            sx={textFieldSx}
             slotProps={textFieldSlotProps}
           />
 

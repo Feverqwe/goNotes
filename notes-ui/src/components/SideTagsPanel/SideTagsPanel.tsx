@@ -1,5 +1,6 @@
 import React, {FC, memo, PropsWithChildren} from 'react';
-import {Box, Typography} from '@mui/material';
+import {Box, Button, Typography} from '@mui/material';
+import {Add as AddIcon} from '@mui/icons-material';
 import {HEADER_HEIGHT, SIDE_PANEL_WIDTH} from '../../constants';
 
 const asideSx = {
@@ -32,15 +33,38 @@ const titleSx = {
   letterSpacing: '0.5px',
 };
 
-const SideTagsPanel: FC<PropsWithChildren> = memo(({children}: PropsWithChildren) => {
-  return (
-    <Box component="aside" sx={asideSx}>
-      <Box sx={contentWrapperSx}>
-        <Typography sx={titleSx}>Навигация</Typography>
-        {children}
+interface SideTagsPanelProps extends PropsWithChildren {
+  onCreateClick: () => void;
+}
+
+const SideTagsPanel: FC<SideTagsPanelProps> = memo(
+  ({children, onCreateClick}: SideTagsPanelProps) => {
+    return (
+      <Box component="aside" sx={asideSx}>
+        <Box sx={contentWrapperSx}>
+          <Box sx={{px: 2, mb: 2}}>
+            <Button
+              fullWidth
+              variant="contained"
+              startIcon={<AddIcon />}
+              onClick={onCreateClick}
+              sx={{
+                bgcolor: '#90caf9',
+                color: '#000',
+                textTransform: 'none',
+                borderRadius: '8px',
+                '&:hover': {bgcolor: '#64b5f6'},
+              }}
+            >
+              Создать заметку
+            </Button>
+          </Box>
+          <Typography sx={titleSx}>Навигация</Typography>
+          {children}
+        </Box>
       </Box>
-    </Box>
-  );
-});
+    );
+  },
+);
 
 export default SideTagsPanel;
