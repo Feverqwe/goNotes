@@ -1,4 +1,4 @@
-import React, {FC, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
+import React, {FC, useCallback, useContext, useMemo, useRef, useState} from 'react';
 import {Box, Chip, CircularProgress, Container, IconButton, Paper, TextField} from '@mui/material';
 import {AttachFile, Check, Send} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
@@ -90,14 +90,21 @@ const progressSx = {
   padding: '2px',
 };
 
-interface BottomInputFormProps {
+export interface BottomInputFormProps {
   editingNote: Note | null;
+  endEditing: () => void;
   files: File[];
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
-  endEditing: () => void;
   isDialogMode?: boolean;
+
+  inputText: string;
+  setInputText: React.Dispatch<React.SetStateAction<string>>;
+  existingAttachments: Attachment[];
+  deletedAttachIds: number[];
+  setDeletedAttachIds: React.Dispatch<React.SetStateAction<number[]>>;
+  onFinish: () => void;
 }
 
 const BottomInputForm: FC<BottomInputFormProps> = ({
@@ -108,89 +115,19 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   setFiles,
   endEditing,
   isDialogMode,
+  inputText,
+  setInputText,
+  existingAttachments,
+  deletedAttachIds,
+  setDeletedAttachIds,
+  onFinish,
 }) => {
   const showSnackbar = useContext(SnackCtx);
-  const [isDragging, setIsDragging] = useState(false);
-  const [inputText, setInputText] = useState('');
-  const inputRef = useRef<HTMLTextAreaElement | HTMLInputElement>(null);
   const queryClient = useQueryClient();
 
-  const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
-  const [deletedAttachIds, setDeletedAttachIds] = useState<number[]>([]);
-
+  const [isDragging, setIsDragging] = useState(false);
   const refInputText = useRef(inputText);
   refInputText.current = inputText;
-
-  const paperSx = useMemo(
-    () => ({
-      position: isDialogMode ? 'relative' : 'fixed',
-      bottom: 0,
-      left: 0,
-      right: 0,
-      bgcolor: isDialogMode
-        ? 'transparent'
-        : isDragging
-          ? 'rgba(26, 31, 36, 0.9)'
-          : 'rgba(18, 18, 18, 0.8)',
-      backdropFilter: isDialogMode ? 'none' : 'blur(20px) saturate(180%)',
-      backgroundImage: 'none',
-      borderTop: isDialogMode
-        ? 'none'
-        : editingNote
-          ? '1px solid rgba(144, 202, 249, 0.5)'
-          : '#2c2c2e',
-      zIndex: 1000,
-      boxShadow: 'none',
-    }),
-    [isDragging, editingNote, isDialogMode],
-  );
-
-  useEffect(() => {
-    const handleMessage = (event: MessageEvent) => {
-      if (event.data.action === 'load-shared-files') {
-        const sharedFiles = event.data.files as File[];
-        setFiles((prev) => [...prev, ...sharedFiles]);
-        if (event.data.text) setInputText(event.data.text);
-      }
-    };
-
-    navigator.serviceWorker.addEventListener('message', handleMessage);
-
-    const askForData = () => {
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({action: 'GET_SHARED_DATA'});
-      }
-    };
-
-    const timeout = setTimeout(askForData, 500);
-
-    return () => {
-      navigator.serviceWorker.removeEventListener('message', handleMessage);
-      clearTimeout(timeout);
-    };
-  }, [setFiles, setInputText]);
-
-  useEffect(() => {
-    if (editingNote) {
-      setInputText(editingNote.content);
-      if (editingNote.attachments) {
-        setExistingAttachments(editingNote.attachments);
-      }
-      setDeletedAttachIds([]);
-
-      setTimeout(() => {
-        if (inputRef.current) {
-          inputRef.current.focus();
-
-          const {length} = inputRef.current.value;
-          inputRef.current.setSelectionRange(length, length);
-        }
-      }, 100);
-    } else {
-      setExistingAttachments([]);
-      setDeletedAttachIds([]);
-    }
-  }, [editingNote]);
 
   const cancelEditing = useCallback(() => {
     endEditing();
@@ -205,19 +142,13 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     [setFiles],
   );
 
-  const toggleDeleteExisting = useCallback((id: number) => {
-    setDeletedAttachIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
-    );
-  }, []);
-
-  const onSuccess = useCallback(() => {
-    endEditing();
-    setInputText('');
-    setFiles([]);
-    setExistingAttachments([]);
-    setDeletedAttachIds([]);
-  }, [endEditing, setFiles]);
+  const toggleDeleteExisting = useCallback(
+    (id: number) => {
+      setDeletedAttachIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]),
+      );
+    },
+    [setDeletedAttachIds],
+  );
 
   const updateMessageMutation = useMutation({
     mutationFn: (params: UpdateMessageRequest) => api.messages.update(params),
@@ -225,7 +156,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       queryClient.invalidateQueries({queryKey: ['notes']});
       queryClient.invalidateQueries({queryKey: ['tags']});
       showSnackbar('Заметка обновлена', 'success');
-      onSuccess();
+      onFinish();
     },
     onError: (err) => {
       console.error(err);
@@ -239,7 +170,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       queryClient.invalidateQueries({queryKey: ['notes']});
       queryClient.invalidateQueries({queryKey: ['tags']});
       showSnackbar('Заметка отправлена', 'success');
-      onSuccess();
+      onFinish();
     },
     onError: (err) => {
       console.error(err);
@@ -257,7 +188,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     return hasText || hasNewFiles || hasRemainingFiles;
   }, [inputText, files, existingAttachments, deletedAttachIds, isSending]);
 
-  const handleSend = useCallback(async () => {
+  const handleSend = useCallback(() => {
     if (!canSend) return;
     const formData = new FormData();
     files.forEach((f) => formData.append('attachments', f));
@@ -321,9 +252,12 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     }
   }, []);
 
-  const handleTextChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    setInputText(e.target.value);
-  }, []);
+  const handleTextChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      setInputText(e.target.value);
+    },
+    [setInputText],
+  );
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -334,6 +268,30 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       e.target.value = '';
     },
     [setFiles],
+  );
+
+  const paperSx = useMemo(
+    () => ({
+      position: isDialogMode ? 'relative' : 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      bgcolor: isDialogMode
+        ? 'transparent'
+        : isDragging
+          ? 'rgba(26, 31, 36, 0.9)'
+          : 'rgba(18, 18, 18, 0.8)',
+      backdropFilter: isDialogMode ? 'none' : 'blur(20px) saturate(180%)',
+      backgroundImage: 'none',
+      borderTop: isDialogMode
+        ? 'none'
+        : editingNote
+          ? '1px solid rgba(144, 202, 249, 0.5)'
+          : '#2c2c2e',
+      zIndex: 1000,
+      boxShadow: 'none',
+    }),
+    [isDragging, editingNote, isDialogMode],
   );
 
   const inputContainerSx = useMemo(
@@ -349,22 +307,21 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   );
 
   const textFieldSx = useMemo(
-    () =>
-      !isDialogMode
+    () => (!isDialogMode
         ? undefined
         : {
             '& .MuiInputBase-root': {
               color: '#fff',
-              fontSize: isDialogMode ? '1.05rem' : '0.95rem', // Крупнее шрифт в диалоге
+              fontSize: isDialogMode ? '1.05rem' : '0.95rem',
               py: isDialogMode ? 1 : 1.5,
               px: 1,
-              minHeight: isDialogMode ? '200px' : 'auto', // ПОЛЕ СТАНОВИТСЯ БОЛЬШИМ
-              alignItems: 'flex-start', // Чтобы текст начинался сверху, а не центрировался
+              minHeight: isDialogMode ? '200px' : 'auto',
+              alignItems: 'flex-start',
             },
             '& textarea': {
               lineHeight: 1.6,
             },
-          },
+          }),
     [isDialogMode],
   );
 
@@ -430,7 +387,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </IconButton>
 
           <TextField
-            inputRef={inputRef}
+            autoFocus={Boolean(editingNote)}
             fullWidth
             multiline
             minRows={isDialogMode ? 10 : 1}

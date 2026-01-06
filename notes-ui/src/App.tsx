@@ -18,7 +18,6 @@ import MessageItem from './components/MessageItem/MessageItem';
 import {SnackCtx} from './ctx/SnackCtx';
 import TagsMenu from './components/TagsMenu/TagsMenu';
 import SearchBox from './components/SearchBox/SearchBox';
-import BottomInputForm from './components/BottomInputForm/BottomInputForm';
 import MultiSelectMenu from './components/MultiSelectMenu/MultiSelectMenu';
 import NoteMenu from './components/NoteMenu/NoteMenu';
 import BatchDeleteDialog from './components/BatchDeleteDialog/BatchDeleteDialog';
@@ -31,7 +30,7 @@ import {useNotes} from './hooks/useNotes';
 import {ArchiveMessageRequest, ReorderMessagesRequest} from './tools/types';
 import SideTagsPanel from './components/SideTagsPanel/SideTagsPanel';
 import TagsManager from './components/TagsManager/TagsManager';
-import NoteEditorDialog from './components/NoteEditorDialog/NoteEditorDialog';
+import NoteForm from './components/NoteForm/NoteForm';
 
 const wrapperSx = {minHeight: '100vh', display: 'flex', flexDirection: 'column'};
 
@@ -63,8 +62,6 @@ function App() {
     return initUrlParams.get('archived') === '1';
   });
 
-  const [files, setFiles] = useState<File[]>([]);
-
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [anchorEl, setAnchorEl] = useState<Element | null>(null);
   const [selectedMsg, setSelectedMsg] = useState<Note | null>(null);
@@ -93,11 +90,6 @@ function App() {
   refIsMobile.current = isMobile;
 
   const [isEditorDialogOpen, setIsEditorDialogOpen] = useState(false);
-
-  useEffect(() => {
-    if (isMobile || !isEditorDialogOpen) return;
-    return () => setIsEditorDialogOpen(false);
-  }, [isMobile, isEditorDialogOpen]);
 
   const handleOpenTagMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setTagMenuAnchor(event.currentTarget);
@@ -238,9 +230,7 @@ function App() {
 
   const startEditing = useCallback((msg: Note) => {
     setEditingNote(msg);
-    if (!refIsMobile.current) {
-      setIsEditorDialogOpen(true);
-    }
+    setIsEditorDialogOpen(true);
   }, []);
 
   const endEditing = useCallback(() => {
@@ -377,9 +367,9 @@ function App() {
     () => ({
       flexGrow: 1,
       pt: 1,
-      pb: 7.5 + (files.length ? 8 : 0) + (currentTags.length ? 7 : 0),
+      pb: 7.5,
     }),
-    [currentTags.length, files.length],
+    [],
   );
 
   return (
@@ -453,28 +443,14 @@ function App() {
           </Container>
         </Box>
 
-        {isMobile && (
-          <BottomInputForm
-            editingNote={editingNote}
-            endEditing={endEditing}
-            files={files}
-            setFiles={setFiles}
-            currentTags={currentTags}
-            setCurrentTags={setCurrentTags}
-          />
-        )}
-
-        {!isMobile && (
-          <NoteEditorDialog
-            open={isEditorDialogOpen}
-            editingNote={editingNote}
-            endEditing={endEditing}
-            currentTags={currentTags}
-            setCurrentTags={setCurrentTags}
-            files={files}
-            setFiles={setFiles}
-          />
-        )}
+        <NoteForm
+          open={isEditorDialogOpen}
+          setIsEditorDialogOpen={setIsEditorDialogOpen}
+          editingNote={editingNote}
+          endEditing={endEditing}
+          currentTags={currentTags}
+          setCurrentTags={setCurrentTags}
+        />
 
         {isSelectMode && (
           <MultiSelectMenu

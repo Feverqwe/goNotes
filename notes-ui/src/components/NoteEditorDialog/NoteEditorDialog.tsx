@@ -1,4 +1,4 @@
-import React, {FC, useCallback} from 'react';
+import React, {FC} from 'react';
 import {
   Box,
   Dialog,
@@ -9,8 +9,7 @@ import {
   Typography,
 } from '@mui/material';
 import {AddCircleOutline, Close, Edit} from '@mui/icons-material';
-import BottomInputForm from '../BottomInputForm/BottomInputForm';
-import {Note} from '../../types';
+import BottomInputForm, {BottomInputFormProps} from '../BottomInputForm/BottomInputForm';
 
 const dialogPaperSx = {
   paper: {
@@ -23,35 +22,18 @@ const dialogPaperSx = {
   },
 };
 
-interface NoteEditorDialogProps {
+export interface NoteEditorDialogProps extends Omit<BottomInputFormProps, 'isDialogMode'> {
   open: boolean;
-  editingNote: Note | null;
-  endEditing: () => void;
-  currentTags: string[];
-  setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
-  files: File[];
-  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
 }
 
-const NoteEditorDialog: FC<NoteEditorDialogProps> = ({
-  open,
-  editingNote,
-  endEditing,
-  currentTags,
-  setCurrentTags,
-  files,
-  setFiles,
-}) => {
-  const handleClose = useCallback(() => {
-    endEditing();
-    setFiles([]);
-  }, [endEditing, setFiles]);
+const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
+  const {onFinish, editingNote} = props;
 
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
-      maxWidth="md"
+      onClose={onFinish}
+      maxWidth="sm"
       fullWidth
       scroll="paper"
       slotProps={dialogPaperSx}
@@ -75,7 +57,7 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({
             {editingNote ? 'Редактировать заметку' : 'Новая заметка'}
           </Typography>
         </Box>
-        <IconButton onClick={handleClose} size="small" sx={{color: '#8e8e93'}}>
+        <IconButton onClick={onFinish} size="small" sx={{color: '#8e8e93'}}>
           <Close />
         </IconButton>
       </DialogTitle>
@@ -83,15 +65,7 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({
       <Divider sx={{borderColor: 'rgba(255,255,255,0.1)'}} />
 
       <DialogContent sx={{p: 0, display: 'flex', flexDirection: 'column'}}>
-        <BottomInputForm
-          editingNote={editingNote}
-          endEditing={endEditing}
-          currentTags={currentTags}
-          setCurrentTags={setCurrentTags}
-          files={files}
-          setFiles={setFiles}
-          isDialogMode={true}
-        />
+        <BottomInputForm {...props} isDialogMode={true} />
       </DialogContent>
     </Dialog>
   );
