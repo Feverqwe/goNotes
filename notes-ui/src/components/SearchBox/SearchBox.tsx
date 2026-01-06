@@ -5,7 +5,7 @@ import {Clear, FilterList} from '@mui/icons-material';
 const stickyHeaderSx = {
   position: 'sticky',
   top: 0,
-  zIndex: 11,
+  zIndex: 1200,
   bgcolor: 'rgba(18, 18, 18, 0.8)',
   backdropFilter: 'blur(20px) saturate(180%)',
   borderBottom: '1px solid #2c2c2e',
@@ -16,9 +16,16 @@ const stickyHeaderSx = {
 const contentWrapperSx = {
   display: 'flex',
   alignItems: 'center',
+  ml: {xs: 0, md: '280px'},
+  height: '48px',
+  justifyContent: 'center',
+  width: 'auto',
+};
+
+const textFieldWrapperSx = {
+  width: '100%',
   maxWidth: 'sm',
   mx: 'auto',
-  height: '48px',
 };
 
 const badgeSx = {
@@ -150,14 +157,16 @@ const SearchBox: FC<SearchBoxProps> = ({
   return (
     <Paper square elevation={0} sx={stickyHeaderSx}>
       <Box sx={contentWrapperSx}>
-        <TextField
-          fullWidth
-          variant="standard"
-          placeholder="Поиск..."
-          value={searchQuery}
-          onChange={handleChange}
-          slotProps={textFieldSlotProps}
-        />
+        <Box sx={textFieldWrapperSx}>
+          <TextField
+            fullWidth
+            variant="standard"
+            placeholder="Поиск..."
+            value={searchQuery}
+            onChange={handleChange}
+            slotProps={textFieldSlotProps}
+          />
+        </Box>
       </Box>
     </Paper>
   );

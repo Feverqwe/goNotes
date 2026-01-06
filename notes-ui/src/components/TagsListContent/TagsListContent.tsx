@@ -49,7 +49,7 @@ const TagsListContent: FC<TagsListContentProps> = memo((props: TagsListContentPr
           <Archive sx={{...commonIconSx, color: showArchived ? '#90caf9' : '#8e8e93'}} />
         </ListItemIcon>
         <ListItemText
-          primary="Только архив"
+          primary="Архив"
           slotProps={{primary: {fontSize: '0.85rem', color: showArchived ? '#90caf9' : '#efefef'}}}
         />
       </MenuItem>

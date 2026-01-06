@@ -1,9 +1,9 @@
 import React, {FC, memo, PropsWithChildren} from 'react';
 import {Box, Typography} from '@mui/material';
-import {HEADER_HEIGHT} from '../../constants';
+import {HEADER_HEIGHT, SIDE_PANEL_WIDTH} from '../../constants';
 
 const asideSx = {
-  width: 280,
+  width: SIDE_PANEL_WIDTH,
   display: {xs: 'none', md: 'block'},
   borderRight: '1px solid rgba(255, 255, 255, 0.08)',
 
