@@ -41,7 +41,7 @@ const DeleteDialog: FC<DeleteDialogProps> = ({
     },
   });
 
-  const confirmDelete = useCallback(async () => {
+  const confirmDelete = useCallback(() => {
     const msgToDelete = refMsgToDelete.current;
     if (!msgToDelete) return;
     deleteMutation.mutate({id: msgToDelete});

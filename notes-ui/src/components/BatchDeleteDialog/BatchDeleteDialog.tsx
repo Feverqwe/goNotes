@@ -42,7 +42,7 @@ const BatchDeleteDialog: FC<BatchDeleteDialogProps> = ({
     },
   });
 
-  const confirmBatchDelete = useCallback(async () => {
+  const confirmBatchDelete = useCallback(() => {
     batchDeleteMutation.mutate({ids: selectedIds});
   }, [batchDeleteMutation, selectedIds]);
 

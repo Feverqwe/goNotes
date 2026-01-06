@@ -1,14 +1,23 @@
 import React, {FC, PropsWithChildren, useCallback, useState} from 'react';
 import {AlertColor} from '@mui/material/Alert/Alert';
-import {Alert, Snackbar, useTheme} from '@mui/material';
+import {Alert, Snackbar} from '@mui/material';
 import {SnackCtx} from '../../ctx/SnackCtx';
+
+const snackAnchorOrigin: {vertical: 'top'; horizontal: 'center'} = {
+  vertical: 'top',
+  horizontal: 'center',
+};
+
+const alertSx = {
+  width: '100%',
+  // Цвет фона берется из темы, но объект sx статичен
+  bgcolor: 'background.paper',
+};
 
 const SnackProvider: FC<PropsWithChildren> = ({children}) => {
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState('');
   const [snackbarSeverity, setSnackbarSeverity] = useState<AlertColor>('info');
-
-  const theme = useTheme();
 
   const showSnackbar = useCallback((message: string, severity: AlertColor = 'info') => {
     setSnackbarMessage(message);
@@ -31,13 +40,9 @@ const SnackProvider: FC<PropsWithChildren> = ({children}) => {
         open={snackbarOpen}
         autoHideDuration={3000}
         onClose={handleCloseSnackbar}
-        anchorOrigin={{vertical: 'top', horizontal: 'center'}}
+        anchorOrigin={snackAnchorOrigin}
       >
-        <Alert
-          onClose={handleCloseSnackbar}
-          severity={snackbarSeverity}
-          sx={{width: '100%', bgcolor: theme.palette.background.paper}}
-        >
+        <Alert onClose={handleCloseSnackbar} severity={snackbarSeverity} sx={alertSx}>
           {snackbarMessage}
         </Alert>
       </Snackbar>

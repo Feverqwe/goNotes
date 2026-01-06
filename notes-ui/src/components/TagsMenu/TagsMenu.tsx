@@ -1,7 +1,5 @@
-import React, {FC, useCallback, useContext, useRef, useState} from 'react';
-
+import React, {FC, useCallback, useContext, useMemo, useRef, useState} from 'react';
 import {Divider, ListItemIcon, ListItemText, Menu, MenuItem} from '@mui/material';
-
 import {Archive, Check, Sort} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {DndContext, DragEndEvent} from '@dnd-kit/core';
@@ -11,6 +9,26 @@ import {useTags} from '../../hooks/useTags';
 import SortableTagItem from './SortableTagItem';
 import {ReorderTagsRequest} from '../../tools/types';
 import {SnackCtx} from '../../ctx/SnackCtx';
+
+const menuSlotProps = {
+  paper: {
+    sx: {
+      bgcolor: 'rgba(24, 24, 26, 0.85)',
+      backdropFilter: 'blur(15px) saturate(140%)',
+      minWidth: 240,
+      maxHeight: 450,
+      borderRadius: '4px',
+      border: '1px solid rgba(255, 255, 255, 0.12)',
+      boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
+      mt: 0.5,
+      backgroundImage: 'none',
+    },
+  },
+};
+
+const iconBtnSx = {minWidth: '32px !important'};
+const dividerSx = {borderColor: 'rgba(255, 255, 255, 0.08)'};
+const commonIconSx = {fontSize: 18};
 
 interface TagsMenuProps {
   tagMenuAnchor: HTMLButtonElement | null;
@@ -41,39 +59,18 @@ const TagsMenu: FC<TagsMenuProps> = ({
 
   const toggleTag = useCallback(
     (tag: string) => {
-      setCurrentTags((prev) => {
-        if (prev.includes(tag)) {
-          return prev.filter((t) => t !== tag);
-        }
-
-        return [...prev, tag];
-      });
+      setCurrentTags((prev) =>
+        prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+      );
       handleCloseTagMenu();
     },
     [handleCloseTagMenu, setCurrentTags],
   );
 
-  const reorderMutation = useMutation({
-    mutationFn: (params: ReorderTagsRequest) => api.tags.reorder(params),
-    onSuccess: async () => {
-      try {
-        await queryClient.invalidateQueries({queryKey: ['tags']});
-      } finally {
-        showSnackbar('Порядок сохранен');
-        setIsReorderMode(false);
-        setDndTags([]);
-      }
-    },
-    onError: (err) => {
-      console.error(err);
-      showSnackbar('Ошибка сохранения порядка', 'error');
-    },
-  });
-
-  const saveTagsOrder = useCallback(() => {
-    const localTags = refDndTags.current;
-    reorderMutation.mutate({names: localTags});
-  }, [reorderMutation]);
+  const handleToggleArchive = useCallback(() => {
+    setShowArchived((v) => !v);
+    handleCloseTagMenu();
+  }, [handleCloseTagMenu, setShowArchived]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const {active, over} = event;
@@ -101,19 +98,63 @@ const TagsMenu: FC<TagsMenuProps> = ({
     });
   }, []);
 
-  const handleToggleArchive = useCallback(() => {
-    setShowArchived((v) => !v);
-    handleCloseTagMenu();
-  }, [handleCloseTagMenu, setShowArchived]);
+  const reorderMutation = useMutation({
+    mutationFn: (params: ReorderTagsRequest) => api.tags.reorder(params),
+    onSuccess: async () => {
+      try {
+        await queryClient.invalidateQueries({queryKey: ['tags']});
+      } finally {
+        showSnackbar('Порядок сохранен');
+        setIsReorderMode(false);
+        setDndTags([]);
+      }
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка сохранения порядка', 'error');
+    },
+  });
 
   const handleToggleOrder = useCallback(() => {
     if (isReorderMode) {
-      saveTagsOrder();
+      reorderMutation.mutate({names: refDndTags.current});
     } else {
       setIsReorderMode(true);
       setDndTags(allTags);
     }
-  }, [allTags, isReorderMode, saveTagsOrder]);
+  }, [allTags, isReorderMode, reorderMutation]);
+
+  const archiveItemSx = useMemo(
+    () => ({
+      py: 1.2,
+      px: 2,
+      bgcolor: showArchived ? 'rgba(144, 202, 249, 0.08)' : 'transparent',
+      '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.05)'},
+    }),
+    [showArchived],
+  );
+
+  const archiveTextSlotProps = useMemo(
+    () => ({
+      primary: {fontSize: '0.85rem', color: showArchived ? '#90caf9' : '#efefef'},
+    }),
+    [showArchived],
+  );
+
+  const archiveIconSx = useMemo(
+    () => ({
+      ...commonIconSx,
+      color: showArchived ? '#90caf9' : '#8e8e93',
+    }),
+    [showArchived],
+  );
+
+  const orderTextSlotProps = useMemo(
+    () => ({
+      primary: {fontSize: '0.85rem'},
+    }),
+    [],
+  );
 
   const displayTags = isReorderMode ? dndTags : allTags;
 
@@ -122,41 +163,16 @@ const TagsMenu: FC<TagsMenuProps> = ({
       anchorEl={tagMenuAnchor}
       open={Boolean(tagMenuAnchor)}
       onClose={handleCloseTagMenu}
-      slotProps={{
-        paper: {
-          sx: {
-            bgcolor: 'rgba(24, 24, 26, 0.85)',
-            backdropFilter: 'blur(15px) saturate(140%)',
-            minWidth: 240,
-            maxHeight: 450,
-            borderRadius: '4px',
-            border: '1px solid rgba(255, 255, 255, 0.12)',
-            boxShadow: '0 8px 32px rgba(0,0,0,0.6)',
-            mt: 0.5,
-            backgroundImage: 'none',
-          },
-        },
-      }}
+      slotProps={menuSlotProps}
     >
-      <MenuItem
-        onClick={handleToggleArchive}
-        sx={{
-          py: 1.2,
-          px: 2,
-          bgcolor: showArchived ? 'rgba(144, 202, 249, 0.08)' : 'transparent',
-          '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.05)'},
-        }}
-      >
-        <ListItemIcon sx={{minWidth: '32px !important'}}>
-          <Archive sx={{fontSize: 18, color: showArchived ? '#90caf9' : '#8e8e93'}} />
+      <MenuItem onClick={handleToggleArchive} sx={archiveItemSx}>
+        <ListItemIcon sx={iconBtnSx}>
+          <Archive sx={archiveIconSx} />
         </ListItemIcon>
-        <ListItemText
-          primary="Только архив"
-          slotProps={{primary: {fontSize: '0.85rem', color: showArchived ? '#90caf9' : '#efefef'}}}
-        />
+        <ListItemText primary="Только архив" slotProps={archiveTextSlotProps} />
       </MenuItem>
 
-      {displayTags.length > 0 && <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />}
+      {displayTags.length > 0 && <Divider sx={dividerSx} />}
 
       {displayTags.length > 0 && (
         <DndContext onDragEnd={handleDragEnd}>
@@ -170,23 +186,27 @@ const TagsMenu: FC<TagsMenuProps> = ({
                 toggleTag={toggleTag}
                 moveStep={moveStep}
                 index={index}
-                totalCount={tag.length}
+                totalCount={displayTags.length}
               />
             ))}
           </SortableContext>
         </DndContext>
       )}
 
-      {displayTags.length > 1 && <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />}
+      {displayTags.length > 1 && <Divider sx={dividerSx} />}
 
       {displayTags.length > 1 && (
         <MenuItem onClick={handleToggleOrder}>
-          <ListItemIcon>{isReorderMode ? <Check color="primary" /> : <Sort />}</ListItemIcon>
+          <ListItemIcon sx={iconBtnSx}>
+            {isReorderMode ? (
+              <Check color="primary" sx={commonIconSx} />
+            ) : (
+              <Sort sx={commonIconSx} />
+            )}
+          </ListItemIcon>
           <ListItemText
             primary={isReorderMode ? 'Сохранить порядок' : 'Изменить порядок'}
-            slotProps={{
-              primary: {fontSize: '0.85rem'},
-            }}
+            slotProps={orderTextSlotProps}
           />
         </MenuItem>
       )}

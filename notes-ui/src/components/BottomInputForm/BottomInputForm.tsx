@@ -7,6 +7,81 @@ import {Attachment, Note} from '../../types';
 import {api} from '../../tools/api';
 import {SendMessageRequest, UpdateMessageRequest} from '../../tools/types';
 
+const editHeaderSx = {
+  px: 2,
+  py: 0.5,
+  bgcolor: 'rgba(144, 202, 249, 0.1)',
+  display: 'flex',
+  alignItems: 'center',
+  gap: 1,
+};
+
+const editIconSx = {fontSize: 14, color: '#90caf9'};
+const editTitleSx = {color: '#90caf9', fontWeight: 600};
+const editCloseIconSx = {fontSize: 16, color: '#90caf9'};
+
+const attachScrollBoxSx = {
+  display: 'flex',
+  gap: 1.5,
+  px: 2,
+  pt: 1.5,
+  overflowX: 'auto',
+  '&::-webkit-scrollbar': {display: 'none'},
+};
+
+const tagsContainerSx = {px: 2, pt: 1.5, pb: 1, display: 'flex', gap: 1, flexWrap: 'wrap'};
+
+const tagChipSx = {
+  bgcolor: 'rgba(144, 202, 249, 0.08)',
+  color: '#90caf9',
+  border: '1px solid rgba(144, 202, 249, 0.2)',
+  borderRadius: '6px',
+  fontWeight: 600,
+  fontSize: '0.85rem',
+  height: '36px',
+  '& .MuiChip-deleteIcon': {
+    fontSize: 20,
+    color: '#90caf9',
+    ml: 1,
+    mr: 0.5,
+    '&:hover': {color: '#fff'},
+  },
+  '& .MuiChip-label': {px: 1.5},
+};
+
+const inputRowSx = {display: 'flex', alignItems: 'flex-end', px: 0.5, pb: 0.5};
+
+const attachBtnSx = {
+  color: '#8e8e93',
+  mb: 0.5,
+  '&:focus-visible': {
+    boxShadow: '0 0 0 2px #90caf9',
+    borderColor: '#90caf9',
+  },
+};
+
+const sendBtnSx = {
+  color: '#90caf9',
+  mb: 0.5,
+  '&.Mui-disabled': {color: '#3a3a3c'},
+  '&:focus-visible': {
+    boxShadow: '0 0 0 2px #90caf9',
+    borderColor: '#90caf9',
+  },
+};
+
+const textFieldSlotProps = {
+  input: {
+    disableUnderline: true,
+    sx: {color: '#fff', py: 1.5, px: 1, fontSize: '0.95rem'},
+    slotProps: {
+      input: {
+        tabIndex: 3,
+      },
+    },
+  },
+};
+
 interface BottomInputFormProps {
   editingNote: Note | null;
   files: File[];
@@ -35,6 +110,47 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
 
   const refInputText = useRef(inputText);
   refInputText.current = inputText;
+
+  const paperSx = useMemo(
+    () => ({
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      bgcolor: isDragging ? 'rgba(26, 31, 36, 0.9)' : 'rgba(18, 18, 18, 0.8)',
+      backdropFilter: 'blur(20px) saturate(180%)',
+      backgroundImage: 'none',
+      borderTop: '1px solid',
+      borderColor: editingNote ? 'rgba(144, 202, 249, 0.5)' : '#2c2c2e',
+      zIndex: 1000,
+      transition: 'background-color 0.2s, border-color 0.2s',
+    }),
+    [isDragging, editingNote],
+  );
+
+  const existingAttachSx = useCallback(
+    (isDeleted: boolean) => ({
+      display: 'flex',
+      alignItems: 'center',
+      height: '42px',
+      bgcolor: isDeleted ? 'rgba(255, 69, 58, 0.1)' : '#1c1c1e',
+      pl: 2,
+      borderRadius: '8px',
+      border: '1px solid',
+      borderColor: isDeleted ? '#ff453a' : '#2c2c2e',
+      opacity: isDeleted ? 0.6 : 1,
+    }),
+    [],
+  );
+
+  const existingTextSx = useCallback(
+    (isDeleted: boolean) => ({
+      color: isDeleted ? '#ff453a' : '#efefef',
+      maxWidth: 150,
+      fontSize: '0.85rem',
+    }),
+    [],
+  );
 
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
@@ -216,83 +332,32 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       onDragOver={handleDrag}
       onDragLeave={handleDrag}
       onDrop={handleDrop}
-      sx={{
-        position: 'fixed',
-        bottom: 0,
-        left: 0,
-        right: 0,
-
-        bgcolor: isDragging ? 'rgba(26, 31, 36, 0.9)' : 'rgba(18, 18, 18, 0.8)',
-
-        backdropFilter: 'blur(20px) saturate(180%)',
-
-        backgroundImage: 'none',
-        borderTop: '1px solid',
-
-        borderColor: editingNote ? 'rgba(144, 202, 249, 0.5)' : '#2c2c2e',
-        zIndex: 1000,
-        transition: 'background-color 0.2s, border-color 0.2s',
-      }}
+      sx={paperSx}
     >
       <Container maxWidth="sm" disableGutters>
         {editingNote && (
-          <Box
-            sx={{
-              px: 2,
-              py: 0.5,
-              bgcolor: 'rgba(144, 202, 249, 0.1)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 1,
-            }}
-          >
-            <Edit sx={{fontSize: 14, color: '#90caf9'}} />
-            <Typography variant="caption" sx={{color: '#90caf9', fontWeight: 600}}>
+          <Box sx={editHeaderSx}>
+            <Edit sx={editIconSx} />
+            <Typography variant="caption" sx={editTitleSx}>
               РЕДАКТИРОВАНИЕ
             </Typography>
             <Box sx={{flexGrow: 1}} />
             <IconButton size="small" onClick={cancelEditing}>
-              <Close sx={{fontSize: 16, color: '#90caf9'}} />
+              <Close sx={editCloseIconSx} />
             </IconButton>
           </Box>
         )}
 
         {existingAttachments.length > 0 && editingNote && (
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 1.5,
-              px: 2,
-              pt: 1.5,
-              overflowX: 'auto',
-              '&::-webkit-scrollbar': {display: 'none'},
-            }}
-          >
+          <Box sx={attachScrollBoxSx}>
             {existingAttachments.map((att) => {
               const isDeleted = deletedAttachIds.includes(att.id);
               return (
-                <Box
-                  key={att.id}
-                  sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    height: '42px',
-                    bgcolor: isDeleted ? 'rgba(255, 69, 58, 0.1)' : '#1c1c1e',
-                    pl: 2,
-                    borderRadius: '8px',
-                    border: '1px solid',
-                    borderColor: isDeleted ? '#ff453a' : '#2c2c2e',
-                    opacity: isDeleted ? 0.6 : 1,
-                  }}
-                >
+                <Box key={att.id} sx={existingAttachSx(isDeleted)}>
                   <Typography
                     variant="body2"
                     title={att.file_path.split('_').slice(1).join('_')}
-                    sx={{
-                      color: isDeleted ? '#ff453a' : '#efefef',
-                      maxWidth: 150,
-                      fontSize: '0.85rem',
-                    }}
+                    sx={existingTextSx(isDeleted)}
                     noWrap
                   >
                     {att.file_path.split('_').slice(1).join('_')}
@@ -311,17 +376,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         )}
 
         {files.length > 0 && (
-          <Box
-            sx={{
-              display: 'flex',
-              gap: 1.5,
-              px: 2,
-              pt: 1.5,
-              pb: 0.5,
-              overflowX: 'auto',
-              '&::-webkit-scrollbar': {display: 'none'},
-            }}
-          >
+          <Box sx={attachScrollBoxSx}>
             {files.map((file, idx) => (
               <Box
                 key={idx}
@@ -359,48 +414,20 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         )}
 
         {currentTags.length > 0 && !editingNote && (
-          <Box sx={{px: 2, pt: 1.5, pb: 1, display: 'flex', gap: 1, flexWrap: 'wrap'}}>
+          <Box sx={tagsContainerSx}>
             {currentTags.map((tag) => (
               <Chip
                 key={tag}
                 label={tag}
                 onDelete={() => setCurrentTags((prev) => prev.filter((t) => t !== tag))}
-                sx={{
-                  bgcolor: 'rgba(144, 202, 249, 0.08)',
-                  color: '#90caf9',
-                  border: '1px solid rgba(144, 202, 249, 0.2)',
-                  borderRadius: '6px',
-                  fontWeight: 600,
-                  fontSize: '0.85rem',
-                  height: '36px',
-                  '& .MuiChip-deleteIcon': {
-                    fontSize: 20,
-                    color: '#90caf9',
-                    ml: 1,
-                    mr: 0.5,
-                    '&:hover': {color: '#fff'},
-                  },
-                  '& .MuiChip-label': {px: 1.5},
-                }}
+                sx={tagChipSx}
               />
             ))}
           </Box>
         )}
 
-        <Box sx={{display: 'flex', alignItems: 'flex-end', px: 0.5, pb: 0.5}}>
-          <IconButton
-            component="label"
-            onKeyDown={handleFileKeyDown}
-            tabIndex={3}
-            sx={{
-              color: '#8e8e93',
-              mb: 0.5,
-              '&:focus-visible': {
-                boxShadow: '0 0 0 2px #90caf9',
-                borderColor: '#90caf9',
-              },
-            }}
-          >
+        <Box sx={inputRowSx}>
+          <IconButton component="label" onKeyDown={handleFileKeyDown} tabIndex={3} sx={attachBtnSx}>
             <AttachFile sx={{transform: 'rotate(45deg)'}} />
             <input
               hidden
@@ -420,33 +447,10 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
             value={inputText}
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
-            slotProps={{
-              input: {
-                disableUnderline: true,
-                sx: {color: '#fff', py: 1.5, px: 1, fontSize: '0.95rem'},
-                slotProps: {
-                  input: {
-                    tabIndex: 3,
-                  },
-                },
-              },
-            }}
+            slotProps={textFieldSlotProps}
           />
 
-          <IconButton
-            tabIndex={3}
-            onClick={handleSend}
-            disabled={!canSend}
-            sx={{
-              color: '#90caf9',
-              mb: 0.5,
-              '&.Mui-disabled': {color: '#3a3a3c'},
-              '&:focus-visible': {
-                boxShadow: '0 0 0 2px #90caf9',
-                borderColor: '#90caf9',
-              },
-            }}
-          >
+          <IconButton tabIndex={3} onClick={handleSend} disabled={!canSend} sx={sendBtnSx}>
             {editingNote ? <Check sx={{fontSize: 28}} /> : <Send sx={{fontSize: 26}} />}
           </IconButton>
         </Box>
