@@ -264,7 +264,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
 
     let finalContent = refInputText.current;
     if (editingNote) {
-      formData.append('id', editingNote.toString());
+      formData.append('id', String(editingNote.id));
       formData.append('content', finalContent);
       formData.append('delete_attachments', deletedAttachIds.join(','));
       updateMessageMutation.mutate(formData);
