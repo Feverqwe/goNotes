@@ -46,9 +46,10 @@ interface NoteAttachmentProps {
 const NoteAttachment: FC<NoteAttachmentProps> = ({att}) => {
   const filename = useMemo(() => att.file_path.split('_').slice(1).join('_'), [att.file_path]);
   const displayUrl = useMemo(
-    () => (att.thumbnail_path
+    () =>
+      att.thumbnail_path
         ? `${API_BASE}/files/${att.thumbnail_path}`
-        : `${API_BASE}/files/${att.file_path}`),
+        : `${API_BASE}/files/${att.file_path}`,
     [att],
   );
 

@@ -17,14 +17,7 @@ interface TagOrderProps {
   listeners: DraggableSyntheticListeners;
 }
 
-const TagOrder: FC<TagOrderProps> = ({
-  tag,
-  index,
-  totalCount,
-  moveStep,
-  attributes,
-  listeners,
-}) => {
+const TagOrder: FC<TagOrderProps> = ({tag, index, totalCount, moveStep, attributes, listeners}) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 

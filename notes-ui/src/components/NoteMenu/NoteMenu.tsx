@@ -44,7 +44,7 @@ const deleteMenuItemSx = {
 
 const getListItemIconSx = (color: string) => ({
   minWidth: '32px !important',
-  color: color,
+  color,
 });
 
 const commonIconSx = {fontSize: 18};

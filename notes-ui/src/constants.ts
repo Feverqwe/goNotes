@@ -22,3 +22,7 @@ export const themeProps = {
     },
   },
 } satisfies ThemeOptions;
+
+export const HEADER_HEIGHT = 57;
+
+export const POST_LIMIT = 6;

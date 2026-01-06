@@ -15,7 +15,14 @@ interface NoteOrderProps {
   listeners?: DraggableSyntheticListeners;
 }
 
-const NoteOrder: FC<NoteOrderProps> = ({index, id, moveStep, totalCount, attributes, listeners}) => {
+const NoteOrder: FC<NoteOrderProps> = ({
+  index,
+  id,
+  moveStep,
+  totalCount,
+  attributes,
+  listeners,
+}) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 

@@ -199,7 +199,8 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   );
 
   const toggleDeleteExisting = useCallback((id: number) => {
-    setDeletedAttachIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]),
+    setDeletedAttachIds((prev) =>
+      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
     );
   }, []);
 

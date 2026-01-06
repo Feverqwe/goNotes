@@ -21,6 +21,8 @@ import ReorderMenu from './components/ReorderMenu/ReorderMenu';
 import {api} from './tools/api';
 import {useNotes} from './hooks/useNotes';
 import {ArchiveMessageRequest, ReorderMessagesRequest} from './tools/types';
+import SideTagsPanel from './components/SideTagsPanel/SideTagsPanel';
+import TagsManager from './components/TagsManager/TagsManager';
 
 const wrapperSx = {minHeight: '100vh', display: 'flex', flexDirection: 'column'};
 
@@ -329,7 +331,8 @@ function App() {
   );
 
   const hasActiveFilters = useMemo(
-    () => searchQuery.length > 0 ||
+    () =>
+      searchQuery.length > 0 ||
       currentTags.length > 0 ||
       showArchived ||
       selectedNoteId !== undefined,
@@ -364,46 +367,59 @@ function App() {
           setSelectedNoteId={setSelectedNoteId}
         />
 
-        <Container maxWidth="sm" sx={bodyCtrSx}>
-          {isError && (
-            <Alert severity="error" sx={alertSx}>
-              {useNoteError instanceof Error ? useNoteError.message : 'Ошибка при загрузке заметок'}
-            </Alert>
-          )}
+        <Box display="flex">
+          <SideTagsPanel>
+            <TagsManager
+              currentTags={currentTags}
+              setCurrentTags={setCurrentTags}
+              showArchived={showArchived}
+              setShowArchived={setShowArchived}
+            />
+          </SideTagsPanel>
 
-          {displayMessages.length === 0 && !isLoading && !isError && (
-            <EmptyState hasFilters={hasActiveFilters} />
-          )}
+          <Container maxWidth="sm" sx={bodyCtrSx}>
+            {isError && (
+              <Alert severity="error" sx={alertSx}>
+                {useNoteError instanceof Error
+                  ? useNoteError.message
+                  : 'Ошибка при загрузке заметок'}
+              </Alert>
+            )}
 
-          <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext items={displayMessageIds} strategy={verticalListSortingStrategy}>
-              <Stack spacing={1.5}>
-                {displayMessages.map((msg, index) => (
-                  <MessageItem
-                    key={msg.id}
-                    msg={msg}
-                    onTagClick={setCurrentTags}
-                    handleOpenMenu={handleOpenMenu}
-                    isSelectMode={isSelectMode}
-                    selected={selectedIds.includes(msg.id)}
-                    toggleSelect={toggleSelect}
-                    startEditing={startEditing}
-                    isReorderMode={isReorderMode}
-                    index={index}
-                    totalCount={displayMessages.length}
-                    moveStep={moveStep}
-                  />
-                ))}
-              </Stack>
-            </SortableContext>
-          </DndContext>
+            {displayMessages.length === 0 && !isLoading && !isError && (
+              <EmptyState hasFilters={hasActiveFilters} />
+            )}
 
-          {hasNextPage && (
-            <Box ref={loadMoreTrigger} display="flex" justifyContent="center" p={2}>
-              <CircularProgress />
-            </Box>
-          )}
-        </Container>
+            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+              <SortableContext items={displayMessageIds} strategy={verticalListSortingStrategy}>
+                <Stack spacing={1.5}>
+                  {displayMessages.map((msg, index) => (
+                    <MessageItem
+                      key={msg.id}
+                      msg={msg}
+                      onTagClick={setCurrentTags}
+                      handleOpenMenu={handleOpenMenu}
+                      isSelectMode={isSelectMode}
+                      selected={selectedIds.includes(msg.id)}
+                      toggleSelect={toggleSelect}
+                      startEditing={startEditing}
+                      isReorderMode={isReorderMode}
+                      index={index}
+                      totalCount={displayMessages.length}
+                      moveStep={moveStep}
+                    />
+                  ))}
+                </Stack>
+              </SortableContext>
+            </DndContext>
+
+            {hasNextPage && (
+              <Box ref={loadMoreTrigger} display="flex" justifyContent="center" p={2}>
+                <CircularProgress />
+              </Box>
+            )}
+          </Container>
+        </Box>
 
         <BottomInputForm
           editingNote={editingNote}
