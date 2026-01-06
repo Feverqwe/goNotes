@@ -128,6 +128,8 @@ function App() {
   });
   const refIsLoading = useRef(isLoading);
   refIsLoading.current = isLoading;
+  const refIsFetchingNextPage = useRef(isFetchingNextPage);
+  refIsFetchingNextPage.current = isFetchingNextPage;
 
   const serverMessages = useMemo(() => data?.pages.flatMap((page) => page) ?? [], [data]);
   const refServerMessages = useRef(serverMessages);
@@ -166,12 +168,6 @@ function App() {
       handleCloseMenu();
     },
   });
-
-  const loadMore = useCallback(() => {
-    if (hasNextPage && !isFetchingNextPage) {
-      fetchNextPage();
-    }
-  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   useEffect(() => {
     if (!refGoBack.current) {
@@ -279,14 +275,6 @@ function App() {
     handleCloseMenu();
   }, [archiveMutation, handleCloseMenu, selectedMsg]);
 
-  const hasActiveFilters = useMemo(
-    () => searchQuery.length > 0 ||
-      currentTags.length > 0 ||
-      showArchived ||
-      selectedNoteId !== undefined,
-    [currentTags.length, searchQuery.length, selectedNoteId, showArchived],
-  );
-
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const {active, over} = event;
     if (over && active.id !== over.id) {
@@ -319,6 +307,31 @@ function App() {
     });
   }, []);
 
+  const observer = useRef<IntersectionObserver | undefined>(undefined);
+  const loadMoreTrigger = useCallback(
+    (node: HTMLDivElement) => {
+      if (observer.current) observer.current.disconnect();
+
+      observer.current = new IntersectionObserver((entries) => {
+        const isFetching = refIsFetchingNextPage.current;
+        if (entries[0].isIntersecting && !isFetching) {
+          fetchNextPage();
+        }
+      });
+
+      if (node) observer.current.observe(node);
+    },
+    [fetchNextPage],
+  );
+
+  const hasActiveFilters = useMemo(
+    () => searchQuery.length > 0 ||
+      currentTags.length > 0 ||
+      showArchived ||
+      selectedNoteId !== undefined,
+    [currentTags.length, searchQuery.length, selectedNoteId, showArchived],
+  );
+
   const displayMessages = isReorderMode ? dndMessages : serverMessages;
 
   const displayMessageIds = useMemo(() => displayMessages.map((m) => m.id), [displayMessages]);
@@ -347,10 +360,7 @@ function App() {
           }}
         >
           {isError && (
-            <Alert
-              severity="error"
-              sx={{mb: 2, bgcolor: 'rgba(255, 69, 58, 0.1)', color: '#ff453a'}}
-            >
+            <Alert severity="error" sx={{mb: 1.5}}>
               {useNoteError instanceof Error ? useNoteError.message : 'Ошибка при загрузке заметок'}
             </Alert>
           )}
@@ -367,19 +377,15 @@ function App() {
                     key={msg.id}
                     msg={msg}
                     onTagClick={setCurrentTags}
-                    isLast={index === displayMessages.length - 1}
                     handleOpenMenu={handleOpenMenu}
                     isSelectMode={isSelectMode}
                     selectedIds={selectedIds}
                     toggleSelect={toggleSelect}
-                    refIsLoading={refIsLoading}
-                    refHasNextPage={refHasNextPage}
                     startEditing={startEditing}
                     isReorderMode={isReorderMode}
                     index={index}
                     totalCount={displayMessages.length}
                     moveStep={moveStep}
-                    loadMore={loadMore}
                   />
                 ))}
               </Stack>
@@ -387,8 +393,8 @@ function App() {
           </DndContext>
 
           {hasNextPage && (
-            <Box sx={{display: 'flex', justifyContent: 'center', p: 2}}>
-              <CircularProgress size={20} />
+            <Box ref={loadMoreTrigger} display="flex" justifyContent="center" p={2}>
+              <CircularProgress />
             </Box>
           )}
         </Container>

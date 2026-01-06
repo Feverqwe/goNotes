@@ -1,4 +1,4 @@
-import React, {FC, Fragment, useCallback, useContext, useRef, useState} from 'react';
+import React, {FC, useCallback, useContext, useRef, useState} from 'react';
 
 import {Divider, ListItemIcon, ListItemText, Menu, MenuItem} from '@mui/material';
 
@@ -156,43 +156,39 @@ const TagsMenu: FC<TagsMenuProps> = ({
         />
       </MenuItem>
 
+      {displayTags.length > 0 && <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />}
+
       {displayTags.length > 0 && (
-        <>
-          <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
+        <DndContext onDragEnd={handleDragEnd}>
+          <SortableContext items={displayTags} disabled={!isReorderMode}>
+            {displayTags.map((tag, index) => (
+              <SortableTagItem
+                key={tag}
+                tag={tag}
+                isReordering={isReorderMode}
+                isActive={currentTags.includes(tag)}
+                toggleTag={toggleTag}
+                moveStep={moveStep}
+                index={index}
+                totalCount={tag.length}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
+      )}
 
-          <DndContext onDragEnd={handleDragEnd}>
-            <SortableContext items={displayTags} disabled={!isReorderMode}>
-              {displayTags.map((tag, index) => (
-                <SortableTagItem
-                  key={tag}
-                  tag={tag}
-                  isReordering={isReorderMode}
-                  isActive={currentTags.includes(tag)}
-                  toggleTag={toggleTag}
-                  moveStep={moveStep}
-                  index={index}
-                  totalCount={tag.length}
-                />
-              ))}
-            </SortableContext>
-          </DndContext>
+      {displayTags.length > 1 && <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />}
 
-          {displayTags.length > 1 && (
-            <>
-              <Divider sx={{borderColor: 'rgba(255, 255, 255, 0.08)'}} />
-
-              <MenuItem onClick={handleToggleOrder}>
-                <ListItemIcon>{isReorderMode ? <Check color="primary" /> : <Sort />}</ListItemIcon>
-                <ListItemText
-                  primary={isReorderMode ? 'Сохранить порядок' : 'Изменить порядок'}
-                  slotProps={{
-                    primary: {fontSize: '0.85rem'},
-                  }}
-                />
-              </MenuItem>
-            </>
-          )}
-        </>
+      {displayTags.length > 1 && (
+        <MenuItem onClick={handleToggleOrder}>
+          <ListItemIcon>{isReorderMode ? <Check color="primary" /> : <Sort />}</ListItemIcon>
+          <ListItemText
+            primary={isReorderMode ? 'Сохранить порядок' : 'Изменить порядок'}
+            slotProps={{
+              primary: {fontSize: '0.85rem'},
+            }}
+          />
+        </MenuItem>
       )}
     </Menu>
   );

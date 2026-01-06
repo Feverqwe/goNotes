@@ -1,4 +1,4 @@
-import React, {FC, useCallback, useEffect, useMemo, useRef} from 'react';
+import React, {FC, useCallback, useMemo} from 'react';
 
 import {
   Box,
@@ -44,35 +44,26 @@ interface MessageItemProps {
   isSelectMode: boolean;
   toggleSelect: (id: number) => void;
   selectedIds: number[];
-  isLast: boolean;
-  refIsLoading: React.RefObject<boolean>;
-  refHasNextPage: React.RefObject<boolean>;
   startEditing: (note: Note) => void;
   isReorderMode: boolean;
   moveStep?: (id: number, direction: 'up' | 'down') => void;
   index: number;
   totalCount: number;
-  loadMore: () => void;
 }
 
 const MessageItem: FC<MessageItemProps> = ({
   msg,
   onTagClick,
-  isLast,
   handleOpenMenu,
   isSelectMode,
   toggleSelect,
   selectedIds,
-  refIsLoading,
-  refHasNextPage,
   startEditing,
   isReorderMode,
   moveStep,
   index,
   totalCount,
-  loadMore,
 }) => {
-  const observer = useRef<IntersectionObserver | undefined>(undefined);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
 
@@ -91,24 +82,6 @@ const MessageItem: FC<MessageItemProps> = ({
     [isDragging, transform, transition],
   );
 
-  const firstMessageRef = useCallback(
-    (node: Element) => {
-      const isLoading = refIsLoading.current;
-      if (isLoading) return;
-      if (observer.current) observer.current.disconnect();
-
-      observer.current = new IntersectionObserver((entries) => {
-        const hasMore = refHasNextPage.current;
-        if (entries[0].isIntersecting && hasMore) {
-          loadMore();
-        }
-      });
-
-      if (node) observer.current.observe(node);
-    },
-    [loadMore, refHasNextPage, refIsLoading],
-  );
-
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.target !== e.currentTarget) return;
@@ -121,17 +94,8 @@ const MessageItem: FC<MessageItemProps> = ({
     [startEditing, msg],
   );
 
-  const ref = useMemo(() => {
-    const parentRef = isLast ? firstMessageRef : undefined;
-
-    return (node: HTMLDivElement) => {
-      setNodeRef(node);
-      parentRef?.(node);
-    };
-  }, [isLast, firstMessageRef, setNodeRef]);
-
   return (
-    <Box ref={ref} style={style}>
+    <Box ref={setNodeRef} style={style}>
       <Card
         tabIndex={0}
         onKeyDown={handleKeyDown}
