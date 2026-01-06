@@ -26,40 +26,30 @@ function App() {
   const queryClient = useQueryClient();
   const showSnackbar = useContext(SnackCtx);
 
+  const initUrlParams = useMemo(() => new URLSearchParams(window.location.search), []);
+
   const [selectedNoteId, setSelectedNoteId] = useState<number | undefined>(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get('id');
+    const id = initUrlParams.get('id');
     return id ? parseInt(id, 10) : undefined;
   });
-  const refSelectedNoteId = useRef(selectedNoteId);
-  refSelectedNoteId.current = selectedNoteId;
 
   const [searchQuery, setSearchQuery] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tagsStr = params.get('q');
+    const tagsStr = initUrlParams.get('q');
     return tagsStr ?? '';
   });
-  const refSearchQuery = useRef(searchQuery);
-  refSearchQuery.current = searchQuery;
+
+  const [currentTags, setCurrentTags] = useState(() => {
+    const tagsStr = initUrlParams.get('tags');
+    return tagsStr ? tagsStr.split(',') : [];
+  });
+
+  const [showArchived, setShowArchived] = useState(() => {
+    return initUrlParams.get('archived') === '1';
+  });
 
   const [files, setFiles] = useState<File[]>([]);
 
-  const [currentTags, setCurrentTags] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    const tagsStr = params.get('tags');
-    return tagsStr ? tagsStr.split(',') : [];
-  });
-  const refCurrentTags = useRef(currentTags);
-  refCurrentTags.current = currentTags;
-
-  const [showArchived, setShowArchived] = useState(() => {
-    const params = new URLSearchParams(window.location.search);
-    return params.get('archived') === '1';
-  });
-  const refShowArchived = useRef(showArchived);
-  refShowArchived.current = showArchived;
-
-  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [anchorEl, setAnchorEl] = useState<Element | null>(null);
   const [selectedMsg, setSelectedMsg] = useState<Note | null>(null);
 
@@ -92,9 +82,13 @@ function App() {
       const params = new URLSearchParams(window.location.search);
       const tags = params.get('tags');
       const searchQuery = params.get('q');
+      const archived = params.get('archived');
+      const id = params.get('id');
       refGoBack.current = true;
       setCurrentTags(tags ? tags.split(',') : []);
       setSearchQuery(searchQuery ?? '');
+      setShowArchived(archived === '1');
+      setSelectedNoteId(id ? Number(id) : undefined);
     };
     window.addEventListener('popstate', handlePopState);
     return () => window.removeEventListener('popstate', handlePopState);
@@ -220,8 +214,7 @@ function App() {
   }, [currentTags, queryClient, searchQuery, selectedNoteId, showArchived]);
 
   const startEditing = useCallback((msg: Note) => {
-    setEditingId(msg.id);
-    window.scrollTo({top: document.documentElement.scrollHeight});
+    setEditingNote(msg);
   }, []);
 
   const handleOpenMenu = useCallback((event: React.MouseEvent, msg: Note) => {
@@ -275,7 +268,7 @@ function App() {
     setDndMessages([]);
   }, []);
 
-  const onArchiveClick = useCallback(async () => {
+  const onArchiveClick = useCallback(() => {
     if (!selectedMsg) return;
 
     archiveMutation.mutate({
@@ -287,8 +280,11 @@ function App() {
   }, [archiveMutation, handleCloseMenu, selectedMsg]);
 
   const hasActiveFilters = useMemo(
-    () => searchQuery.length > 0 || currentTags.length > 0 || showArchived,
-    [currentTags.length, searchQuery.length, showArchived],
+    () => searchQuery.length > 0 ||
+      currentTags.length > 0 ||
+      showArchived ||
+      selectedNoteId !== undefined,
+    [currentTags.length, searchQuery.length, selectedNoteId, showArchived],
   );
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -302,7 +298,7 @@ function App() {
     }
   }, []);
 
-  const saveOrder = useCallback(async () => {
+  const saveOrder = useCallback(() => {
     const dndMessages = refDndMessages.current;
     const ids = dndMessages.map((m) => m.id);
     reorderMutation.mutate({ids});
@@ -325,6 +321,8 @@ function App() {
 
   const displayMessages = isReorderMode ? dndMessages : serverMessages;
 
+  const displayMessageIds = useMemo(() => displayMessages.map((m) => m.id), [displayMessages]);
+
   return (
     <>
       <Box sx={{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
@@ -336,7 +334,7 @@ function App() {
           handleOpenTagMenu={handleOpenTagMenu}
           showArchived={showArchived}
           setShowArchived={setShowArchived}
-          selectedNoteId={selectedNoteId}
+          hasActiveFilters={hasActiveFilters}
           setSelectedNoteId={setSelectedNoteId}
         />
 
@@ -362,10 +360,7 @@ function App() {
           )}
 
           <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-            <SortableContext
-              items={displayMessages.map((m) => m.id)}
-              strategy={verticalListSortingStrategy}
-            >
+            <SortableContext items={displayMessageIds} strategy={verticalListSortingStrategy}>
               <Stack spacing={1.5}>
                 {displayMessages.map((msg, index) => (
                   <MessageItem
@@ -399,13 +394,12 @@ function App() {
         </Container>
 
         <BottomInputForm
-          editingId={editingId}
-          setEditingId={setEditingId}
+          editingNote={editingNote}
+          setEditingNote={setEditingNote}
           files={files}
           currentTags={currentTags}
           setCurrentTags={setCurrentTags}
           setFiles={setFiles}
-          messages={displayMessages}
         />
 
         {isSelectMode && (

@@ -8,23 +8,21 @@ import {api} from '../../tools/api';
 import {SendMessageRequest, UpdateMessageRequest} from '../../tools/types';
 
 interface BottomInputFormProps {
-  editingId: number | null;
+  editingNote: Note | null;
   files: File[];
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
-  setEditingId: React.Dispatch<React.SetStateAction<number | null>>;
-  messages: Note[];
+  setEditingNote: React.Dispatch<React.SetStateAction<Note | null>>;
 }
 
 const BottomInputForm: FC<BottomInputFormProps> = ({
-  editingId,
+  editingNote,
   files,
   currentTags,
   setCurrentTags,
   setFiles,
-  setEditingId,
-  messages,
+  setEditingNote,
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const [isDragging, setIsDragging] = useState(false);
@@ -64,13 +62,10 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   }, [setFiles, setInputText]);
 
   useEffect(() => {
-    if (editingId) {
-      const msg = messages.find((m) => m.id === editingId);
-      if (msg) {
-        setInputText(msg.content);
-        if (msg.attachments) {
-          setExistingAttachments(msg.attachments);
-        }
+    if (editingNote) {
+      setInputText(editingNote.content);
+      if (editingNote.attachments) {
+        setExistingAttachments(editingNote.attachments);
       }
       setDeletedAttachIds([]);
 
@@ -86,13 +81,13 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       setExistingAttachments([]);
       setDeletedAttachIds([]);
     }
-  }, [editingId, messages]);
+  }, [editingNote]);
 
   const cancelEditing = useCallback(() => {
-    setEditingId(null);
+    setEditingNote(null);
     setInputText('');
     setFiles([]);
-  }, [setEditingId, setInputText, setFiles]);
+  }, [setEditingNote, setInputText, setFiles]);
 
   const removeNewFile = useCallback(
     (index: number) => {
@@ -115,12 +110,12 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   }, [inputText, files, existingAttachments, deletedAttachIds]);
 
   const onSuccess = useCallback(() => {
-    setEditingId(null);
+    setEditingNote(null);
     setInputText('');
     setFiles([]);
     setExistingAttachments([]);
     setDeletedAttachIds([]);
-  }, [setEditingId, setFiles]);
+  }, [setEditingNote, setFiles]);
 
   const updateMessageMutation = useMutation({
     mutationFn: (params: UpdateMessageRequest) => api.messages.update(params),
@@ -156,8 +151,8 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     files.forEach((f) => formData.append('attachments', f));
 
     let finalContent = refInputText.current;
-    if (editingId) {
-      formData.append('id', editingId.toString());
+    if (editingNote) {
+      formData.append('id', editingNote.toString());
       formData.append('content', finalContent);
       formData.append('delete_attachments', deletedAttachIds.join(','));
       updateMessageMutation.mutate(formData);
@@ -171,7 +166,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   }, [
     canSend,
     files,
-    editingId,
+    editingNote,
     deletedAttachIds,
     updateMessageMutation,
     currentTags,
@@ -234,13 +229,13 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
         backgroundImage: 'none',
         borderTop: '1px solid',
 
-        borderColor: editingId ? 'rgba(144, 202, 249, 0.5)' : '#2c2c2e',
+        borderColor: editingNote ? 'rgba(144, 202, 249, 0.5)' : '#2c2c2e',
         zIndex: 1000,
         transition: 'background-color 0.2s, border-color 0.2s',
       }}
     >
       <Container maxWidth="sm" disableGutters>
-        {editingId && (
+        {editingNote && (
           <Box
             sx={{
               px: 2,
@@ -262,7 +257,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </Box>
         )}
 
-        {existingAttachments.length > 0 && editingId && (
+        {existingAttachments.length > 0 && editingNote && (
           <Box
             sx={{
               display: 'flex',
@@ -363,7 +358,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </Box>
         )}
 
-        {currentTags.length > 0 && !editingId && (
+        {currentTags.length > 0 && !editingNote && (
           <Box sx={{px: 2, pt: 1.5, pb: 1, display: 'flex', gap: 1, flexWrap: 'wrap'}}>
             {currentTags.map((tag) => (
               <Chip
@@ -452,7 +447,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
               },
             }}
           >
-            {editingId ? <Check sx={{fontSize: 28}} /> : <Send sx={{fontSize: 26}} />}
+            {editingNote ? <Check sx={{fontSize: 28}} /> : <Send sx={{fontSize: 26}} />}
           </IconButton>
         </Box>
       </Container>

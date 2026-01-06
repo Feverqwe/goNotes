@@ -10,8 +10,8 @@ interface SearchBoxProps {
   handleOpenTagMenu: (event: React.MouseEvent<HTMLButtonElement>) => void;
   showArchived: boolean;
   setShowArchived: (v: boolean) => void;
-  selectedNoteId: number | undefined;
   setSelectedNoteId: (id: number | undefined) => void;
+  hasActiveFilters: boolean;
 }
 
 const SearchBox: FC<SearchBoxProps> = ({
@@ -22,7 +22,7 @@ const SearchBox: FC<SearchBoxProps> = ({
   handleOpenTagMenu,
   showArchived,
   setShowArchived,
-  selectedNoteId,
+  hasActiveFilters,
   setSelectedNoteId,
 }) => {
   const handleClearAll = useCallback(() => {
@@ -37,13 +37,9 @@ const SearchBox: FC<SearchBoxProps> = ({
     [currentTags.length, showArchived],
   );
 
-  const hasFilters = useMemo(
-    () =>
-      searchQuery.length > 0 ||
-      activeFiltersCount > 0 ||
-      showArchived ||
-      selectedNoteId !== undefined,
-    [activeFiltersCount, searchQuery.length, selectedNoteId, showArchived],
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value),
+    [setSearchQuery],
   );
 
   return (
@@ -75,7 +71,7 @@ const SearchBox: FC<SearchBoxProps> = ({
           variant="standard"
           placeholder="Поиск..."
           value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+          onChange={handleChange}
           slotProps={{
             input: {
               slotProps: {
@@ -119,7 +115,7 @@ const SearchBox: FC<SearchBoxProps> = ({
                   </IconButton>
                 </Badge>
               ),
-              endAdornment: hasFilters && (
+              endAdornment: hasActiveFilters && (
                 <IconButton
                   tabIndex={1}
                   size="medium"

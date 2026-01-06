@@ -1,4 +1,4 @@
-import React, {FC, useCallback, useMemo, useRef} from 'react';
+import React, {FC, useCallback, useEffect, useMemo, useRef} from 'react';
 
 import {
   Box,
@@ -29,7 +29,6 @@ import {CSS} from '@dnd-kit/utilities';
 
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import {useQueryClient} from '@tanstack/react-query';
 import {Note} from '../../types';
 import {API_BASE} from '../../constants';
 import {formatFullDate, formatShortDate} from './utils';
@@ -76,7 +75,6 @@ const MessageItem: FC<MessageItemProps> = ({
   const observer = useRef<IntersectionObserver | undefined>(undefined);
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  const queryClient = useQueryClient();
 
   const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({
     id: msg.id,
