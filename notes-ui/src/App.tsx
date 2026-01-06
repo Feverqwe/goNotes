@@ -22,6 +22,10 @@ import {api} from './tools/api';
 import {useNotes} from './hooks/useNotes';
 import {ArchiveMessageRequest, ReorderMessagesRequest} from './tools/types';
 
+const wrapperSx = {minHeight: '100vh', display: 'flex', flexDirection: 'column'};
+
+const alertSx = {mb: 1.5};
+
 function App() {
   const queryClient = useQueryClient();
   const showSnackbar = useContext(SnackCtx);
@@ -336,9 +340,18 @@ function App() {
 
   const displayMessageIds = useMemo(() => displayMessages.map((m) => m.id), [displayMessages]);
 
+  const bodyCtrSx = useMemo(
+    () => ({
+      flexGrow: 1,
+      pt: 1,
+      pb: 7.5 + (files.length ? 8 : 0) + (currentTags.length ? 7 : 0),
+    }),
+    [currentTags.length, files.length],
+  );
+
   return (
     <>
-      <Box sx={{minHeight: '100vh', display: 'flex', flexDirection: 'column'}}>
+      <Box sx={wrapperSx}>
         <SearchBox
           searchQuery={searchQuery}
           setSearchQuery={setSearchQuery}
@@ -351,16 +364,9 @@ function App() {
           setSelectedNoteId={setSelectedNoteId}
         />
 
-        <Container
-          maxWidth="sm"
-          sx={{
-            flexGrow: 1,
-            pt: 1,
-            pb: 7.5 + (files.length ? 8 : 0) + (currentTags.length ? 7 : 0),
-          }}
-        >
+        <Container maxWidth="sm" sx={bodyCtrSx}>
           {isError && (
-            <Alert severity="error" sx={{mb: 1.5}}>
+            <Alert severity="error" sx={alertSx}>
               {useNoteError instanceof Error ? useNoteError.message : 'Ошибка при загрузке заметок'}
             </Alert>
           )}
@@ -379,7 +385,7 @@ function App() {
                     onTagClick={setCurrentTags}
                     handleOpenMenu={handleOpenMenu}
                     isSelectMode={isSelectMode}
-                    selectedIds={selectedIds}
+                    selected={selectedIds.includes(msg.id)}
                     toggleSelect={toggleSelect}
                     startEditing={startEditing}
                     isReorderMode={isReorderMode}
