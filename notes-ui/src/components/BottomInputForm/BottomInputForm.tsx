@@ -1,24 +1,14 @@
 import React, {FC, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
-import {Box, Chip, Container, IconButton, Paper, TextField, Typography} from '@mui/material';
-import {AttachFile, Check, Close, DeleteForever, Edit, Send} from '@mui/icons-material';
+import {Box, Chip, CircularProgress, Container, IconButton, Paper, TextField} from '@mui/material';
+import {AttachFile, Check, Send} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {Attachment, Note} from '../../types';
 import {api} from '../../tools/api';
 import {SendMessageRequest, UpdateMessageRequest} from '../../tools/types';
-
-const editHeaderSx = {
-  px: 2,
-  py: 0.5,
-  bgcolor: 'rgba(144, 202, 249, 0.1)',
-  display: 'flex',
-  alignItems: 'center',
-  gap: 1,
-};
-
-const editIconSx = {fontSize: 14, color: '#90caf9'};
-const editTitleSx = {color: '#90caf9', fontWeight: 600};
-const editCloseIconSx = {fontSize: 16, color: '#90caf9'};
+import EditHeader from './EditHeader';
+import ExistingAttachmentItem from './ExistingAttachmentItem';
+import NewFileItem from './NewFileItem';
 
 const attachScrollBoxSx = {
   display: 'flex',
@@ -82,6 +72,26 @@ const textFieldSlotProps = {
   },
 };
 
+const checkIconSx = {
+  fontSize: 14,
+  color: '#90caf9',
+};
+
+const attachInputProps = {
+  hidden: true,
+  multiple: true,
+  type: 'file',
+} as const;
+
+const attachIconRotationSx = {transform: 'rotate(45deg)'};
+
+const sendIconSx = {fontSize: 26};
+
+const progressSx = {
+  color: '#90caf9',
+  padding: '2px', // Чтобы лоадер визуально соответствовал размеру иконки
+};
+
 interface BottomInputFormProps {
   editingNote: Note | null;
   files: File[];
@@ -126,30 +136,6 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       transition: 'background-color 0.2s, border-color 0.2s',
     }),
     [isDragging, editingNote],
-  );
-
-  const existingAttachSx = useCallback(
-    (isDeleted: boolean) => ({
-      display: 'flex',
-      alignItems: 'center',
-      height: '42px',
-      bgcolor: isDeleted ? 'rgba(255, 69, 58, 0.1)' : '#1c1c1e',
-      pl: 2,
-      borderRadius: '8px',
-      border: '1px solid',
-      borderColor: isDeleted ? '#ff453a' : '#2c2c2e',
-      opacity: isDeleted ? 0.6 : 1,
-    }),
-    [],
-  );
-
-  const existingTextSx = useCallback(
-    (isDeleted: boolean) => ({
-      color: isDeleted ? '#ff453a' : '#efefef',
-      maxWidth: 150,
-      fontSize: '0.85rem',
-    }),
-    [],
   );
 
   useEffect(() => {
@@ -213,17 +199,9 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   );
 
   const toggleDeleteExisting = useCallback((id: number) => {
-    setDeletedAttachIds((prev) =>
-      prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+    setDeletedAttachIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]),
     );
   }, []);
-
-  const canSend = useMemo(() => {
-    const hasText = inputText.trim().length > 0;
-    const hasNewFiles = files.length > 0;
-    const hasRemainingFiles = existingAttachments.length > deletedAttachIds.length;
-    return hasText || hasNewFiles || hasRemainingFiles;
-  }, [inputText, files, existingAttachments, deletedAttachIds]);
 
   const onSuccess = useCallback(() => {
     setEditingNote(null);
@@ -260,6 +238,16 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       showSnackbar('Ошибка при отправкезаметки', 'error');
     },
   });
+
+  const isSending = sendMessageMutation.isPending || updateMessageMutation.isPending;
+
+  const canSend = useMemo(() => {
+    if (isSending) return false;
+    const hasText = inputText.trim().length > 0;
+    const hasNewFiles = files.length > 0;
+    const hasRemainingFiles = existingAttachments.length > deletedAttachIds.length;
+    return hasText || hasNewFiles || hasRemainingFiles;
+  }, [inputText, files, existingAttachments, deletedAttachIds, isSending]);
 
   const handleSend = useCallback(async () => {
     if (!canSend) return;
@@ -325,6 +313,21 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     }
   }, []);
 
+  const handleTextChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputText(e.target.value);
+  }, []);
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newFiles = Array.from(e.target.files ?? []);
+      if (newFiles.length > 0) {
+        setFiles((prev) => [...prev, ...newFiles]);
+      }
+      e.target.value = '';
+    },
+    [setFiles],
+  );
+
   return (
     <Paper
       square
@@ -335,80 +338,30 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       sx={paperSx}
     >
       <Container maxWidth="sm" disableGutters>
-        {editingNote && (
-          <Box sx={editHeaderSx}>
-            <Edit sx={editIconSx} />
-            <Typography variant="caption" sx={editTitleSx}>
-              РЕДАКТИРОВАНИЕ
-            </Typography>
-            <Box sx={{flexGrow: 1}} />
-            <IconButton size="small" onClick={cancelEditing}>
-              <Close sx={editCloseIconSx} />
-            </IconButton>
-          </Box>
-        )}
+        {editingNote && <EditHeader onCancel={cancelEditing} />}
 
         {existingAttachments.length > 0 && editingNote && (
           <Box sx={attachScrollBoxSx}>
-            {existingAttachments.map((att) => {
-              const isDeleted = deletedAttachIds.includes(att.id);
-              return (
-                <Box key={att.id} sx={existingAttachSx(isDeleted)}>
-                  <Typography
-                    variant="body2"
-                    title={att.file_path.split('_').slice(1).join('_')}
-                    sx={existingTextSx(isDeleted)}
-                    noWrap
-                  >
-                    {att.file_path.split('_').slice(1).join('_')}
-                  </Typography>
-                  <IconButton onClick={() => toggleDeleteExisting(att.id)} sx={{ml: 0.5}}>
-                    {isDeleted ? (
-                      <Close sx={{fontSize: 22, color: '#ff453a'}} />
-                    ) : (
-                      <DeleteForever sx={{fontSize: 22, color: '#8e8e93'}} />
-                    )}
-                  </IconButton>
-                </Box>
-              );
-            })}
+            {existingAttachments.map((att) => (
+              <ExistingAttachmentItem
+                key={att.id}
+                att={att}
+                isDeleted={deletedAttachIds.includes(att.id)}
+                onToggle={toggleDeleteExisting}
+              />
+            ))}
           </Box>
         )}
 
         {files.length > 0 && (
           <Box sx={attachScrollBoxSx}>
             {files.map((file, idx) => (
-              <Box
-                key={idx}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  bgcolor: '#1c1c1e',
-                  pl: 2,
-                  pr: 0.5,
-                  py: 0.5,
-                  borderRadius: '8px',
-                  border: '1px solid #90caf9',
-                  minWidth: 'fit-content',
-                  height: '42px',
-                }}
-              >
-                <Typography
-                  variant="body2"
-                  title={file.name}
-                  sx={{color: '#90caf9', maxWidth: 150, fontSize: '0.9rem'}}
-                  noWrap
-                >
-                  {file.name}
-                </Typography>
-                <IconButton
-                  size="medium"
-                  onClick={() => removeNewFile(idx)}
-                  sx={{ml: 1, color: '#90caf9'}}
-                >
-                  <Close sx={{fontSize: 20}} />
-                </IconButton>
-              </Box>
+              <NewFileItem
+                key={`${file.name}-${idx}`}
+                file={file}
+                index={idx}
+                onRemove={removeNewFile}
+              />
             ))}
           </Box>
         )}
@@ -428,13 +381,8 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
 
         <Box sx={inputRowSx}>
           <IconButton component="label" onKeyDown={handleFileKeyDown} tabIndex={3} sx={attachBtnSx}>
-            <AttachFile sx={{transform: 'rotate(45deg)'}} />
-            <input
-              hidden
-              multiple
-              type="file"
-              onChange={(e) => setFiles((prev) => [...prev, ...Array.from(e.target.files ?? [])])}
-            />
+            <AttachFile sx={attachIconRotationSx} />
+            <input {...attachInputProps} onChange={handleFileChange} />
           </IconButton>
 
           <TextField
@@ -445,13 +393,19 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
             variant="standard"
             placeholder={isDragging ? 'Сбросьте файлы...' : 'Заметка...'}
             value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
+            onChange={handleTextChange}
             onKeyDown={handleKeyDown}
             slotProps={textFieldSlotProps}
           />
 
           <IconButton tabIndex={3} onClick={handleSend} disabled={!canSend} sx={sendBtnSx}>
-            {editingNote ? <Check sx={{fontSize: 28}} /> : <Send sx={{fontSize: 26}} />}
+            {isSending ? (
+              <CircularProgress size={24} sx={progressSx} />
+            ) : editingNote ? (
+              <Check sx={checkIconSx} />
+            ) : (
+              <Send sx={sendIconSx} />
+            )}
           </IconButton>
         </Box>
       </Container>
