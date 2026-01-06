@@ -58,18 +58,6 @@ const sendBtnSx = {
   },
 };
 
-const textFieldSlotProps = {
-  input: {
-    disableUnderline: true,
-    sx: {color: '#fff', py: 1.5, px: 1, fontSize: '0.95rem'},
-    slotProps: {
-      input: {
-        tabIndex: 3,
-      },
-    },
-  },
-};
-
 const checkIconSx = {
   fontSize: 26,
   color: '#90caf9',
@@ -276,11 +264,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       bottom: 0,
       left: 0,
       right: 0,
-      bgcolor: isDialogMode
-        ? 'transparent'
-        : isDragging
-          ? 'rgba(26, 31, 36, 0.9)'
-          : 'rgba(18, 18, 18, 0.8)',
+      bgcolor: isDragging ? 'rgba(26, 31, 36, 0.9)' : 'rgba(18, 18, 18, 0.8)',
       backdropFilter: isDialogMode ? 'none' : 'blur(20px) saturate(180%)',
       backgroundImage: 'none',
       borderTop: isDialogMode
@@ -298,31 +282,27 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     () => ({
       display: 'flex',
       alignItems: 'flex-end',
-      px: isDialogMode ? 1.5 : 0.5,
-      pb: isDialogMode ? 1.5 : 0.5,
-      pt: isDialogMode ? 2 : 0,
-      flexGrow: isDialogMode ? 1 : 0,
+      px: 0.5,
+      pb: 0.5,
+      pt: 0,
+      flexGrow: 0,
     }),
-    [isDialogMode],
+    [],
   );
 
-  const textFieldSx = useMemo(
-    () => (!isDialogMode
-        ? undefined
-        : {
-            '& .MuiInputBase-root': {
-              color: '#fff',
-              fontSize: isDialogMode ? '1.05rem' : '0.95rem',
-              py: isDialogMode ? 1 : 1.5,
-              px: 1,
-              minHeight: isDialogMode ? '200px' : 'auto',
-              alignItems: 'flex-start',
-            },
-            '& textarea': {
-              lineHeight: 1.6,
-            },
-          }),
-    [isDialogMode],
+  const textFieldSlotProps = useMemo(
+    () => ({
+      input: {
+        disableUnderline: true,
+        sx: {color: '#fff', py: 1.5, px: 1, fontSize: '0.95rem'},
+        slotProps: {
+          input: {
+            tabIndex: 3,
+          },
+        },
+      },
+    }),
+    [],
   );
 
   return (
@@ -335,7 +315,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       sx={paperSx}
     >
       <Container
-        maxWidth={isDialogMode ? 'md' : 'sm'}
+        maxWidth="sm"
         disableGutters
         sx={{height: isDialogMode ? '100%' : 'auto', display: 'flex', flexDirection: 'column'}}
       >
@@ -397,7 +377,6 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
             value={inputText}
             onChange={handleTextChange}
             onKeyDown={handleKeyDown}
-            sx={textFieldSx}
             slotProps={textFieldSlotProps}
           />
 

@@ -16,9 +16,17 @@ const dialogPaperSx = {
     sx: {
       bgcolor: '#1c1c1e',
       backgroundImage: 'none',
-      border: '1px solid #2c2c2e',
+      border: '0',
       borderRadius: '12px',
     },
+  },
+};
+
+const closeSx = {
+  color: '#8e8e93',
+  '&:focus-visible': {
+    boxShadow: '0 0 0 2px #90caf9',
+    borderColor: '#90caf9',
   },
 };
 
@@ -57,7 +65,11 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
             {editingNote ? 'Редактировать заметку' : 'Новая заметка'}
           </Typography>
         </Box>
-        <IconButton onClick={onFinish} size="small" sx={{color: '#8e8e93'}}>
+        <IconButton
+          onClick={onFinish}
+          size="small"
+          sx={closeSx}
+        >
           <Close />
         </IconButton>
       </DialogTitle>
