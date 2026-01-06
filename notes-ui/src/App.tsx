@@ -95,9 +95,9 @@ function App() {
   const [isEditorDialogOpen, setIsEditorDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (isMobile) return;
+    if (isMobile || !isEditorDialogOpen) return;
     return () => setIsEditorDialogOpen(false);
-  }, [isMobile]);
+  }, [isMobile, isEditorDialogOpen]);
 
   const handleOpenTagMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
     setTagMenuAnchor(event.currentTarget);
@@ -362,8 +362,7 @@ function App() {
   );
 
   const hasActiveFilters = useMemo(
-    () =>
-      searchQuery.length > 0 ||
+    () => searchQuery.length > 0 ||
       currentTags.length > 0 ||
       showArchived ||
       selectedNoteId !== undefined,
@@ -459,9 +458,9 @@ function App() {
             editingNote={editingNote}
             endEditing={endEditing}
             files={files}
+            setFiles={setFiles}
             currentTags={currentTags}
             setCurrentTags={setCurrentTags}
-            setFiles={setFiles}
           />
         )}
 
@@ -472,6 +471,8 @@ function App() {
             endEditing={endEditing}
             currentTags={currentTags}
             setCurrentTags={setCurrentTags}
+            files={files}
+            setFiles={setFiles}
           />
         )}
 

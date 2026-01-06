@@ -1,4 +1,4 @@
-import React, {FC, useEffect, useState} from 'react';
+import React, {FC, useCallback} from 'react';
 import {
   Box,
   Dialog,
@@ -29,6 +29,8 @@ interface NoteEditorDialogProps {
   endEditing: () => void;
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
+  files: File[];
+  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
 }
 
 const NoteEditorDialog: FC<NoteEditorDialogProps> = ({
@@ -37,20 +39,18 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({
   endEditing,
   currentTags,
   setCurrentTags,
+  files,
+  setFiles,
 }) => {
-  const [files, setFiles] = useState<File[]>([]);
-
-  useEffect(() => {
-    if (!open) return;
-    return () => {
-      setFiles([]);
-    };
-  }, [open]);
+  const handleClose = useCallback(() => {
+    endEditing();
+    setFiles([]);
+  }, [endEditing, setFiles]);
 
   return (
     <Dialog
       open={open}
-      onClose={endEditing}
+      onClose={handleClose}
       maxWidth="md"
       fullWidth
       scroll="paper"
@@ -75,7 +75,7 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({
             {editingNote ? 'Редактировать заметку' : 'Новая заметка'}
           </Typography>
         </Box>
-        <IconButton onClick={endEditing} size="small" sx={{color: '#8e8e93'}}>
+        <IconButton onClick={handleClose} size="small" sx={{color: '#8e8e93'}}>
           <Close />
         </IconButton>
       </DialogTitle>

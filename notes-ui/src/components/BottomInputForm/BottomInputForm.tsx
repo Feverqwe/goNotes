@@ -87,15 +87,15 @@ const sendIconSx = {fontSize: 26};
 
 const progressSx = {
   color: '#90caf9',
-  padding: '2px', // Чтобы лоадер визуально соответствовал размеру иконки
+  padding: '2px',
 };
 
 interface BottomInputFormProps {
   editingNote: Note | null;
   files: File[];
+  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
-  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   endEditing: () => void;
   isDialogMode?: boolean;
 }
