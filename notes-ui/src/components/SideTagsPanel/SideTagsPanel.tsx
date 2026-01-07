@@ -1,9 +1,13 @@
 import React, {FC, memo, PropsWithChildren} from 'react';
 import {Box, Button, SwipeableDrawer, useMediaQuery, useTheme} from '@mui/material';
 import {Add as AddIcon} from '@mui/icons-material';
-import {SIDE_PANEL_WIDTH} from '../../constants';
+import {HEADER_HEIGHT, SIDE_PANEL_WIDTH} from '../../constants';
 
-const drawerPaperSx = {
+const drawerSx = {
+  width: SIDE_PANEL_WIDTH,
+};
+
+const drawerSlopPropsSx = {
   paper: {
     sx: {
       width: SIDE_PANEL_WIDTH,
@@ -20,6 +24,7 @@ const contentWrapperSx = {
   display: 'flex',
   flexDirection: 'column',
   height: '100%',
+  marginTop: `${HEADER_HEIGHT}px`,
 };
 
 const boxSx = {px: 2, mb: 3};
@@ -59,7 +64,8 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
         disableDiscovery={false}
         disableSwipeToOpen={false}
         swipeAreaWidth={30}
-        slotProps={drawerPaperSx}
+        sx={drawerSx}
+        slotProps={drawerSlopPropsSx}
       >
         <Box sx={contentWrapperSx}>
           {isDesktop && (

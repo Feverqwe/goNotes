@@ -1,26 +1,7 @@
 import React, {FC, useCallback, useMemo} from 'react';
 import {Badge, Box, IconButton, Paper, TextField, useMediaQuery, useTheme} from '@mui/material';
 import {Clear, Menu as MenuIcon, Search as SearchIcon} from '@mui/icons-material';
-
-const stickyHeaderSx = {
-  position: 'sticky',
-  top: 0,
-  zIndex: 1100,
-  bgcolor: 'rgba(18, 18, 18, 0.8)',
-  backdropFilter: 'blur(20px) saturate(180%)',
-  borderBottom: '1px solid #2c2c2e',
-  py: 0.5,
-  px: 1,
-};
-
-const contentWrapperSx = {
-  display: 'flex',
-  alignItems: 'center',
-  ml: {xs: 0, md: '280px'},
-  height: '48px',
-  justifyContent: 'center',
-  width: 'auto',
-};
+import {SIDE_PANEL_WIDTH} from '../../constants';
 
 const textFieldWrapperSx = {
   width: '100%',
@@ -107,6 +88,21 @@ const SearchBox: FC<SearchBoxProps> = ({
     [setSearchQuery],
   );
 
+  const stickyHeaderSx = useMemo(
+    () => ({
+      position: 'sticky',
+      display: 'flex',
+      top: 0,
+      zIndex: theme.zIndex.drawer + 1,
+      bgcolor: 'rgba(18, 18, 18, 0.8)',
+      backdropFilter: 'blur(20px) saturate(180%)',
+      borderBottom: '1px solid #2c2c2e',
+      py: 0.5,
+      px: 1,
+    }),
+    [theme.zIndex.drawer],
+  );
+
   const slotProps = useMemo(
     () => ({
       input: {
@@ -149,6 +145,7 @@ const SearchBox: FC<SearchBoxProps> = ({
 
   return (
     <Paper square elevation={0} sx={stickyHeaderSx}>
+      {isDesktop && <Box width={SIDE_PANEL_WIDTH} />}
       <Box sx={textFieldWrapperSx}>
         <TextField
           fullWidth

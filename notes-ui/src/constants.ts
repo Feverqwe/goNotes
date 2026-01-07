@@ -23,8 +23,8 @@ export const themeProps = {
   },
 } satisfies ThemeOptions;
 
-export const HEADER_HEIGHT = 57;
+export const HEADER_HEIGHT = 49;
 
-export const SIDE_PANEL_WIDTH = 280;
+export const SIDE_PANEL_WIDTH = 240;
 
 export const POST_LIMIT = 6;
