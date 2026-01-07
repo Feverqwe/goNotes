@@ -175,7 +175,12 @@ const MessageItem: FC<MessageItemProps> = ({
     () => ({
       color: msg.is_archived ? '#8e8e93' : '#fff',
 
-      '& p': {m: 0, whiteSpace: 'pre-wrap', lineHeight: 1.6},
+      '& p': {
+        m: 0,
+        whiteSpace: 'pre-wrap',
+        lineHeight: 1.6,
+        overflowWrap: 'anywhere',
+      },
       '& code': {
         bgcolor: '#2c2c2e',
         px: 0.5,
@@ -183,7 +188,10 @@ const MessageItem: FC<MessageItemProps> = ({
         fontFamily: 'monospace',
         fontSize: '0.9em',
       },
-      '& a': {color: '#90caf9'},
+      '& a': {
+        color: '#90caf9',
+        overflowWrap: 'anywhere',
+      },
       '& ul, & ol': {pl: 2, my: 1},
     }),
     [msg.is_archived],
