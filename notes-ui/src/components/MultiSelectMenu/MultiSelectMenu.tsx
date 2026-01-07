@@ -1,4 +1,4 @@
-import React, {FC, useCallback, useContext} from 'react';
+import React, {FC, useCallback, useContext, useEffect} from 'react';
 import {Box, Button, Container, IconButton, Paper, Typography} from '@mui/material';
 import {Archive, Close, Delete, Unarchive} from '@mui/icons-material'; // Добавьте импорты
 import {useMutation, useQueryClient} from '@tanstack/react-query';
@@ -66,6 +66,16 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
   const isActionDisabled = selectedIds.length === 0;
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        cancelSelectMode();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cancelSelectMode]);
 
   const batchArchiveMutation = useMutation({
     mutationFn: (archive: number) => api.messages.batchArchive({ids: selectedIds, archive}),

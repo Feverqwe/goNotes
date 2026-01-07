@@ -1,4 +1,4 @@
-import React, {FC} from 'react';
+import React, {FC, useEffect} from 'react';
 import {Box, Button, Container, IconButton, Paper, Typography} from '@mui/material';
 import {Close, Done} from '@mui/icons-material';
 
@@ -55,6 +55,16 @@ interface ReorderMenuProps {
 }
 
 const ReorderMenu: FC<ReorderMenuProps> = ({cancelReorderMode, saveOrder}) => {
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        cancelReorderMode();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [cancelReorderMode]);
+
   return (
     <Paper square elevation={0} sx={paperSx}>
       <Container maxWidth="sm" sx={containerSx}>
