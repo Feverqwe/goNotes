@@ -223,7 +223,9 @@ const MessageItem: FC<MessageItemProps> = ({
               listeners={listeners}
             />
           )}
-          {!isReorderMode && isSelectMode && <Checkbox checked={isSelected} sx={selectCheckboxSx} />}
+          {!isReorderMode && isSelectMode && (
+            <Checkbox checked={isSelected} sx={selectCheckboxSx} />
+          )}
           {!isReorderMode && !isSelectMode && (
             <IconButton
               className="message-action"
