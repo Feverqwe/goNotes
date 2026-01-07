@@ -222,6 +222,24 @@ function App() {
     return () => clearTimeout(delayDebounceFn);
   }, [currentTags, queryClient, searchQuery, selectedNoteId, showArchived]);
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isInput =
+        e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+
+      if ((e.key.toLowerCase() === 'n' || e.key.toLowerCase() === 'т') && !isInput) {
+        if (!refIsMobile.current) {
+          e.preventDefault();
+
+          setIsEditorDialogOpen(true);
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [setIsEditorDialogOpen]);
+
   const startEditing = useCallback((msg: Note) => {
     setEditingNote(msg);
     setIsEditorDialogOpen(true);
