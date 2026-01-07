@@ -3,7 +3,7 @@ import {Divider, ListItemIcon, ListItemText, MenuItem, Box} from '@mui/material'
 import {Archive, Check, Sort} from '@mui/icons-material';
 import {DndContext, DragEndEvent} from '@dnd-kit/core';
 import {SortableContext} from '@dnd-kit/sortable';
-import SortableTagItem from '../TagsMenu/SortableTagItem';
+import SortableTagItem from './SortableTagItem';
 
 const iconBtnSx = {minWidth: '32px !important'};
 const dividerSx = {borderColor: 'rgba(255, 255, 255, 0.08)'};

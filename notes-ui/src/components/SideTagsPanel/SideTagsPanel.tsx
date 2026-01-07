@@ -1,26 +1,25 @@
 import React, {FC, memo, PropsWithChildren} from 'react';
-import {Box, Button, Typography} from '@mui/material';
+import {Box, Button, SwipeableDrawer, Typography, useMediaQuery, useTheme} from '@mui/material';
 import {Add as AddIcon} from '@mui/icons-material';
-import {HEADER_HEIGHT, SIDE_PANEL_WIDTH} from '../../constants';
+import {SIDE_PANEL_WIDTH} from '../../constants';
 
-const asideSx = {
-  width: SIDE_PANEL_WIDTH,
-  display: {xs: 'none', md: 'block'},
-  borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-
-  position: 'sticky',
-  top: HEADER_HEIGHT,
-
-  height: `calc(100vh - ${HEADER_HEIGHT}px)`,
-  overflowY: 'auto',
-
-  '&::-webkit-scrollbar': {display: 'none'},
-  scrollbarWidth: 'none',
+const drawerPaperSx = {
+  paper: {
+    sx: {
+      width: SIDE_PANEL_WIDTH,
+      bgcolor: '#121212',
+      borderRight: '1px solid rgba(255, 255, 255, 0.08)',
+      backgroundImage: 'none',
+    },
+  },
 };
 
 const contentWrapperSx = {
-  pt: 2,
+  pt: 3,
   pb: 4,
+  display: 'flex',
+  flexDirection: 'column',
+  height: '100%',
 };
 
 const titleSx = {
@@ -33,7 +32,7 @@ const titleSx = {
   letterSpacing: '0.5px',
 };
 
-const boxSx = {px: 2, mb: 2};
+const boxSx = {px: 2, mb: 3};
 
 const btnSx = {
   textTransform: 'none',
@@ -43,14 +42,35 @@ const btnSx = {
   },
 };
 
+const menuSx = {
+  flexGrow: 1,
+  overflowY: 'auto',
+};
+
 interface SideTagsPanelProps extends PropsWithChildren {
   onCreateClick: () => void;
+  open: boolean;
+  onOpen: () => void;
+  onClose: () => void;
 }
 
 const SideTagsPanel: FC<SideTagsPanelProps> = memo(
-  ({children, onCreateClick}: SideTagsPanelProps) => {
+  ({children, onCreateClick, open, onOpen, onClose}: SideTagsPanelProps) => {
+    const theme = useTheme();
+    const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+
     return (
-      <Box component="aside" sx={asideSx}>
+      <SwipeableDrawer
+        anchor="left"
+        open={isDesktop ? true : open}
+        onOpen={onOpen}
+        onClose={onClose}
+        variant={isDesktop ? 'permanent' : 'temporary'}
+        disableDiscovery={false}
+        disableSwipeToOpen={false}
+        swipeAreaWidth={30}
+        slotProps={drawerPaperSx}
+      >
         <Box sx={contentWrapperSx}>
           <Box sx={boxSx}>
             <Button
@@ -63,10 +83,12 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
               Создать заметку
             </Button>
           </Box>
+
           <Typography sx={titleSx}>Навигация</Typography>
-          {children}
+
+          <Box sx={menuSx}>{children}</Box>
         </Box>
-      </Box>
+      </SwipeableDrawer>
     );
   },
 );

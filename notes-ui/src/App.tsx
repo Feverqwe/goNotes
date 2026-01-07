@@ -16,7 +16,6 @@ import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/
 import {Note} from './types';
 import MessageItem from './components/MessageItem/MessageItem';
 import {SnackCtx} from './ctx/SnackCtx';
-import TagsMenu from './components/TagsMenu/TagsMenu';
 import SearchBox from './components/SearchBox/SearchBox';
 import MultiSelectMenu from './components/MultiSelectMenu/MultiSelectMenu';
 import NoteMenu from './components/NoteMenu/NoteMenu';
@@ -62,6 +61,7 @@ function App() {
     return initUrlParams.get('archived') === '1';
   });
 
+  const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
   const [anchorEl, setAnchorEl] = useState<Element | null>(null);
   const [selectedMsg, setSelectedMsg] = useState<Note | null>(null);
@@ -78,7 +78,6 @@ function App() {
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
 
-  const [tagMenuAnchor, setTagMenuAnchor] = useState<HTMLButtonElement | null>(null);
   const [isReorderMode, setIsReorderMode] = useState(false);
 
   const [dndMessages, setDndMessages] = useState<Note[]>([]);
@@ -90,11 +89,6 @@ function App() {
   refIsMobile.current = isMobile;
 
   const [isEditorDialogOpen, setIsEditorDialogOpen] = useState(false);
-
-  const handleOpenTagMenu = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    setTagMenuAnchor(event.currentTarget);
-  }, []);
-  const handleCloseTagMenu = useCallback(() => setTagMenuAnchor(null), []);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -334,6 +328,9 @@ function App() {
     });
   }, []);
 
+  const handleOpenDrawer = useCallback(() => setIsDrawerOpen(true), []);
+  const handleCloseDrawer = useCallback(() => setIsDrawerOpen(false), []);
+
   const observer = useRef<IntersectionObserver | undefined>(undefined);
   const loadMoreTrigger = useCallback(
     (node: HTMLDivElement) => {
@@ -373,6 +370,11 @@ function App() {
     [],
   );
 
+  const handleCreateClick = useCallback(() => {
+    handleOpenEditor();
+    setIsDrawerOpen(false);
+  }, [handleOpenEditor]);
+
   return (
     <>
       <Box sx={wrapperSx}>
@@ -381,24 +383,28 @@ function App() {
           setSearchQuery={setSearchQuery}
           currentTags={currentTags}
           setCurrentTags={setCurrentTags}
-          handleOpenTagMenu={handleOpenTagMenu}
           showArchived={showArchived}
           setShowArchived={setShowArchived}
           hasActiveFilters={hasActiveFilters}
           setSelectedNoteId={setSelectedNoteId}
+          onMenuClick={handleOpenDrawer}
         />
 
         <Box display="flex">
-          {!isMobile && (
-            <SideTagsPanel onCreateClick={handleOpenEditor}>
-              <TagsManager
-                currentTags={currentTags}
-                setCurrentTags={setCurrentTags}
-                showArchived={showArchived}
-                setShowArchived={setShowArchived}
-              />
-            </SideTagsPanel>
-          )}
+          <SideTagsPanel
+            open={isDrawerOpen}
+            onOpen={handleOpenDrawer}
+            onClose={handleCloseDrawer}
+            onCreateClick={handleCreateClick}
+          >
+            <TagsManager
+              currentTags={currentTags}
+              setCurrentTags={setCurrentTags}
+              showArchived={showArchived}
+              setShowArchived={setShowArchived}
+              onActionFinished={handleCloseDrawer}
+            />
+          </SideTagsPanel>
 
           <Container maxWidth="sm" sx={bodyCtrSx}>
             {isError && (
@@ -488,15 +494,6 @@ function App() {
         closeBatchDeleteDialog={closeBatchDeleteDialog}
         selectedIds={selectedIds}
         cancelSelectMode={cancelSelectMode}
-      />
-
-      <TagsMenu
-        tagMenuAnchor={tagMenuAnchor}
-        handleCloseTagMenu={handleCloseTagMenu}
-        currentTags={currentTags}
-        setCurrentTags={setCurrentTags}
-        showArchived={showArchived}
-        setShowArchived={setShowArchived}
       />
     </>
   );

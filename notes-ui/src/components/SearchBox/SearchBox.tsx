@@ -1,11 +1,11 @@
 import React, {FC, useCallback, useMemo} from 'react';
-import {Badge, Box, IconButton, Paper, TextField} from '@mui/material';
-import {Clear, FilterList} from '@mui/icons-material';
+import {Badge, Box, IconButton, Paper, TextField, useMediaQuery, useTheme} from '@mui/material';
+import {Clear, Menu as MenuIcon, Search as SearchIcon} from '@mui/icons-material';
 
 const stickyHeaderSx = {
   position: 'sticky',
   top: 0,
-  zIndex: 1200,
+  zIndex: 1100,
   bgcolor: 'rgba(18, 18, 18, 0.8)',
   backdropFilter: 'blur(20px) saturate(180%)',
   borderBottom: '1px solid #2c2c2e',
@@ -29,7 +29,6 @@ const textFieldWrapperSx = {
 };
 
 const badgeSx = {
-  mr: 1,
   '& .MuiBadge-badge': {
     fontSize: '0.6rem',
     height: 16,
@@ -70,11 +69,11 @@ interface SearchBoxProps {
   setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
-  handleOpenTagMenu: (event: React.MouseEvent<HTMLButtonElement>) => void;
   showArchived: boolean;
   setShowArchived: (v: boolean) => void;
   setSelectedNoteId: (id: number | undefined) => void;
   hasActiveFilters: boolean;
+  onMenuClick: () => void;
 }
 
 const SearchBox: FC<SearchBoxProps> = ({
@@ -82,12 +81,15 @@ const SearchBox: FC<SearchBoxProps> = ({
   setSearchQuery,
   currentTags,
   setCurrentTags,
-  handleOpenTagMenu,
   showArchived,
   setShowArchived,
   hasActiveFilters,
   setSelectedNoteId,
+  onMenuClick,
 }) => {
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+
   const handleClearAll = useCallback(() => {
     setSearchQuery('');
     setCurrentTags([]);
@@ -105,20 +107,7 @@ const SearchBox: FC<SearchBoxProps> = ({
     [setSearchQuery],
   );
 
-  const filterBtnSx = useMemo(
-    () => ({
-      p: 1,
-      color: activeFiltersCount > 0 ? '#90caf9' : '#8e8e93',
-      bgcolor: activeFiltersCount > 0 ? 'rgba(144, 202, 249, 0.1)' : 'transparent',
-      '&:focus-visible': {
-        boxShadow: '0 0 0 2px #90caf9',
-        borderColor: '#90caf9',
-      },
-    }),
-    [activeFiltersCount],
-  );
-
-  const textFieldSlotProps = useMemo(
+  const slotProps = useMemo(
     () => ({
       input: {
         slotProps: {
@@ -131,42 +120,44 @@ const SearchBox: FC<SearchBoxProps> = ({
             color={showArchived ? 'warning' : 'primary'}
             sx={badgeSx}
           >
-            <IconButton tabIndex={1} size="medium" onClick={handleOpenTagMenu} sx={filterBtnSx}>
-              <FilterList sx={{fontSize: 22}} />
-            </IconButton>
+            {isDesktop ? (
+              <Box
+                sx={{p: 1, display: 'flex', color: activeFiltersCount > 0 ? '#90caf9' : '#48484a'}}
+              >
+                <SearchIcon sx={{fontSize: 22}} />
+              </Box>
+            ) : (
+              <IconButton
+                onClick={onMenuClick}
+                sx={{color: activeFiltersCount > 0 ? '#90caf9' : '#8e8e93'}}
+              >
+                <MenuIcon sx={{fontSize: 24}} />
+              </IconButton>
+            )}
           </Badge>
         ),
         endAdornment: hasActiveFilters && (
-          <IconButton tabIndex={1} size="medium" onClick={handleClearAll} sx={clearBtnSx}>
+          <IconButton size="medium" onClick={handleClearAll} sx={clearBtnSx}>
             <Clear sx={{fontSize: 20}} />
           </IconButton>
         ),
         sx: textFieldInputSx,
       },
     }),
-    [
-      activeFiltersCount,
-      showArchived,
-      handleOpenTagMenu,
-      filterBtnSx,
-      hasActiveFilters,
-      handleClearAll,
-    ],
+    [activeFiltersCount, showArchived, isDesktop, onMenuClick, hasActiveFilters, handleClearAll],
   );
 
   return (
     <Paper square elevation={0} sx={stickyHeaderSx}>
-      <Box sx={contentWrapperSx}>
-        <Box sx={textFieldWrapperSx}>
-          <TextField
-            fullWidth
-            variant="standard"
-            placeholder="Поиск..."
-            value={searchQuery}
-            onChange={handleChange}
-            slotProps={textFieldSlotProps}
-          />
-        </Box>
+      <Box sx={textFieldWrapperSx}>
+        <TextField
+          fullWidth
+          variant="standard"
+          placeholder="Поиск..."
+          value={searchQuery}
+          onChange={handleChange}
+          slotProps={slotProps}
+        />
       </Box>
     </Paper>
   );

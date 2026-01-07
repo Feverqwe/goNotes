@@ -14,7 +14,7 @@ interface TagsManagerProps {
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   showArchived: boolean;
   setShowArchived: React.Dispatch<React.SetStateAction<boolean>>;
-  onActionFinished?: () => void;
+  onActionFinished: () => void;
 }
 
 const TagsManager: FC<TagsManagerProps> = memo(
@@ -40,14 +40,14 @@ const TagsManager: FC<TagsManagerProps> = memo(
         setCurrentTags((prev) =>
           prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
         );
-        onActionFinished?.();
+        onActionFinished();
       },
       [setCurrentTags, onActionFinished],
     );
 
     const handleToggleArchive = useCallback(() => {
       setShowArchived((v) => !v);
-      onActionFinished?.();
+      onActionFinished();
     }, [setShowArchived, onActionFinished]);
 
     const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -96,7 +96,7 @@ const TagsManager: FC<TagsManagerProps> = memo(
     const setExclusiveTag = useCallback(
       (tag: string) => {
         setCurrentTags((prev) => (prev.length === 1 && prev[0] === tag ? [] : [tag]));
-        onActionFinished?.();
+        onActionFinished();
       },
       [setCurrentTags, onActionFinished],
     );
