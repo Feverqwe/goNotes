@@ -1,4 +1,4 @@
-import React, {FC} from 'react';
+import React, {FC, useMemo} from 'react';
 import {
   Box,
   Dialog,
@@ -35,12 +35,23 @@ export interface NoteEditorDialogProps extends Omit<BottomInputFormProps, 'isDia
 }
 
 const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
-  const {onFinish, editingNote} = props;
+  const {onFinish, editingNote, inputText, files} = props;
+
+  const hasChanges = useMemo(() => {
+    const hasFiles = files.length > 0;
+
+    if (editingNote) {
+      return inputText !== editingNote.content || hasFiles || props.deletedAttachIds.length > 0;
+    }
+
+    return inputText.length > 0 || hasFiles;
+  }, [inputText, files, editingNote, props.deletedAttachIds]);
 
   return (
     <Dialog
       open={open}
       onClose={onFinish}
+      disableEscapeKeyDown={hasChanges}
       maxWidth="sm"
       fullWidth
       scroll="paper"
