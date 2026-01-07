@@ -22,6 +22,23 @@ const dialogPaperSx = {
   },
 };
 
+const dialogTitleSx = {
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  py: 2,
+};
+
+const iconSx = {color: '#90caf9', fontSize: 22};
+
+const dialogTitleBoxSx = {display: 'flex', alignItems: 'center', gap: 1.5};
+
+const titleSx = {color: '#fff', fontSize: '1.2rem'};
+
+const dividerSx = {borderColor: 'rgba(255,255,255,0.1)'};
+
+const dialogContentSx = {p: 0, display: 'flex', flexDirection: 'column'};
+
 const closeSx = {
   color: '#8e8e93',
   '&:focus-visible': {
@@ -57,22 +74,12 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
       scroll="paper"
       slotProps={dialogPaperSx}
       transitionDuration={100}
+      disableRestoreFocus={true}
     >
-      <DialogTitle
-        sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          py: 2,
-        }}
-      >
-        <Box sx={{display: 'flex', alignItems: 'center', gap: 1.5}}>
-          {editingNote ? (
-            <Edit sx={{color: '#90caf9', fontSize: 22}} />
-          ) : (
-            <AddCircleOutline sx={{color: '#90caf9', fontSize: 22}} />
-          )}
-          <Typography variant="h6" sx={{color: '#fff', fontSize: '1.2rem'}}>
+      <DialogTitle sx={dialogTitleSx}>
+        <Box sx={dialogTitleBoxSx}>
+          {editingNote ? <Edit sx={iconSx} /> : <AddCircleOutline sx={iconSx} />}
+          <Typography variant="h6" sx={titleSx}>
             {editingNote ? 'Редактировать заметку' : 'Новая заметка'}
           </Typography>
         </Box>
@@ -81,9 +88,9 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
         </IconButton>
       </DialogTitle>
 
-      <Divider sx={{borderColor: 'rgba(255,255,255,0.1)'}} />
+      <Divider sx={dividerSx} />
 
-      <DialogContent sx={{p: 0, display: 'flex', flexDirection: 'column'}}>
+      <DialogContent sx={dialogContentSx}>
         <BottomInputForm {...props} isDialogMode={true} />
       </DialogContent>
     </Dialog>

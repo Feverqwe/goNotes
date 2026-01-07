@@ -22,16 +22,6 @@ const contentWrapperSx = {
   height: '100%',
 };
 
-const titleSx = {
-  px: 2,
-  mb: 1,
-  color: '#5c6370',
-  fontWeight: 700,
-  fontSize: '0.65rem',
-  textTransform: 'uppercase',
-  letterSpacing: '0.5px',
-};
-
 const boxSx = {px: 2, mb: 3};
 
 const btnSx = {
