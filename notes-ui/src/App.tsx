@@ -383,9 +383,9 @@ function App() {
     () => ({
       flexGrow: 1,
       pt: 1,
-      pb: 7.5,
+      pb: isMobile ? 7.5 : 1,
     }),
-    [],
+    [isMobile],
   );
 
   const handleCreateClick = useCallback(() => {
