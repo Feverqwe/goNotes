@@ -1,4 +1,4 @@
-import React, {FC, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import React, {FC, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {Box, Chip, Container, IconButton, Paper, TextField} from '@mui/material';
 import {AttachFile, Check, Send} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
@@ -112,10 +112,18 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
+  const inputRef = useRef<HTMLTextAreaElement>(null);
 
   const [isDragging, setIsDragging] = useState(false);
   const refInputText = useRef(inputText);
   refInputText.current = inputText;
+
+  useEffect(() => {
+    if (!isDialogMode && !editingNote) return;
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [isDialogMode, editingNote]);
 
   const cancelEditing = useCallback(() => {
     endEditing();
@@ -259,6 +267,11 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
     [setFiles],
   );
 
+  const containerSx = useMemo(
+    () => ({height: isDialogMode ? '100%' : 'auto', display: 'flex', flexDirection: 'column'}),
+    [isDialogMode],
+  );
+
   const paperSx = useMemo(
     () => ({
       position: isDialogMode ? 'relative' : 'fixed',
@@ -292,17 +305,17 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   );
 
   const textFieldSlotProps = useMemo(
-    () => ({
-      input: {
-        disableUnderline: true,
-        sx: {color: '#fff', py: 1.5, px: 1, fontSize: '0.95rem'},
-        slotProps: {
-          input: {
+    () =>
+      ({
+        input: {
+          disableUnderline: true,
+          sx: {color: '#fff', py: 1.5, px: 1, fontSize: '0.95rem'},
+          inputProps: {
             tabIndex: 3,
+            ref: inputRef,
           },
         },
-      },
-    }),
+      }) satisfies React.ComponentProps<typeof TextField>['slotProps'],
     [],
   );
 
@@ -315,11 +328,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       onDrop={handleDrop}
       sx={paperSx}
     >
-      <Container
-        maxWidth="sm"
-        disableGutters
-        sx={{height: isDialogMode ? '100%' : 'auto', display: 'flex', flexDirection: 'column'}}
-      >
+      <Container maxWidth="sm" disableGutters sx={containerSx}>
         {!isDialogMode && editingNote && <EditHeader onCancel={cancelEditing} />}
 
         {existingAttachments.length > 0 && editingNote && (
@@ -368,7 +377,6 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </IconButton>
 
           <TextField
-            autoFocus={Boolean(editingNote)}
             fullWidth
             multiline
             minRows={isDialogMode ? 10 : 1}
