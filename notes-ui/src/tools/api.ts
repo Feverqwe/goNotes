@@ -3,6 +3,8 @@ import {API_BASE} from '../constants';
 import {
   ArchiveMessageRequest,
   ArchiveMessageResponse,
+  BatchArchiveRequest,
+  BatchArchiveResponse,
   BatchDeleteRequest,
   BatchDeleteResponse,
   DeleteMessageRequest,
@@ -96,6 +98,10 @@ export const api = {
     archive: action<ArchiveMessageRequest, ArchiveMessageResponse>({
       method: 'POST',
       path: '/api/messages/archive',
+    }),
+    batchArchive: action<BatchArchiveRequest, BatchArchiveResponse>({
+      method: 'POST',
+      path: '/api/messages/batch-archive',
     }),
     reorder: action<ReorderMessagesRequest, ReorderMessagesResponse>({
       method: 'POST',

@@ -1,6 +1,9 @@
-import React, {FC} from 'react';
+import React, {FC, useCallback, useContext} from 'react';
 import {Box, Button, Container, IconButton, Paper, Typography} from '@mui/material';
-import {Close, Delete} from '@mui/icons-material';
+import {Archive, Close, Delete, Unarchive} from '@mui/icons-material'; // Добавьте импорты
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {api} from '../../tools/api';
+import {SnackCtx} from '../../ctx/SnackCtx';
 
 const paperSx = {
   position: 'fixed',
@@ -11,7 +14,7 @@ const paperSx = {
   backdropFilter: 'blur(20px) saturate(180%)',
   backgroundImage: 'none',
   borderTop: '1px solid rgba(144, 202, 249, 0.3)',
-  zIndex: 1100,
+  zIndex: 1200,
   animation: 'slideUp 0.2s ease-out',
 };
 
@@ -37,7 +40,7 @@ const countTextSx = {
   ml: 0.5,
 };
 
-const deleteBtnSx = {
+const btnSx = {
   borderRadius: '6px',
   textTransform: 'none',
   '&:hover': {
@@ -45,18 +48,41 @@ const deleteBtnSx = {
   },
 };
 
+const btnCtrSx = {display: 'flex', gap: 1};
+
 interface SelectMenuProps {
   cancelSelectMode: () => void;
   selectedIds: number[];
   askBatchDeleteConfirmation: () => void;
+  showArchived: boolean;
 }
 
 const MultiSelectMenu: FC<SelectMenuProps> = ({
   cancelSelectMode,
   selectedIds,
   askBatchDeleteConfirmation,
+  showArchived,
 }) => {
-  const isDeleteDisabled = selectedIds.length === 0;
+  const showSnackbar = useContext(SnackCtx);
+  const queryClient = useQueryClient();
+  const isActionDisabled = selectedIds.length === 0;
+
+  const batchArchiveMutation = useMutation({
+    mutationFn: (archive: number) => api.messages.batchArchive({ids: selectedIds, archive}),
+    onSuccess: (_, archive) => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      showSnackbar(archive ? 'Заметки архивированы' : 'Заметки восстановлены', 'success');
+      cancelSelectMode();
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка действия', 'error');
+    },
+  });
+
+  const handleArchive = useCallback(() => {
+    batchArchiveMutation.mutate(showArchived ? 0 : 1);
+  }, [batchArchiveMutation, showArchived]);
 
   return (
     <Paper square elevation={0} sx={paperSx}>
@@ -70,17 +96,30 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
           </Typography>
         </Box>
 
-        <Button
-          size="medium"
-          variant="text"
-          color="error"
-          disabled={isDeleteDisabled}
-          startIcon={<Delete />}
-          sx={deleteBtnSx}
-          onClick={askBatchDeleteConfirmation}
-        >
-          Удалить
-        </Button>
+        <Box sx={btnCtrSx}>
+          <Button
+            size="medium"
+            variant="text"
+            disabled={isActionDisabled}
+            startIcon={showArchived ? <Unarchive /> : <Archive />}
+            onClick={handleArchive}
+            sx={btnSx}
+          >
+            {showArchived ? 'Восстановить' : 'В архив'}
+          </Button>
+
+          <Button
+            size="medium"
+            variant="text"
+            color="error"
+            disabled={isActionDisabled}
+            startIcon={<Delete />}
+            sx={btnSx}
+            onClick={askBatchDeleteConfirmation}
+          >
+            Удалить
+          </Button>
+        </Box>
       </Container>
     </Paper>
   );

@@ -349,8 +349,7 @@ function App() {
   );
 
   const hasActiveFilters = useMemo(
-    () =>
-      searchQuery.length > 0 ||
+    () => searchQuery.length > 0 ||
       currentTags.length > 0 ||
       showArchived ||
       selectedNoteId !== undefined,
@@ -429,7 +428,7 @@ function App() {
                       onTagClick={setCurrentTags}
                       handleOpenMenu={handleOpenMenu}
                       isSelectMode={isSelectMode}
-                      selected={selectedIds.includes(msg.id)}
+                      isSelected={selectedIds.includes(msg.id)}
                       toggleSelect={toggleSelect}
                       startEditing={startEditing}
                       isReorderMode={isReorderMode}
@@ -464,6 +463,7 @@ function App() {
             cancelSelectMode={cancelSelectMode}
             selectedIds={selectedIds}
             askBatchDeleteConfirmation={askBatchDeleteConfirmation}
+            showArchived={showArchived}
           />
         )}
 

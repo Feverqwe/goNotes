@@ -44,3 +44,9 @@ export interface ReorderTagsRequest {
   names: string[];
 }
 export type ReorderTagsResponse = 'ok';
+
+export interface BatchArchiveRequest {
+  ids: number[];
+  archive: number;
+}
+export type BatchArchiveResponse = 'ok';

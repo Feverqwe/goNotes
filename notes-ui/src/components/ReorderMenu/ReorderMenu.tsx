@@ -10,7 +10,7 @@ const paperSx = {
   bgcolor: 'rgba(18, 18, 18, 0.85)',
   backdropFilter: 'blur(20px) saturate(180%)',
   backgroundImage: 'none',
-  borderTop: '1px solid rgba(144, 202, 249, 0.5)',
+  borderTop: '1px solid rgba(144, 202, 249, 0.3)',
   zIndex: 1200,
   animation: 'slideUp 0.2s ease-out',
 };

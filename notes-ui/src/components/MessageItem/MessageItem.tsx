@@ -83,7 +83,7 @@ interface MessageItemProps {
   handleOpenMenu: (event: React.MouseEvent, msg: Note) => void;
   isSelectMode: boolean;
   toggleSelect: (id: number) => void;
-  selected: boolean;
+  isSelected: boolean;
   startEditing: (note: Note) => void;
   isReorderMode: boolean;
   moveStep?: (id: number, direction: 'up' | 'down') => void;
@@ -97,7 +97,7 @@ const MessageItem: FC<MessageItemProps> = ({
   handleOpenMenu,
   isSelectMode,
   toggleSelect,
-  selected,
+  isSelected,
   startEditing,
   isReorderMode,
   moveStep,
@@ -153,8 +153,7 @@ const MessageItem: FC<MessageItemProps> = ({
       position: 'relative',
       '&:hover .message-action': {opacity: 1},
 
-      bgcolor: selected ? 'rgba(144, 202, 249, 0.05)' : msg.is_archived ? '#161618' : '#1c1c1e',
-      boxShadow: selected ? '0 0 3px #90caf9' : 'none',
+      bgcolor: msg.is_archived ? '#161618' : '#1c1c1e',
       backgroundImage: msg.is_archived
         ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 10px)'
         : 'none',
@@ -162,13 +161,15 @@ const MessageItem: FC<MessageItemProps> = ({
         boxShadow: '0 0 0 2px #90caf9',
         borderColor: '#90caf9',
       },
-      border: isReorderMode
-        ? '1px dashed #90caf9'
-        : msg.is_archived
-          ? '1px solid rgba(255, 255, 255, 0.05)'
-          : 'none',
+      border: isSelected
+        ? '1px solid #90caf9'
+        : isReorderMode
+          ? '1px dashed #90caf9'
+          : msg.is_archived
+            ? '1px solid rgba(255, 255, 255, 0.05)'
+            : 'none',
     }),
-    [isReorderMode, msg.is_archived, selected],
+    [isReorderMode, msg.is_archived, isSelected],
   );
 
   const contentBoxSx = useMemo(
@@ -222,7 +223,7 @@ const MessageItem: FC<MessageItemProps> = ({
               listeners={listeners}
             />
           )}
-          {!isReorderMode && isSelectMode && <Checkbox checked={selected} sx={selectCheckboxSx} />}
+          {!isReorderMode && isSelectMode && <Checkbox checked={isSelected} sx={selectCheckboxSx} />}
           {!isReorderMode && !isSelectMode && (
             <IconButton
               className="message-action"

@@ -348,6 +348,37 @@ func handleAction(router *Router, config *cfg.Config) {
 		})
 	})
 
+	router.Post("/api/messages/batch-archive", func(w http.ResponseWriter, r *http.Request) {
+		apiCall(w, func() (interface{}, error) {
+			var data struct {
+				IDs     []int64 `json:"ids"`
+				Archive int     `json:"archive"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+				return nil, err
+			}
+
+			if len(data.IDs) == 0 {
+				return "ok", nil
+			}
+
+			query := fmt.Sprintf("UPDATE messages SET is_archived = ? WHERE id IN (%s)", generatePlaceholders(len(data.IDs)))
+
+			args := make([]interface{}, len(data.IDs)+1)
+			args[0] = data.Archive
+			for i, id := range data.IDs {
+				args[i+1] = id
+			}
+
+			_, err := db.Exec(query, args...)
+			if err != nil {
+				return nil, err
+			}
+
+			return "ok", nil
+		})
+	})
+
 	router.Post("/api/messages/batch-delete", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (interface{}, error) {
 			var data struct {
