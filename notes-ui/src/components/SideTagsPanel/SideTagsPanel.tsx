@@ -1,5 +1,5 @@
 import React, {FC, memo, PropsWithChildren} from 'react';
-import {Box, Button, SwipeableDrawer, Typography, useMediaQuery, useTheme} from '@mui/material';
+import {Box, Button, SwipeableDrawer, useMediaQuery, useTheme} from '@mui/material';
 import {Add as AddIcon} from '@mui/icons-material';
 import {SIDE_PANEL_WIDTH} from '../../constants';
 
@@ -72,19 +72,19 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
         slotProps={drawerPaperSx}
       >
         <Box sx={contentWrapperSx}>
-          <Box sx={boxSx}>
-            <Button
-              fullWidth
-              variant="outlined"
-              startIcon={<AddIcon />}
-              onClick={onCreateClick}
-              sx={btnSx}
-            >
-              Создать заметку
-            </Button>
-          </Box>
-
-          <Typography sx={titleSx}>Навигация</Typography>
+          {isDesktop && (
+            <Box sx={boxSx}>
+              <Button
+                fullWidth
+                variant="outlined"
+                startIcon={<AddIcon />}
+                onClick={onCreateClick}
+                sx={btnSx}
+              >
+                Создать заметку
+              </Button>
+            </Box>
+          )}
 
           <Box sx={menuSx}>{children}</Box>
         </Box>
