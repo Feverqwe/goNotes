@@ -198,7 +198,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       updateMessageMutation.mutate(formData);
     } else {
       currentTags.forEach((tag) => {
-        if (!finalContent.includes(`#${tag}`)) finalContent += ` #${tag}`;
+        if (!finalContent.includes(`#${tag}`)) finalContent += `\n #${tag}`;
       });
       formData.append('content', finalContent);
       sendMessageMutation.mutate(formData);
