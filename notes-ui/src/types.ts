@@ -14,4 +14,5 @@ export interface Note {
   tags?: string[];
   is_archived: number;
   sort_order: number;
+  color?: string;
 }

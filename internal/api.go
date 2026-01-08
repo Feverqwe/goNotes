@@ -113,7 +113,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			}
 
 			query := fmt.Sprintf(`
-				SELECT id, content, created_at, updated_at, is_archived, sort_order
+				SELECT id, content, created_at, updated_at, is_archived, sort_order, color
 					FROM messages 
 					%s 
 					ORDER BY sort_order DESC
@@ -134,7 +134,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			for rows.Next() {
 				var m MessageDTO
 
-				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.IsArchived, &m.SortOrder); err != nil {
+				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.IsArchived, &m.SortOrder, &m.Color); err != nil {
 					log.Printf("Scan error: %v", err)
 					continue
 				}
@@ -445,6 +445,20 @@ func handleAction(router *Router, config *cfg.Config) {
 				return nil, err
 			}
 			return "ok", nil
+		})
+	})
+
+	router.Post("/api/messages/set-color", func(w http.ResponseWriter, r *http.Request) {
+		apiCall(w, func() (interface{}, error) {
+			var data struct {
+				Id    int64  `json:"id"`
+				Color string `json:"color"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+				return nil, err
+			}
+			_, err := db.Exec("UPDATE messages SET color = ? WHERE id = ?", data.Color, data.Id)
+			return "ok", err
 		})
 	})
 

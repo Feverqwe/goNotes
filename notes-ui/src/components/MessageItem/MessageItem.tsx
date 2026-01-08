@@ -148,12 +148,13 @@ const MessageItem: FC<MessageItemProps> = ({
     [handleOpenMenu, msg],
   );
 
-  const cardSx = useMemo(
-    () => ({
+  const cardSx = useMemo(() => {
+    const bgcolor = msg.color ? `${msg.color}44` : msg.is_archived ? '#161618' : '#1c1c1e';
+    return {
       position: 'relative',
       '&:hover .message-action': {opacity: 1},
 
-      bgcolor: msg.is_archived ? '#161618' : '#1c1c1e',
+      bgcolor,
       backgroundImage: msg.is_archived
         ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 10px)'
         : 'none',
@@ -166,11 +167,10 @@ const MessageItem: FC<MessageItemProps> = ({
         : isReorderMode
           ? '1px dashed #90caf9'
           : msg.is_archived
-            ? '1px solid rgba(255, 255, 255, 0.05)'
-            : 'none',
-    }),
-    [isReorderMode, msg.is_archived, isSelected],
-  );
+            ? `1px solid ${msg.color}66`
+            : `1px solid ${bgcolor}`,
+    };
+  }, [msg.color, msg.is_archived, isSelected, isReorderMode]);
 
   const contentBoxSx = useMemo(
     () => ({

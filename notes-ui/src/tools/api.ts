@@ -18,6 +18,8 @@ import {
   ReorderTagsResponse,
   SendMessageRequest,
   SendMessageResponse,
+  SetColorRequest,
+  SetColorResponse,
   UpdateMessageRequest,
   UpdateMessageResponse,
 } from './types';
@@ -98,6 +100,10 @@ export const api = {
     archive: action<ArchiveMessageRequest, ArchiveMessageResponse>({
       method: 'POST',
       path: '/api/messages/archive',
+    }),
+    setColor: action<SetColorRequest, SetColorResponse>({
+      method: 'POST',
+      path: '/api/messages/set-color',
     }),
     batchArchive: action<BatchArchiveRequest, BatchArchiveResponse>({
       method: 'POST',

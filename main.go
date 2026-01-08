@@ -59,6 +59,11 @@ func main() {
 		log.Printf("Migrate query error: %v", err)
 	}
 
+	_, err = db.Query("ALTER TABLE messages ADD COLUMN color TEXT DEFAULT '';")
+	if err != nil {
+		log.Printf("Migrate color error: %v", err)
+	}
+
 	if _, err := db.Exec(schemaSQL); err != nil {
 		log.Fatalf("Init DB error: %v", err)
 	}

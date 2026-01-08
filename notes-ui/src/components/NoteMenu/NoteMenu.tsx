@@ -1,5 +1,5 @@
 import React, {FC, useCallback, useContext, useMemo} from 'react';
-import {Divider, ListItemIcon, ListItemText, Menu, MenuItem} from '@mui/material';
+import {Box, Divider, ListItemIcon, ListItemText, Menu, MenuItem} from '@mui/material';
 import {
   Archive,
   CheckCircleOutline,
@@ -9,8 +9,12 @@ import {
   Sort,
   Unarchive,
 } from '@mui/icons-material';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {Note} from '../../types';
 import {SnackCtx} from '../../ctx/SnackCtx';
+import {api} from '../../tools/api';
+import {NOTE_COLORS} from '../../constants';
+import ColorItem from './ColorItem';
 
 const menuSlotProps = {
   list: {sx: {py: 0.5}},
@@ -41,6 +45,8 @@ const deleteMenuItemSx = {
   borderRadius: 0,
   '&:hover': {bgcolor: 'rgba(255, 69, 58, 0.1)'},
 };
+
+const colorBoxSx = {px: 2, py: 1, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 1};
 
 const getListItemIconSx = (color: string) => ({
   minWidth: '32px !important',
@@ -78,6 +84,19 @@ const NoteMenu: FC<NoteMenuProps> = ({
   enterReorderMode,
 }) => {
   const showSnackbar = useContext(SnackCtx);
+  const queryClient = useQueryClient();
+
+  const setColorMutation = useMutation({
+    mutationFn: (color: string) => api.messages.setColor({id: selectedMsg!.id, color}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      handleCloseMenu();
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка при отправкезаметки', 'error');
+    },
+  });
 
   const handleCopy = useCallback(() => {
     if (selectedMsg) {
@@ -125,6 +144,13 @@ const NoteMenu: FC<NoteMenuProps> = ({
     enterReorderMode,
   ]);
 
+  const handleChangeColor = useCallback(
+    (color: string) => {
+      setColorMutation.mutate(color);
+    },
+    [setColorMutation],
+  );
+
   return (
     <Menu
       anchorEl={anchorEl}
@@ -141,6 +167,19 @@ const NoteMenu: FC<NoteMenuProps> = ({
           <ListItemText primary={item.text} slotProps={primaryTextSlotProps} />
         </MenuItem>
       ))}
+
+      <Divider sx={dividerSx} />
+
+      <Box sx={colorBoxSx}>
+        {NOTE_COLORS.map((col) => (
+          <ColorItem
+            key={col}
+            color={col}
+            isSelected={selectedMsg?.color === col}
+            onClick={handleChangeColor}
+          />
+        ))}
+      </Box>
 
       <Divider sx={dividerSx} />
 

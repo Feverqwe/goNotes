@@ -50,3 +50,9 @@ export interface BatchArchiveRequest {
   archive: number;
 }
 export type BatchArchiveResponse = 'ok';
+
+export interface SetColorRequest {
+  id: number;
+  color: string;
+}
+export type SetColorResponse = 'ok';

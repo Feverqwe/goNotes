@@ -140,7 +140,8 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
 
   const toggleDeleteExisting = useCallback(
     (id: number) => {
-      setDeletedAttachIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]),
+      setDeletedAttachIds((prev) =>
+        prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
       );
     },
     [setDeletedAttachIds],
@@ -310,7 +311,8 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   );
 
   const textFieldSlotProps = useMemo(
-    () => ({
+    () =>
+      ({
         input: {
           disableUnderline: true,
           sx: {color: '#fff', py: 1.5, px: 1, fontSize: '0.95rem'},

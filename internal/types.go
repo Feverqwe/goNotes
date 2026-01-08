@@ -9,6 +9,7 @@ type MessageDTO struct {
 	IsArchived  int             `json:"is_archived"`
 	Tags        []string        `json:"tags"`
 	Attachments []AttachmentDTO `json:"attachments"`
+	Color       string          `json:"color"`
 }
 
 type AttachmentDTO struct {
