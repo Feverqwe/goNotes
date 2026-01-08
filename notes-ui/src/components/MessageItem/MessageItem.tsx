@@ -20,7 +20,7 @@ import {CSS} from '@dnd-kit/utilities';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {Note} from '../../types';
-import {formatFullDate, formatShortDate} from './utils';
+import {formatFullDate, formatShortDate, getBgColor, getBorderColor} from './utils';
 import CodeP from './CodeP';
 import CodeUl from './CodeUl';
 import CodeLi from './CodeLi';
@@ -149,7 +149,7 @@ const MessageItem: FC<MessageItemProps> = ({
   );
 
   const cardSx = useMemo(() => {
-    const bgcolor = msg.color ? `${msg.color}44` : msg.is_archived ? '#161618' : '#1c1c1e';
+    const bgcolor = msg.color ? getBgColor(msg.color) : msg.is_archived ? '#161618' : '#1c1c1e';
     return {
       position: 'relative',
       '&:hover .message-action': {opacity: 1},
@@ -166,9 +166,7 @@ const MessageItem: FC<MessageItemProps> = ({
         ? '1px solid #90caf9'
         : isReorderMode
           ? '1px dashed #90caf9'
-          : msg.is_archived
-            ? `1px solid ${msg.color}66`
-            : `1px solid ${bgcolor}`,
+          : `1px solid ${msg.color ? getBorderColor(msg.color) : bgcolor}`,
     };
   }, [msg.color, msg.is_archived, isSelected, isReorderMode]);
 

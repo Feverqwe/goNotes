@@ -19,3 +19,11 @@ export const formatFullDate = (dateStr: string) => {
     second: '2-digit',
   });
 };
+
+export function getBgColor(color: string) {
+  return `${color}44`;
+}
+
+export function getBorderColor(color: string) {
+  return `${color}66`;
+}

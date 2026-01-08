@@ -1,5 +1,6 @@
 import React, {FC, memo} from 'react';
 import {Box} from '@mui/material';
+import {getBgColor, getBorderColor} from '../MessageItem/utils';
 
 interface ColorItemProps {
   color: string;
@@ -15,9 +16,9 @@ const ColorItem: FC<ColorItemProps> = memo(({color, isSelected, onClick}: ColorI
         width: 24,
         height: 24,
         borderRadius: '50%',
-        bgcolor: color || 'transparent',
+        bgcolor: color ? getBgColor(color) : 'transparent',
         border: '2px solid',
-        borderColor: color ? 'transparent' : '#8e8e93',
+        borderColor: color ? getBorderColor(color) : '#8e8e93',
         cursor: 'pointer',
         '&:hover': {scale: '1.1'},
         outline: isSelected ? '2px solid #90caf9' : 'none',
