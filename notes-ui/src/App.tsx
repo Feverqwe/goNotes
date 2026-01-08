@@ -346,6 +346,7 @@ function App() {
     });
   }, []);
 
+  const handleToggleDrawer = useCallback(() => setIsDrawerOpen((v) => !v), []);
   const handleOpenDrawer = useCallback(() => setIsDrawerOpen(true), []);
   const handleCloseDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
@@ -367,8 +368,7 @@ function App() {
   );
 
   const hasActiveFilters = useMemo(
-    () =>
-      searchQuery.length > 0 ||
+    () => searchQuery.length > 0 ||
       currentTags.length > 0 ||
       showArchived ||
       selectedNoteId !== undefined,
@@ -405,7 +405,7 @@ function App() {
           setShowArchived={setShowArchived}
           hasActiveFilters={hasActiveFilters}
           setSelectedNoteId={setSelectedNoteId}
-          onMenuClick={handleOpenDrawer}
+          onMenuClick={handleToggleDrawer}
         />
 
         <Box display="flex">
