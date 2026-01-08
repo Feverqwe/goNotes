@@ -140,8 +140,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
 
   const toggleDeleteExisting = useCallback(
     (id: number) => {
-      setDeletedAttachIds((prev) =>
-        prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+      setDeletedAttachIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]),
       );
     },
     [setDeletedAttachIds],
@@ -197,9 +196,15 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       formData.append('delete_attachments', deletedAttachIds.join(','));
       updateMessageMutation.mutate(formData);
     } else {
+      let addTags = '';
       currentTags.forEach((tag) => {
-        if (!finalContent.includes(`#${tag}`)) finalContent += `\n #${tag}`;
+        if (!finalContent.includes(`#${tag}`)) {
+          addTags += ` #${tag}`;
+        }
       });
+      if (addTags) {
+        finalContent += `\n ${addTags.trim()}`;
+      }
       formData.append('content', finalContent);
       sendMessageMutation.mutate(formData);
     }
@@ -305,8 +310,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
   );
 
   const textFieldSlotProps = useMemo(
-    () =>
-      ({
+    () => ({
         input: {
           disableUnderline: true,
           sx: {color: '#fff', py: 1.5, px: 1, fontSize: '0.95rem'},
