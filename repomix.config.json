@@ -5,11 +5,8 @@
     "excludePatterns": [
       "**/node_modules/**",
       "**/.git/**",
-      "**/vendor/**",
       "**/dist/**",
-      "**/.next/**",
-      "package-lock.json",
-      "yarn.lock",
+      "package-lock.json"
     ]
   },
   "output": {
@@ -30,7 +27,6 @@
   },
   "include": [
     "**/*.go",
-    "**/*.md",
     "**/*.sql",
     "**/*.ts",
     "**/*.tsx",
