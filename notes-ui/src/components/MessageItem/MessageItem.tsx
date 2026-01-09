@@ -165,7 +165,7 @@ const MessageItem: FC<MessageItemProps> = ({
         lineHeight: 1.6,
         overflowWrap: 'anywhere',
       },
-      '& code': {
+      '& code.inline': {
         bgcolor: 'action.selected', // Заменено с #2c2c2e
         px: 0.5,
         borderRadius: 1,

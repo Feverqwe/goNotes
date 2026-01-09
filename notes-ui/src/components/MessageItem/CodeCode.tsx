@@ -57,16 +57,16 @@ const copyIconSx = {fontSize: 16};
 
 const codeTagProps = {
   style: {
-    padding: 0,
     display: 'block',
-    backgroundColor: 'transparent', // Позволяем Box управлять фоном
+    fontFamily: 'monospace',
+    fontSize: '0.9em',
   },
 };
 
 const customStyle = {
   margin: 0,
   padding: '12px',
-  backgroundColor: 'transparent', // Используем фон контейнера MUI
+  borderRadius: 0,
 };
 
 interface CodeCodeProps extends PropsWithChildren {
@@ -125,6 +125,7 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
     return (
       <code
         tabIndex={0}
+        className="inline"
         onKeyDown={handleKeyDown}
         onClick={handleCopy}
         style={getInlineCodeStyle(theme)}
@@ -148,6 +149,7 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         </IconButton>
       </Box>
       <SyntaxHighlighter
+        key={theme.palette.mode}
         style={theme.palette.mode === 'dark' ? oneDark : oneLight}
         language={lang}
         PreTag="div"
