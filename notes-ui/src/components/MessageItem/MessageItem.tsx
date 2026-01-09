@@ -154,7 +154,7 @@ const MessageItem: FC<MessageItemProps> = ({
       '&:hover .message-action': {opacity: 1},
       bgcolor: msg.color ? getBgColor(msg.color) : msg.is_archived ? 'action.hover' : null,
       backgroundImage: msg.is_archived
-        ? `repeating-linear-gradient(45deg, rgba(255,255,255,${isDark ? '0.02' : '0.3'}) 0px, rgba(255,255,255,${isDark ? '0.02' : '0.3'}) 2px, transparent 2px, transparent 10px)`
+        ? `repeating-linear-gradient(45deg, rgba(255,255,255,${isDark ? '0.01' : '0.2'}) 0px, rgba(255,255,255,${isDark ? '0.01' : '0.2'}) 2px, transparent 2px, transparent 10px)`
         : null,
       border: isSelected ? '1px solid' : isReorderMode ? '1px dashed' : '1px solid',
       borderColor:
