@@ -201,6 +201,7 @@ const MessageItem: FC<MessageItemProps> = ({
   return (
     <Box ref={setNodeRef} style={style}>
       <Card
+        tabIndex={0}
         onKeyDown={handleKeyDown}
         onClick={isSelectMode ? handleCardClick : undefined}
         variant="elevation"

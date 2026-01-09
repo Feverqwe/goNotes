@@ -12,17 +12,6 @@ import {
 import {AddCircleOutline, Close, Edit} from '@mui/icons-material';
 import BottomInputForm, {BottomInputFormProps} from '../BottomInputForm/BottomInputForm';
 
-const dialogPaperSx = {
-  paper: {
-    sx: {
-      bgcolor: 'background.paper', // Заменено с #1c1c1e
-      backgroundImage: 'none',
-      border: '0',
-      borderRadius: '12px',
-    },
-  },
-};
-
 const dialogTitleSx = {
   display: 'flex',
   alignItems: 'center',
@@ -68,7 +57,6 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
       maxWidth="sm"
       fullWidth
       scroll="paper"
-      slotProps={dialogPaperSx}
       transitionDuration={100}
       disableRestoreFocus={true}
     >
