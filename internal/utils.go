@@ -83,12 +83,27 @@ func fetchAttachmentsForMessages(ids []int64) map[int64][]AttachmentDTO {
 }
 
 func extractHashtags(text string) []string {
-	re := regexp.MustCompile(`#([^\s$` + "`" + `]+)`)
-	matches := re.FindAllStringSubmatch(text, -1)
+	// 1. Удаляем многострочные блоки кода: ```любой контент```
+	reCodeBlock := regexp.MustCompile("(?s)```.*?```")
+	cleanText := reCodeBlock.ReplaceAllString(text, "")
+
+	// 2. Удаляем инлайновые блоки кода: `контент`
+	reInlineCode := regexp.MustCompile("`.*?`")
+	cleanText = reInlineCode.ReplaceAllString(cleanText, "")
+
+	// 3. Извлекаем хештеги из оставшегося "чистого" текста
+	// Используем обновленную регулярку, которая не берет знаки пунктуации в конце
+	re := regexp.MustCompile(`#([^\s$!@#%^&*()=+\[\]{}|\\;:'",.<>?/` + "`" + `]+)`)
+	matches := re.FindAllStringSubmatch(cleanText, -1)
+
 	set := make(map[string]struct{})
 	var result []string
 	for _, m := range matches {
 		t := strings.ToLower(m[1])
+		// Проверка на пустой тег или просто символ #
+		if t == "" {
+			continue
+		}
 		if _, ok := set[t]; !ok {
 			set[t] = struct{}{}
 			result = append(result, t)
