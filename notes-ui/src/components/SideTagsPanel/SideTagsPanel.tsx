@@ -1,7 +1,21 @@
 import React, {FC, memo, PropsWithChildren} from 'react';
-import {Box, Button, SwipeableDrawer, Theme, useMediaQuery, useTheme} from '@mui/material';
-import {Add as AddIcon} from '@mui/icons-material';
+import {
+  Box,
+  Button,
+  Divider,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  SwipeableDrawer,
+  Switch,
+  Theme,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
+import {Add as AddIcon, DarkMode, LightMode} from '@mui/icons-material';
 import {HEADER_HEIGHT, SIDE_PANEL_WIDTH} from '../../constants';
+import {useAppTheme} from '../../ctx/ThemeCtx';
 
 const drawerSx = {
   width: SIDE_PANEL_WIDTH,
@@ -9,7 +23,6 @@ const drawerSx = {
 
 const contentWrapperSx = {
   pt: 3,
-  pb: 4,
   display: 'flex',
   flexDirection: 'column',
   height: '100%',
@@ -42,6 +55,7 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
   ({children, onCreateClick, open, onOpen, onClose}: SideTagsPanelProps) => {
     const theme = useTheme();
     const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
+    const {mode, toggleTheme} = useAppTheme();
 
     const drawerSlotProps = {
       paper: {
@@ -86,6 +100,21 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
             </Box>
           )}
           <Box sx={menuSx}>{children}</Box>
+          <Box sx={{mt: 'auto'}}>
+            <Divider sx={{borderColor: 'divider'}} />
+            <List>
+              <ListItem>
+                <ListItemIcon sx={{minWidth: 40}}>
+                  {mode === 'dark' ? <DarkMode fontSize="small" /> : <LightMode fontSize="small" />}
+                </ListItemIcon>
+                <ListItemText
+                  primary={mode === 'dark' ? 'Темная тема' : 'Светлая тема'}
+                  slotProps={{primary: {fontSize: '0.85rem'}}}
+                />
+                <Switch edge="end" onChange={toggleTheme} checked={mode === 'dark'} size="small" />
+              </ListItem>
+            </List>
+          </Box>
         </Box>
       </SwipeableDrawer>
     );

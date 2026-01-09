@@ -3,9 +3,7 @@ import {ThemeOptions} from '@mui/material';
 export const API_BASE = '';
 
 export const themeProps = {
-  palette: {
-    mode: 'dark',
-  },
+  palette: {},
 
   components: {
     MuiButtonBase: {
