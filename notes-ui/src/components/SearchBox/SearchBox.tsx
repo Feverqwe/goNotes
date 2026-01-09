@@ -124,7 +124,6 @@ const SearchBox: FC<SearchBoxProps> = ({
                 sx={{
                   p: 1,
                   display: 'flex',
-                  color: activeFiltersCount ? 'primary.main' : 'text.disabled',
                 }}
               >
                 <SearchIcon sx={{fontSize: 22}} />
@@ -132,7 +131,6 @@ const SearchBox: FC<SearchBoxProps> = ({
             ) : (
               <IconButton
                 onClick={onMenuClick}
-                sx={{color: activeFiltersCount ? 'primary.main' : 'text.secondary'}}
               >
                 <MenuIcon sx={{fontSize: 24}} />
               </IconButton>
