@@ -102,6 +102,8 @@ const SearchBox: FC<SearchBoxProps> = ({
         backdropFilter: 'blur(20px) saturate(180%)',
         borderBottom: '1px solid',
         borderColor: 'divider',
+        borderLeft: 0,
+        borderRight: 0,
       }) satisfies React.ComponentProps<typeof AppBar>['sx'],
     [theme.palette.background.paper, theme.zIndex.drawer],
   );
@@ -129,9 +131,7 @@ const SearchBox: FC<SearchBoxProps> = ({
                 <SearchIcon sx={{fontSize: 22}} />
               </Box>
             ) : (
-              <IconButton
-                onClick={onMenuClick}
-              >
+              <IconButton onClick={onMenuClick}>
                 <MenuIcon sx={{fontSize: 24}} />
               </IconButton>
             )}
