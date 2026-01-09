@@ -83,7 +83,7 @@ func fetchAttachmentsForMessages(ids []int64) map[int64][]AttachmentDTO {
 }
 
 func extractHashtags(text string) []string {
-	re := regexp.MustCompile(`#([^\s$]+)`)
+	re := regexp.MustCompile(`#([^\s$` + "`" + `]+)`)
 	matches := re.FindAllStringSubmatch(text, -1)
 	set := make(map[string]struct{})
 	var result []string
@@ -127,6 +127,11 @@ func isImage(name string) bool {
 func isAudio(name string) bool {
 	ext := strings.ToLower(filepath.Ext(name))
 	return ext == ".mp3" || ext == ".wav" || ext == ".ogg" || ext == ".m4a" || ext == ".aac"
+}
+
+func isVideo(name string) bool {
+	ext := strings.ToLower(filepath.Ext(name))
+	return ext == ".mp4" || ext == ".mov"
 }
 
 func rotate90(img image.Image) image.Image {

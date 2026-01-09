@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"goNotes/internal/cfg"
 	"log"
+	"mime/multipart"
 	"net/http"
 	"path/filepath"
 	"strconv"
@@ -160,9 +161,38 @@ func handleAction(router *Router, config *cfg.Config) {
 		})
 	})
 
+	handleAttachment := func(fHeader *multipart.FileHeader, id int64) (fileName string, thumbnailPath string, fileType string, err error) {
+		fileName = fmt.Sprintf("%d_%s", id, fHeader.Filename)
+		fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
+
+		err = saveFile(fHeader, fullPath)
+		if err != nil {
+			log.Printf("File save error: %v", err)
+			return
+		}
+
+		fileType = "document"
+		thumbnailPath = ""
+		if isImage(fileName) {
+			fileType = "image"
+			thumbName := "thumb_" + fileName
+			fullThumbPath := filepath.Join(cfg.GetProfilePath(), "uploads", thumbName)
+
+			if err := generateThumbnail(fullPath, fullThumbPath); err != nil {
+				log.Printf("Ошибка генерации миниатюры: %v", err)
+			} else {
+				thumbnailPath = thumbName
+			}
+		} else if isAudio(fileName) {
+			fileType = "audio"
+		} else if isVideo(fileName) {
+			fileType = "video"
+		}
+		return
+	}
+
 	router.Post("/api/messages/send", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (interface{}, error) {
-
 			if err := r.ParseMultipartForm(32 << 20); err != nil {
 				return nil, err
 			}
@@ -187,41 +217,29 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			tags := extractHashtags(content)
 			for _, t := range tags {
-				tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
-				tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", msgID, t)
+				_, err = tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
+				if err != nil {
+					return nil, err
+				}
+				_, err = tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", msgID, t)
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			files := r.MultipartForm.File["attachments"]
 			for _, fHeader := range files {
-				fileName := fmt.Sprintf("%d_%s", msgID, fHeader.Filename)
-				fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
-
-				if err := saveFile(fHeader, fullPath); err != nil {
-					log.Printf("File save error: %v", err)
+				fileName, thumbnailPath, fileType, attErr := handleAttachment(fHeader, msgID)
+				if attErr != nil {
+					log.Printf("File save error: %v", attErr)
 					continue
-				}
-
-				ext := strings.ToLower(filepath.Ext(fileName))
-				fileType := "document"
-				thumbnailPath := ""
-				if isImage(fileName) {
-					fileType = "image"
-					thumbName := "thumb_" + fileName
-					fullThumbPath := filepath.Join(cfg.GetProfilePath(), "uploads", thumbName)
-
-					if err := generateThumbnail(fullPath, fullThumbPath); err != nil {
-						log.Printf("Ошибка генерации миниатюры: %v", err)
-					} else {
-						thumbnailPath = thumbName
-					}
-				} else if isAudio(fileName) {
-					fileType = "audio"
-				} else if ext == ".mp4" || ext == ".mov" {
-					fileType = "video"
 				}
 
 				_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
 					msgID, fileName, thumbnailPath, fileType)
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			if err := tx.Commit(); err != nil {
@@ -268,34 +286,42 @@ func handleAction(router *Router, config *cfg.Config) {
 						}
 					}
 
-					tx.Exec("DELETE FROM attachments WHERE id = ?", aid)
+					_, err = tx.Exec("DELETE FROM attachments WHERE id = ?", aid)
+					if err != nil {
+						return nil, err
+					}
 				}
 			}
 
 			files := r.MultipartForm.File["attachments"]
 			for _, fHeader := range files {
-				fileName := fmt.Sprintf("%d_%s", id, fHeader.Filename)
-				fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
-				if err := saveFile(fHeader, fullPath); err == nil {
-					fileType := "document"
-					thumbnailPath := ""
-					if isImage(fileName) {
-						fileType = "image"
-						thumbName := "thumb_" + fileName
-						if err := generateThumbnail(fullPath, filepath.Join(cfg.GetProfilePath(), "uploads", thumbName)); err == nil {
-							thumbnailPath = thumbName
-						}
-					}
-					tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
-						id, fileName, thumbnailPath, fileType)
+				fileName, thumbnailPath, fileType, attErr := handleAttachment(fHeader, id)
+				if attErr != nil {
+					log.Printf("File save error: %v", attErr)
+					continue
+				}
+				_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
+					id, fileName, thumbnailPath, fileType)
+				if err != nil {
+					return nil, err
 				}
 			}
 
-			tx.Exec("DELETE FROM message_tags WHERE message_id = ?", id)
+			_, err = tx.Exec("DELETE FROM message_tags WHERE message_id = ?", id)
+			if err != nil {
+				return nil, err
+			}
+
 			tags := extractHashtags(content)
 			for _, t := range tags {
-				tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
-				tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", id, t)
+				_, err = tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
+				if err != nil {
+					return nil, err
+				}
+				_, err = tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", id, t)
+				if err != nil {
+					return nil, err
+				}
 			}
 
 			if err := tx.Commit(); err != nil {
