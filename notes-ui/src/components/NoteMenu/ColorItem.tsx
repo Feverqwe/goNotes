@@ -17,7 +17,7 @@ const ColorItem: FC<ColorItemProps> = memo(({color, isSelected, onClick}: ColorI
         height: 24,
         borderRadius: '50%',
         bgcolor: color ? getBgColor(color) : 'transparent',
-        border: '2px solid',
+        border: '1px solid',
         borderColor: color ? getBorderColor(color) : '#8e8e93',
         cursor: 'pointer',
         '&:hover': {scale: '1.1'},
