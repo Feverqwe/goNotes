@@ -10,6 +10,7 @@ import {
   Theme,
   Tooltip,
   Typography,
+  useMediaQuery,
   useTheme,
 } from '@mui/material';
 import {MoreVert} from '@mui/icons-material';
@@ -41,20 +42,6 @@ const bottomSx = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'flex-end',
-};
-
-const menuBtnSx = {
-  position: 'absolute',
-  top: 4,
-  right: 4,
-  opacity: {xs: 1, sm: 0},
-  transition: 'opacity 0.2s',
-  color: 'text.secondary',
-  backdropFilter: 'blur(4px)',
-  '&:focus-visible': {
-    opacity: 1,
-    boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
-  },
 };
 
 const selectCheckboxSx = {
@@ -105,6 +92,7 @@ const MessageItem: FC<MessageItemProps> = ({
   totalCount,
 }) => {
   const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({
     id: msg.id,
     disabled: !isReorderMode,
@@ -191,6 +179,23 @@ const MessageItem: FC<MessageItemProps> = ({
       '& ul, & ol': {pl: 2, my: 1},
     }),
     [msg.is_archived],
+  );
+
+  const menuBtnSx = useMemo(
+    () => ({
+      position: 'absolute',
+      top: 4,
+      right: 4,
+      opacity: {xs: 1, sm: 0},
+      transition: 'opacity 0.2s',
+      color: 'text.secondary',
+      backdropFilter: isMobile ? 'none' : 'blur(4px)',
+      '&:focus-visible': {
+        opacity: 1,
+        boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
+      },
+    }),
+    [isMobile],
   );
 
   const fullDate = useMemo(() => formatFullDate(msg.created_at), [msg.created_at]);
