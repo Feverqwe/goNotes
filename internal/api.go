@@ -23,7 +23,7 @@ type JsonFailResponse struct {
 }
 
 type JsonSuccessResponse struct {
-	Result interface{} `json:"result"`
+	Result any `json:"result"`
 }
 
 var db *sql.DB
@@ -41,7 +41,7 @@ func HandleApi(router *Router, database *sql.DB, config *cfg.Config) {
 
 func handleAction(router *Router, config *cfg.Config) {
 	router.Get("/api/messages/list", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (interface{}, error) {
+		apiCall(w, func() ([]MessageDTO, error) {
 			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 			lastOrder, _ := strconv.Atoi(r.URL.Query().Get("last_order"))
 			tagsParam := r.URL.Query().Get("tags")
@@ -54,7 +54,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			}
 
 			var clauses []string
-			var args []interface{}
+			var args []any
 
 			if noteID > 0 {
 				clauses = append(clauses, "id = ?")
@@ -192,9 +192,9 @@ func handleAction(router *Router, config *cfg.Config) {
 	}
 
 	router.Post("/api/messages/send", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (interface{}, error) {
+		apiCall(w, func() (string, error) {
 			if err := r.ParseMultipartForm(32 << 20); err != nil {
-				return nil, err
+				return "", err
 			}
 
 			content := r.FormValue("content")
@@ -202,7 +202,7 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			tx, err := db.Begin()
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 			defer tx.Rollback()
 
@@ -211,7 +211,7 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			res, err := tx.Exec("INSERT INTO messages (content, content_lower, sort_order) VALUES (?, ?, ?)", content, contentLower, maxOrder+1)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 			msgID, _ := res.LastInsertId()
 
@@ -219,11 +219,11 @@ func handleAction(router *Router, config *cfg.Config) {
 			for _, t := range tags {
 				_, err = tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
 				if err != nil {
-					return nil, err
+					return "", err
 				}
 				_, err = tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", msgID, t)
 				if err != nil {
-					return nil, err
+					return "", err
 				}
 			}
 
@@ -238,12 +238,12 @@ func handleAction(router *Router, config *cfg.Config) {
 				_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
 					msgID, fileName, thumbnailPath, fileType)
 				if err != nil {
-					return nil, err
+					return "", err
 				}
 			}
 
 			if err := tx.Commit(); err != nil {
-				return nil, err
+				return "", err
 			}
 
 			return "ok", nil
@@ -251,10 +251,10 @@ func handleAction(router *Router, config *cfg.Config) {
 	})
 
 	router.Post("/api/messages/update", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (interface{}, error) {
+		apiCall(w, func() (string, error) {
 
 			if err := r.ParseMultipartForm(32 << 20); err != nil {
-				return nil, err
+				return "", err
 			}
 
 			idStr := r.FormValue("id")
@@ -270,7 +270,7 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			_, err := tx.Exec("UPDATE messages SET content = ?, content_lower = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", content, contentLower, id)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 
 			if deleteAttachIDs != "" {
@@ -288,7 +288,7 @@ func handleAction(router *Router, config *cfg.Config) {
 
 					_, err = tx.Exec("DELETE FROM attachments WHERE id = ?", aid)
 					if err != nil {
-						return nil, err
+						return "", err
 					}
 				}
 			}
@@ -303,29 +303,29 @@ func handleAction(router *Router, config *cfg.Config) {
 				_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
 					id, fileName, thumbnailPath, fileType)
 				if err != nil {
-					return nil, err
+					return "", err
 				}
 			}
 
 			_, err = tx.Exec("DELETE FROM message_tags WHERE message_id = ?", id)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 
 			tags := extractHashtags(content)
 			for _, t := range tags {
 				_, err = tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
 				if err != nil {
-					return nil, err
+					return "", err
 				}
 				_, err = tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", id, t)
 				if err != nil {
-					return nil, err
+					return "", err
 				}
 			}
 
 			if err := tx.Commit(); err != nil {
-				return nil, err
+				return "", err
 			}
 
 			return "ok", nil
@@ -375,13 +375,13 @@ func handleAction(router *Router, config *cfg.Config) {
 	})
 
 	router.Post("/api/messages/batch-archive", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (interface{}, error) {
+		apiCall(w, func() (string, error) {
 			var data struct {
 				IDs     []int64 `json:"ids"`
 				Archive int     `json:"archive"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-				return nil, err
+				return "", err
 			}
 
 			if len(data.IDs) == 0 {
@@ -390,7 +390,7 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			query := fmt.Sprintf("UPDATE messages SET is_archived = ? WHERE id IN (%s)", generatePlaceholders(len(data.IDs)))
 
-			args := make([]interface{}, len(data.IDs)+1)
+			args := make([]any, len(data.IDs)+1)
 			args[0] = data.Archive
 			for i, id := range data.IDs {
 				args[i+1] = id
@@ -398,7 +398,7 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			_, err := db.Exec(query, args...)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 
 			return "ok", nil
@@ -406,12 +406,12 @@ func handleAction(router *Router, config *cfg.Config) {
 	})
 
 	router.Post("/api/messages/batch-delete", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (interface{}, error) {
+		apiCall(w, func() (string, error) {
 			var data struct {
 				IDs []int64 `json:"ids"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-				return nil, err
+				return "", err
 			}
 
 			if len(data.IDs) == 0 {
@@ -442,14 +442,14 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			query := fmt.Sprintf("DELETE FROM messages WHERE id IN (%s)", generatePlaceholders(len(data.IDs)))
 
-			args := make([]interface{}, len(data.IDs))
+			args := make([]any, len(data.IDs))
 			for i, id := range data.IDs {
 				args[i] = id
 			}
 
 			_, err := db.Exec(query, args...)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 
 			return "ok", nil
@@ -457,7 +457,7 @@ func handleAction(router *Router, config *cfg.Config) {
 	})
 
 	router.Post("/api/messages/archive", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (interface{}, error) {
+		apiCall(w, func() (string, error) {
 			var data struct {
 				Id      int64 `json:"id"`
 				Archive int   `json:"archive"`
@@ -468,20 +468,20 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			_, err := db.Exec("UPDATE messages SET is_archived = ? WHERE id = ?", archive, id)
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 			return "ok", nil
 		})
 	})
 
 	router.Post("/api/messages/set-color", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (interface{}, error) {
+		apiCall(w, func() (string, error) {
 			var data struct {
 				Id    int64  `json:"id"`
 				Color string `json:"color"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-				return nil, err
+				return "", err
 			}
 			_, err := db.Exec("UPDATE messages SET color = ? WHERE id = ?", data.Color, data.Id)
 			return "ok", err
@@ -489,7 +489,7 @@ func handleAction(router *Router, config *cfg.Config) {
 	})
 
 	router.Post("/api/messages/reorder", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (interface{}, error) {
+		apiCall(w, func() (string, error) {
 			var data struct {
 				IDs []int64 `json:"ids"`
 			}
@@ -497,13 +497,13 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			tx, err := db.Begin()
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 			defer tx.Rollback()
 
 			rows, err := tx.Query(fmt.Sprintf("SELECT sort_order FROM messages WHERE id IN (%s) ORDER BY sort_order DESC", joinIDs(data.IDs)))
 			if err != nil {
-				return nil, err
+				return "", err
 			}
 			var orders []int
 			for rows.Next() {
@@ -514,11 +514,14 @@ func handleAction(router *Router, config *cfg.Config) {
 			rows.Close()
 
 			for i, id := range data.IDs {
-				tx.Exec("UPDATE messages SET sort_order = ? WHERE id = ?", orders[i], id)
+				_, err := tx.Exec("UPDATE messages SET sort_order = ? WHERE id = ?", orders[i], id)
+				if err != nil {
+					return "", err
+				}
 			}
 
 			if err := tx.Commit(); err != nil {
-				return nil, err
+				return "", err
 			}
 
 			return "ok", nil
@@ -527,7 +530,6 @@ func handleAction(router *Router, config *cfg.Config) {
 
 	router.Get("/api/tags/list", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() ([]string, error) {
-
 			rows, err := db.Query(`
 				SELECT DISTINCT t.name 
 				FROM tags t 
@@ -550,7 +552,7 @@ func handleAction(router *Router, config *cfg.Config) {
 	})
 
 	router.Post("/api/tags/reorder", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (interface{}, error) {
+		apiCall(w, func() (string, error) {
 			var data struct {
 				Names []string `json:"names"`
 			}
@@ -561,7 +563,10 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			for i, name := range data.Names {
 				newOrder := len(data.Names) - i
-				tx.Exec("UPDATE tags SET sort_order = ? WHERE name = ?", newOrder, name)
+				_, err := tx.Exec("UPDATE tags SET sort_order = ? WHERE name = ?", newOrder, name)
+				if err != nil {
+					return "", err
+				}
 			}
 			return "ok", tx.Commit()
 		})
@@ -576,9 +581,9 @@ func apiCall[T any](w http.ResponseWriter, action ActionAny[T]) {
 	}
 }
 
-func writeApiResult(w http.ResponseWriter, result interface{}, err error) error {
+func writeApiResult(w http.ResponseWriter, result any, err error) error {
 	var statusCode int
-	var body interface{}
+	var body any
 	if err != nil {
 		statusCode = 500
 		body = JsonFailResponse{Error: err.Error()}
