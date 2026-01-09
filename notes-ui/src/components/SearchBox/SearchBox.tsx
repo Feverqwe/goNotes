@@ -104,6 +104,7 @@ const SearchBox: FC<SearchBoxProps> = ({
         borderColor: 'divider',
         borderLeft: 0,
         borderRight: 0,
+        borderTop: 0,
       }) satisfies React.ComponentProps<typeof AppBar>['sx'],
     [theme.palette.background.paper, theme.zIndex.drawer],
   );
