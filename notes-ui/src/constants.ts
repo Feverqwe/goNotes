@@ -4,7 +4,7 @@ export const API_BASE = '';
 
 export const themeProps = {
   palette: {
-    mode: 'light',
+    mode: 'dark',
   },
 
   components: {
