@@ -1,32 +1,31 @@
 import React, {CSSProperties, FC, PropsWithChildren, useCallback, useContext, useMemo} from 'react';
-import {Box, IconButton, Typography} from '@mui/material';
+import {Box, IconButton, Theme, Typography, useTheme} from '@mui/material';
 import {ContentCopy} from '@mui/icons-material';
 import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter';
-import {oneDark} from 'react-syntax-highlighter/dist/esm/styles/prism';
+import {oneDark, oneLight} from 'react-syntax-highlighter/dist/esm/styles/prism';
 import {SnackCtx} from '../../ctx/SnackCtx';
 
-const inlineCodeStyle = {
-  backgroundColor: 'rgba(144, 202, 249, 0.1)',
-  color: '#90caf9',
+// Стили для инлайнового кода теперь используют функции темы
+const getInlineCodeStyle = (theme: Theme): CSSProperties => ({
+  backgroundColor: theme.palette.action.selected,
+  color: theme.palette.primary.main,
   padding: '2px 5px',
   borderRadius: '4px',
   fontFamily: 'monospace',
   fontSize: '0.85em',
   cursor: 'pointer',
-  border: '1px solid rgba(144, 202, 249, 0.2)',
+  border: `1px solid ${theme.palette.divider}`,
   wordBreak: 'break-word',
-  transition: 'all 0.1s',
-} satisfies CSSProperties;
+  transition: theme.transitions.create(['background-color']),
+});
 
 const codeBoxSx = {
   my: 1.5,
   borderRadius: 2,
   overflow: 'hidden',
-  border: '1px solid rgba(255, 255, 255, 0.08)',
-  bgcolor: '#282c34',
-  code: {
-    bgcolor: '#282c34',
-  },
+  border: '1px solid',
+  borderColor: 'divider',
+  bgcolor: 'background.paper', // Раньше был жесткий #282c34
 };
 
 const codeHeaderSx = {
@@ -35,12 +34,13 @@ const codeHeaderSx = {
   justifyContent: 'space-between',
   px: 1.5,
   py: 0.2,
-  bgcolor: 'rgba(0, 0, 0, 0.3)',
-  borderBottom: '1px solid rgba(255, 255, 255, 0.05)',
+  bgcolor: 'action.hover', // Раньше была ручная прозрачность
+  borderBottom: '1px solid',
+  borderColor: 'divider',
 };
 
 const codeLangSx = {
-  color: '#5c6370',
+  color: 'text.disabled',
   fontWeight: 700,
   textTransform: 'uppercase',
   letterSpacing: '0.5px',
@@ -48,9 +48,9 @@ const codeLangSx = {
 };
 
 const copySx = {
-  color: '#8e8e93',
+  color: 'text.secondary',
   p: 1,
-  '&:hover': {color: '#90caf9'},
+  '&:hover': {color: 'primary.main'},
 };
 
 const copyIconSx = {fontSize: 16};
@@ -59,12 +59,14 @@ const codeTagProps = {
   style: {
     padding: 0,
     display: 'block',
+    backgroundColor: 'transparent', // Позволяем Box управлять фоном
   },
 };
 
 const customStyle = {
   margin: 0,
   padding: '12px',
+  backgroundColor: 'transparent', // Используем фон контейнера MUI
 };
 
 interface CodeCodeProps extends PropsWithChildren {
@@ -74,6 +76,7 @@ interface CodeCodeProps extends PropsWithChildren {
 
 const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
   const showSnackbar = useContext(SnackCtx);
+  const theme = useTheme();
 
   const isMultiline = useMemo(() => /\n/.test(String(children)), [children]);
   const lang = useMemo(() => {
@@ -95,7 +98,6 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.target !== e.currentTarget) return;
-
       if (e.key.toLowerCase() === 'enter') {
         e.stopPropagation();
         navigator.clipboard.writeText(codeContent);
@@ -105,13 +107,19 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
     [codeContent, showSnackbar],
   );
 
-  const handleMouseEnter = useCallback((e: React.MouseEvent<HTMLElement>) => {
-    e.currentTarget.style.backgroundColor = 'rgba(144, 202, 249, 0.2)';
-  }, []);
+  const handleMouseEnter = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      e.currentTarget.style.backgroundColor = theme.palette.action.hover;
+    },
+    [theme],
+  );
 
-  const onMouseLeave = useCallback((e: React.MouseEvent<HTMLElement>) => {
-    e.currentTarget.style.backgroundColor = 'rgba(144, 202, 249, 0.1)';
-  }, []);
+  const onMouseLeave = useCallback(
+    (e: React.MouseEvent<HTMLElement>) => {
+      e.currentTarget.style.backgroundColor = theme.palette.action.selected;
+    },
+    [theme],
+  );
 
   if (!isMultiline) {
     return (
@@ -119,7 +127,7 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         tabIndex={0}
         onKeyDown={handleKeyDown}
         onClick={handleCopy}
-        style={inlineCodeStyle}
+        style={getInlineCodeStyle(theme)}
         onMouseEnter={handleMouseEnter}
         onMouseLeave={onMouseLeave}
         {...props}
@@ -135,14 +143,12 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
         <Typography variant="caption" sx={codeLangSx}>
           {lang || 'code'}
         </Typography>
-
         <IconButton onClick={handleCopy} size="medium" sx={copySx}>
           <ContentCopy sx={copyIconSx} />
         </IconButton>
       </Box>
-
       <SyntaxHighlighter
-        style={oneDark}
+        style={theme.palette.mode === 'dark' ? oneDark : oneLight}
         language={lang}
         PreTag="div"
         wrapLines={true}

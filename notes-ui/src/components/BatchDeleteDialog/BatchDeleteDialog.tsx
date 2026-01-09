@@ -12,6 +12,14 @@ import {SnackCtx} from '../../ctx/SnackCtx';
 import {api} from '../../tools/api';
 import {BatchDeleteRequest} from '../../tools/types';
 
+const btnSx = {
+  borderRadius: '6px',
+  textTransform: 'none',
+  '&:hover': {
+    bgcolor: 'action.hover',
+  },
+};
+
 interface BatchDeleteDialogProps {
   deleteBatchDialogOpen: boolean;
   closeBatchDeleteDialog: () => void;
@@ -58,11 +66,11 @@ const BatchDeleteDialog: FC<BatchDeleteDialogProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={confirmBatchDelete} fullWidth variant="text" color="error">
+        <Button onClick={confirmBatchDelete} fullWidth variant="text" color="error" sx={btnSx}>
           Удалить
         </Button>
 
-        <Button onClick={closeBatchDeleteDialog} fullWidth variant="text">
+        <Button onClick={closeBatchDeleteDialog} fullWidth variant="text" sx={btnSx}>
           Отмена
         </Button>
       </DialogActions>

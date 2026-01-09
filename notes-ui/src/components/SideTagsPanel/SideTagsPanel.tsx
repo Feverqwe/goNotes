@@ -1,21 +1,10 @@
 import React, {FC, memo, PropsWithChildren} from 'react';
-import {Box, Button, SwipeableDrawer, useMediaQuery, useTheme} from '@mui/material';
+import {Box, Button, SwipeableDrawer, Theme, useMediaQuery, useTheme} from '@mui/material';
 import {Add as AddIcon} from '@mui/icons-material';
 import {HEADER_HEIGHT, SIDE_PANEL_WIDTH} from '../../constants';
 
 const drawerSx = {
   width: SIDE_PANEL_WIDTH,
-};
-
-const drawerSlopPropsSx = {
-  paper: {
-    sx: {
-      width: SIDE_PANEL_WIDTH,
-      bgcolor: '#121212',
-      borderRight: '1px solid rgba(255, 255, 255, 0.08)',
-      backgroundImage: 'none',
-    },
-  },
 };
 
 const contentWrapperSx = {
@@ -33,7 +22,7 @@ const btnSx = {
   textTransform: 'none',
   borderRadius: '8px',
   '&:focus-visible': {
-    boxShadow: '0 0 0 2px #90caf9',
+    boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
   },
 };
 
@@ -54,6 +43,19 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
     const theme = useTheme();
     const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
+    const drawerSlotProps = {
+      paper: {
+        sx: {
+          width: SIDE_PANEL_WIDTH,
+          borderRight: '1px solid',
+          borderColor: 'divider',
+          boxShadow: 'none',
+        },
+        variant: 'elevation',
+        elevation: 1,
+      },
+    } satisfies React.ComponentProps<typeof SwipeableDrawer>['slotProps'];
+
     return (
       <SwipeableDrawer
         anchor="left"
@@ -65,7 +67,8 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
         disableSwipeToOpen={false}
         swipeAreaWidth={30}
         sx={drawerSx}
-        slotProps={drawerSlopPropsSx}
+        slotProps={drawerSlotProps}
+        elevation={2}
       >
         <Box sx={contentWrapperSx}>
           {isDesktop && (
@@ -76,12 +79,12 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
                 startIcon={<AddIcon />}
                 onClick={onCreateClick}
                 sx={btnSx}
+                color="primary"
               >
                 Создать заметку
               </Button>
             </Box>
           )}
-
           <Box sx={menuSx}>{children}</Box>
         </Box>
       </SwipeableDrawer>

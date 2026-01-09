@@ -6,6 +6,7 @@ import {
   DialogTitle,
   Divider,
   IconButton,
+  Theme,
   Typography,
 } from '@mui/material';
 import {AddCircleOutline, Close, Edit} from '@mui/icons-material';
@@ -14,7 +15,7 @@ import BottomInputForm, {BottomInputFormProps} from '../BottomInputForm/BottomIn
 const dialogPaperSx = {
   paper: {
     sx: {
-      bgcolor: '#1c1c1e',
+      bgcolor: 'background.paper', // Заменено с #1c1c1e
       backgroundImage: 'none',
       border: '0',
       borderRadius: '12px',
@@ -29,21 +30,18 @@ const dialogTitleSx = {
   py: 2,
 };
 
-const iconSx = {color: '#90caf9', fontSize: 22};
-
+const iconSx = {color: 'primary.main', fontSize: 22}; // Заменено с #90caf9
 const dialogTitleBoxSx = {display: 'flex', alignItems: 'center', gap: 1.5};
+const titleSx = {color: 'text.primary', fontSize: '1.2rem'}; // Заменено с #fff
 
-const titleSx = {color: '#fff', fontSize: '1.2rem'};
-
-const dividerSx = {borderColor: 'rgba(255,255,255,0.1)'};
+const dividerSx = {borderColor: 'divider'}; // Заменено с rgba(255,255,255,0.1)
 
 const dialogContentSx = {p: 0, display: 'flex', flexDirection: 'column'};
 
 const closeSx = {
-  color: '#8e8e93',
+  color: 'text.secondary', // Заменено с #8e8e93
   '&:focus-visible': {
-    boxShadow: '0 0 0 2px #90caf9',
-    borderColor: '#90caf9',
+    boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
   },
 };
 
@@ -56,11 +54,9 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
 
   const hasChanges = useMemo(() => {
     const hasFiles = files.length > 0;
-
     if (editingNote) {
       return inputText !== editingNote.content || hasFiles || props.deletedAttachIds.length > 0;
     }
-
     return inputText.length > 0 || hasFiles;
   }, [inputText, files, editingNote, props.deletedAttachIds]);
 
@@ -87,9 +83,7 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
           <Close />
         </IconButton>
       </DialogTitle>
-
       <Divider sx={dividerSx} />
-
       <DialogContent sx={dialogContentSx}>
         <BottomInputForm {...props} isDialogMode={true} />
       </DialogContent>

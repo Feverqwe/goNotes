@@ -1,22 +1,18 @@
-import React, {FC, useCallback, useContext, useEffect} from 'react';
-import {Box, Button, Container, IconButton, Paper, Typography} from '@mui/material';
-import {Archive, Close, Delete, Unarchive} from '@mui/icons-material'; // Добавьте импорты
+import React, {FC, useCallback, useContext, useEffect, useMemo} from 'react';
+import {
+  alpha,
+  Box,
+  Button,
+  Container,
+  IconButton,
+  Paper,
+  Typography,
+  useTheme,
+} from '@mui/material';
+import {Archive, Close, Delete, Unarchive} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {api} from '../../tools/api';
 import {SnackCtx} from '../../ctx/SnackCtx';
-
-const paperSx = {
-  position: 'fixed',
-  bottom: 0,
-  left: 0,
-  right: 0,
-  bgcolor: 'rgba(18, 18, 18, 0.85)',
-  backdropFilter: 'blur(20px) saturate(180%)',
-  backgroundImage: 'none',
-  borderTop: '1px solid rgba(144, 202, 249, 0.3)',
-  zIndex: 1200,
-  animation: 'slideUp 0.2s ease-out',
-};
 
 const containerSx = {
   display: 'flex',
@@ -29,14 +25,10 @@ const infoBoxSx = {
   display: 'flex',
   alignItems: 'center',
   gap: 0.5,
-  pt: 0.25,
-  pb: 1,
 };
 
-const closeBtnSx = {color: '#8e8e93'};
-
 const countTextSx = {
-  color: '#fff',
+  color: 'text.primary', // Заменено с #fff
   ml: 0.5,
 };
 
@@ -44,7 +36,7 @@ const btnSx = {
   borderRadius: '6px',
   textTransform: 'none',
   '&:hover': {
-    bgcolor: 'rgba(255, 69, 58, 0.1)',
+    bgcolor: 'action.hover',
   },
 };
 
@@ -63,6 +55,7 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
   askBatchDeleteConfirmation,
   showArchived,
 }) => {
+  const theme = useTheme();
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
   const isActionDisabled = selectedIds.length === 0;
@@ -94,18 +87,34 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
     batchArchiveMutation.mutate(showArchived ? 0 : 1);
   }, [batchArchiveMutation, showArchived]);
 
+  const paperSx = useMemo(
+    () => ({
+      position: 'fixed',
+      bottom: 0,
+      left: 0,
+      right: 0,
+      bgcolor: alpha(theme.palette.background.paper, 0.85),
+      backdropFilter: 'blur(20px) saturate(180%)',
+      backgroundImage: 'none',
+      borderTop: '1px solid',
+      borderColor: alpha(theme.palette.primary.main, 0.3),
+      zIndex: 1200,
+      animation: 'slideUp 0.2s ease-out',
+    }),
+    [theme.palette.background.paper, theme.palette.primary.main],
+  );
+
   return (
     <Paper square elevation={0} sx={paperSx}>
       <Container maxWidth="sm" sx={containerSx}>
         <Box sx={infoBoxSx}>
-          <IconButton onClick={cancelSelectMode} size="medium" sx={closeBtnSx}>
+          <IconButton onClick={cancelSelectMode} size="medium" sx={{color: 'text.secondary'}}>
             <Close />
           </IconButton>
           <Typography variant="body2" sx={countTextSx}>
             Выбрано: {selectedIds.length}
           </Typography>
         </Box>
-
         <Box sx={btnCtrSx}>
           <Button
             size="medium"
@@ -113,11 +122,10 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
             disabled={isActionDisabled}
             startIcon={showArchived ? <Unarchive /> : <Archive />}
             onClick={handleArchive}
-            sx={btnSx}
+            sx={{...btnSx, color: 'primary.main'}}
           >
             {showArchived ? 'Восстановить' : 'В архив'}
           </Button>
-
           <Button
             size="medium"
             variant="text"

@@ -1,5 +1,4 @@
 import React, {FC, useCallback, useMemo} from 'react';
-
 import {
   Box,
   Card,
@@ -8,15 +7,14 @@ import {
   IconButton,
   Link,
   Stack,
+  Theme,
   Tooltip,
   Typography,
+  useTheme,
 } from '@mui/material';
-
 import {MoreVert} from '@mui/icons-material';
-
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import {Note} from '../../types';
@@ -38,38 +36,40 @@ const remarkComponents = {
 };
 
 const tagsCtrSx = {display: 'flex', flexWrap: 'wrap', gap: 0.5, pr: 1};
-
 const bottomSx = {
   mt: 1,
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'flex-end',
 };
+
 const menuBtnSx = {
   position: 'absolute',
   top: 4,
   right: 4,
   opacity: {xs: 1, sm: 0},
   transition: 'opacity 0.2s',
-  color: '#8e8e93',
+  color: 'text.secondary',
+  backdropFilter: 'blur(4px)',
   '&:focus-visible': {
     opacity: 1,
-    boxShadow: '0 0 0 2px #90caf9',
-    borderColor: '#90caf9',
+    boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
   },
 };
+
 const selectCheckboxSx = {
   position: 'absolute',
   top: 4,
   right: 4,
-  color: '#8e8e93',
+  color: 'text.secondary',
+  backdropFilter: 'blur(4px)',
 };
+
 const cardContentSx = {'&:last-child': {pb: 1.5}, p: 1.5};
 const attachmentsStackSx = {mt: 1, pr: 0};
 const dateSx = {
-  color: '#8e8e93',
+  color: 'text.secondary',
   fontSize: '0.7rem',
-
   whiteSpace: 'nowrap',
   cursor: 'default',
   lineHeight: 1,
@@ -104,6 +104,7 @@ const MessageItem: FC<MessageItemProps> = ({
   index,
   totalCount,
 }) => {
+  const theme = useTheme();
   const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({
     id: msg.id,
     disabled: !isReorderMode,
@@ -122,7 +123,6 @@ const MessageItem: FC<MessageItemProps> = ({
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.target !== e.currentTarget) return;
-
       if (e.key.toLowerCase() === 'e' || e.key.toLowerCase() === 'у') {
         e.preventDefault();
         startEditing(msg);
@@ -133,12 +133,10 @@ const MessageItem: FC<MessageItemProps> = ({
 
   const handleCardClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
-      if (isSelectMode) {
-        e.stopPropagation();
-        toggleSelect(msg.id);
-      }
+      e.stopPropagation();
+      toggleSelect(msg.id);
     },
-    [isSelectMode, msg.id, toggleSelect],
+    [msg.id, toggleSelect],
   );
 
   const handleMenuClick = useCallback(
@@ -149,31 +147,30 @@ const MessageItem: FC<MessageItemProps> = ({
   );
 
   const cardSx = useMemo(() => {
-    const bgcolor = msg.color ? getBgColor(msg.color) : msg.is_archived ? '#161618' : '#1c1c1e';
+    const isDark = theme.palette.mode === 'dark';
+
     return {
       position: 'relative',
       '&:hover .message-action': {opacity: 1},
-
-      bgcolor,
+      bgcolor: msg.color ? getBgColor(msg.color) : msg.is_archived ? 'action.hover' : null,
       backgroundImage: msg.is_archived
-        ? 'repeating-linear-gradient(45deg, rgba(255,255,255,0.01) 0px, rgba(255,255,255,0.01) 2px, transparent 2px, transparent 10px)'
-        : 'none',
-      '&:focus-visible': {
-        boxShadow: '0 0 0 2px #90caf9',
-        borderColor: '#90caf9',
-      },
-      border: isSelected
-        ? '1px solid #90caf9'
-        : isReorderMode
-          ? '1px dashed #90caf9'
-          : `1px solid ${msg.color ? getBorderColor(msg.color) : bgcolor}`,
+        ? `repeating-linear-gradient(45deg, rgba(255,255,255,${isDark ? '0.02' : '0.3'}) 0px, rgba(255,255,255,${isDark ? '0.02' : '0.3'}) 2px, transparent 2px, transparent 10px)`
+        : null,
+      border: isSelected ? '1px solid' : isReorderMode ? '1px dashed' : '1px solid',
+      borderColor:
+        isSelected || isReorderMode
+          ? 'primary.main'
+          : msg.color
+            ? getBorderColor(msg.color)
+            : 'divider',
+      cursor: isSelectMode ? 'pointer' : 'default',
+      boxShadow: 'none',
     };
-  }, [msg.color, msg.is_archived, isSelected, isReorderMode]);
+  }, [msg.color, msg.is_archived, theme.palette.mode, isSelected, isReorderMode, isSelectMode]);
 
   const contentBoxSx = useMemo(
     () => ({
-      color: msg.is_archived ? '#8e8e93' : '#fff',
-
+      color: msg.is_archived ? 'text.secondary' : 'text.primary',
       '& p': {
         m: 0,
         whiteSpace: 'pre-wrap',
@@ -181,14 +178,14 @@ const MessageItem: FC<MessageItemProps> = ({
         overflowWrap: 'anywhere',
       },
       '& code': {
-        bgcolor: '#2c2c2e',
+        bgcolor: 'action.selected', // Заменено с #2c2c2e
         px: 0.5,
         borderRadius: 1,
         fontFamily: 'monospace',
         fontSize: '0.9em',
       },
       '& a': {
-        color: '#90caf9',
+        color: 'primary.main', // Заменено с #90caf9
         overflowWrap: 'anywhere',
       },
       '& ul, & ol': {pl: 2, my: 1},
@@ -204,10 +201,9 @@ const MessageItem: FC<MessageItemProps> = ({
   return (
     <Box ref={setNodeRef} style={style}>
       <Card
-        tabIndex={0}
         onKeyDown={handleKeyDown}
-        onClick={handleCardClick}
-        variant="outlined"
+        onClick={isSelectMode ? handleCardClick : undefined}
+        variant="elevation"
         sx={cardSx}
       >
         <CardContent sx={cardContentSx}>
@@ -234,13 +230,11 @@ const MessageItem: FC<MessageItemProps> = ({
               <MoreVert fontSize="inherit" />
             </IconButton>
           )}
-
           <Box sx={contentBoxSx}>
             <ReactMarkdown remarkPlugins={remarkPlugins} components={remarkComponents}>
               {msg.content}
             </ReactMarkdown>
           </Box>
-
           {msg.attachments && msg.attachments.length > 0 && (
             <Stack spacing={1} sx={attachmentsStackSx}>
               {msg.attachments?.map((att) => (
@@ -248,17 +242,15 @@ const MessageItem: FC<MessageItemProps> = ({
               ))}
             </Stack>
           )}
-
           <Box sx={bottomSx}>
             <Box sx={tagsCtrSx}>
               {msg.tags?.map((t) => (
                 <NoteTag key={t} tag={t} onClick={onTagClick} />
               ))}
             </Box>
-
             <Tooltip title={fullDate} arrow placement="top" enterDelay={500}>
               <Typography variant="caption" sx={dateSx}>
-                <Link color="textDisabled" underline="none" href={dateLink}>
+                <Link color="inherit" underline="none" href={dateLink}>
                   {shortDate}
                   {updatedMark}
                 </Link>

@@ -1,5 +1,15 @@
 import React, {FC, useCallback, useMemo} from 'react';
-import {Badge, Box, IconButton, Paper, TextField, useMediaQuery, useTheme} from '@mui/material';
+import {
+  alpha,
+  AppBar,
+  Badge,
+  Box,
+  IconButton,
+  TextField,
+  Theme,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 import {Clear, Menu as MenuIcon, Search as SearchIcon} from '@mui/icons-material';
 import {SIDE_PANEL_WIDTH} from '../../constants';
 
@@ -11,35 +21,27 @@ const textFieldWrapperSx = {
 
 const badgeSx = {
   '& .MuiBadge-badge': {
-    fontSize: '0.6rem',
-    height: 16,
-    minWidth: 16,
-    top: 4,
-    right: 4,
-    border: '2px solid #1c1c1e',
+    top: 6,
+    right: 6,
   },
 };
 
 const clearBtnSx = {
-  p: 1,
-  color: '#8e8e93',
-  '&:hover': {color: '#ff453a'},
+  color: 'text.secondary',
+  '&:hover': {color: 'error.main'},
   '&:focus-visible': {
-    boxShadow: '0 0 0 2px #90caf9',
-    borderColor: '#90caf9',
+    boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
   },
 };
 
 const textFieldInputSx = {
-  bgcolor: '#1c1c1e',
   px: 1,
   borderRadius: '8px',
-  height: '40px',
   fontSize: '0.95rem',
-  border: '1px solid #2c2c2e',
+  border: '1px solid',
+  borderColor: 'divider',
   '&:focus-within': {
-    bgcolor: '#252527',
-    borderColor: 'rgba(144, 202, 249, 0.5)',
+    bgcolor: 'action.hover',
   },
 };
 
@@ -79,7 +81,7 @@ const SearchBox: FC<SearchBoxProps> = ({
   }, [setSearchQuery, setCurrentTags, setShowArchived, setSelectedNoteId]);
 
   const activeFiltersCount = useMemo(
-    () => currentTags.length + (showArchived ? 1 : 0),
+    () => Boolean(currentTags.length + (showArchived ? 1 : 0)),
     [currentTags.length, showArchived],
   );
 
@@ -88,19 +90,20 @@ const SearchBox: FC<SearchBoxProps> = ({
     [setSearchQuery],
   );
 
-  const stickyHeaderSx = useMemo(
+  const appBarSx = useMemo(
     () => ({
-      position: 'sticky',
-      display: 'flex',
-      top: 0,
-      zIndex: theme.zIndex.drawer + 1,
-      bgcolor: 'rgba(18, 18, 18, 0.8)',
-      backdropFilter: 'blur(20px) saturate(180%)',
-      borderBottom: '1px solid #2c2c2e',
-      py: 0.5,
-      px: 1,
-    }),
-    [theme.zIndex.drawer],
+        zIndex: theme.zIndex.drawer + 1,
+        py: 0.5,
+        px: 1,
+        display: 'flex',
+        flexDirection: 'row',
+        bgcolor: alpha(theme.palette.background.paper, 0.7),
+        backgroundImage: 'none',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        borderBottom: '1px solid',
+        borderColor: 'divider',
+      }) satisfies React.ComponentProps<typeof AppBar>['sx'],
+    [theme.palette.background.paper, theme.zIndex.drawer],
   );
 
   const slotProps = useMemo(
@@ -112,20 +115,24 @@ const SearchBox: FC<SearchBoxProps> = ({
         disableUnderline: true,
         startAdornment: (
           <Badge
-            badgeContent={activeFiltersCount}
-            color={showArchived ? 'warning' : 'primary'}
+            variant="dot"
+            color={activeFiltersCount ? (showArchived ? 'warning' : 'primary') : 'default'}
             sx={badgeSx}
           >
             {isDesktop ? (
               <Box
-                sx={{p: 1, display: 'flex', color: activeFiltersCount > 0 ? '#90caf9' : '#48484a'}}
+                sx={{
+                  p: 1,
+                  display: 'flex',
+                  color: activeFiltersCount ? 'primary.main' : 'text.disabled',
+                }}
               >
                 <SearchIcon sx={{fontSize: 22}} />
               </Box>
             ) : (
               <IconButton
                 onClick={onMenuClick}
-                sx={{color: activeFiltersCount > 0 ? '#90caf9' : '#8e8e93'}}
+                sx={{color: activeFiltersCount ? 'primary.main' : 'text.secondary'}}
               >
                 <MenuIcon sx={{fontSize: 24}} />
               </IconButton>
@@ -144,7 +151,7 @@ const SearchBox: FC<SearchBoxProps> = ({
   );
 
   return (
-    <Paper square elevation={0} sx={stickyHeaderSx}>
+    <AppBar variant="outlined" position="sticky" sx={appBarSx}>
       {isDesktop && <Box width={SIDE_PANEL_WIDTH} />}
       <Box sx={textFieldWrapperSx}>
         <TextField
@@ -156,7 +163,7 @@ const SearchBox: FC<SearchBoxProps> = ({
           slotProps={slotProps}
         />
       </Box>
-    </Paper>
+    </AppBar>
   );
 };
 

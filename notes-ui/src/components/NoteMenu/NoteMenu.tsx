@@ -1,5 +1,15 @@
 import React, {FC, useCallback, useContext, useMemo} from 'react';
-import {Box, Divider, ListItemIcon, ListItemText, Menu, MenuItem} from '@mui/material';
+import {
+  Box,
+  Divider,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  alpha,
+  Theme,
+  useTheme,
+} from '@mui/material';
 import {
   Archive,
   CheckCircleOutline,
@@ -16,51 +26,43 @@ import {api} from '../../tools/api';
 import {NOTE_COLORS} from '../../constants';
 import ColorItem from './ColorItem';
 
-const menuSlotProps = {
+// Выносим стили в функцию, чтобы иметь доступ к теме
+const getMenuSlotProps = (theme: Theme) => ({
   list: {sx: {py: 0.5}},
   paper: {
     sx: {
-      bgcolor: 'rgba(24, 24, 26, 0.85)',
+      bgcolor: alpha(theme.palette.background.paper, 0.85), // Заменено с жесткого #18181a
       backdropFilter: 'blur(15px) saturate(140%)',
       minWidth: 200,
-      borderRadius: '4px',
-      border: '1px solid rgba(255, 255, 255, 0.12)',
-      boxShadow: '0 8px 24px rgba(0,0,0,0.6)',
+      borderRadius: '8px', // Немного увеличили для современного вида
+      border: '1px solid',
+      borderColor: 'divider',
+      boxShadow: theme.shadows[8],
       backgroundImage: 'none',
     },
   },
-};
+});
 
 const menuItemSx = {
   py: 1,
   px: 2,
   borderRadius: 0,
   transition: 'background-color 0.1s',
-  '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.05)'},
+  '&:hover': {bgcolor: 'action.hover'},
 };
 
 const deleteMenuItemSx = {
   py: 1,
   px: 2,
   borderRadius: 0,
-  '&:hover': {bgcolor: 'rgba(255, 69, 58, 0.1)'},
+  '&:hover': {bgcolor: (theme: Theme) => alpha(theme.palette.error.main, 0.1)},
 };
 
 const colorBoxSx = {px: 2, py: 1, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 1};
-
-const getListItemIconSx = (color: string) => ({
-  minWidth: '32px !important',
-  color,
-});
-
 const commonIconSx = {fontSize: 18};
-const dividerSx = {my: 0.5, borderColor: 'rgba(255, 255, 255, 0.08)'};
-
-const primaryTextSlotProps = {primary: {fontSize: '0.85rem', color: '#efefef'}};
-const deleteTextSlotProps = {primary: {fontSize: '0.85rem', color: '#ff453a'}};
-
-const deleteIconSx = {fontSize: 18, color: '#ff453a'};
-const baseListItemIconSx = {minWidth: '32px !important'};
+const dividerSx = {my: 0.5, borderColor: 'divider'};
+const primaryTextSlotProps = {primary: {fontSize: '0.85rem', color: 'text.primary'}};
+const deleteTextSlotProps = {primary: {fontSize: '0.85rem', color: 'error.main'}};
 
 interface NoteMenuProps {
   anchorEl: Element | null;
@@ -85,6 +87,7 @@ const NoteMenu: FC<NoteMenuProps> = ({
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
+  const theme = useTheme();
 
   const setColorMutation = useMutation({
     mutationFn: (color: string) => api.messages.setColor({id: selectedMsg!.id, color}),
@@ -94,7 +97,7 @@ const NoteMenu: FC<NoteMenuProps> = ({
     },
     onError: (err) => {
       console.error(err);
-      showSnackbar('Ошибка при отправкезаметки', 'error');
+      showSnackbar('Ошибка при изменении цвета', 'error');
     },
   });
 
@@ -112,27 +115,26 @@ const NoteMenu: FC<NoteMenuProps> = ({
 
   const menuActions = useMemo(() => {
     const isArchived = selectedMsg?.is_archived;
-
     return [
       {
         icon: <CheckCircleOutline />,
         text: 'Выбрать',
         onClick: onSelectClick,
-        color: '#8e8e93',
+        color: 'text.secondary',
       },
-      {icon: <ContentCopy />, text: 'Копировать', onClick: handleCopy, color: '#8e8e93'},
-      {icon: <Edit />, text: 'Изменить', onClick: onEditClick, color: '#90caf9'},
+      {icon: <ContentCopy />, text: 'Копировать', onClick: handleCopy, color: 'text.secondary'},
+      {icon: <Edit />, text: 'Изменить', onClick: onEditClick, color: 'primary.main'},
       {
         icon: isArchived ? <Unarchive /> : <Archive />,
         text: isArchived ? 'Разархивировать' : 'В архив',
         onClick: onArchiveClick,
-        color: '#8e8e93',
+        color: 'text.secondary',
       },
       {
         icon: <Sort />,
         text: 'Сортировать',
         onClick: enterReorderMode,
-        color: '#8e8e93',
+        color: 'text.secondary',
       },
     ];
   }, [
@@ -144,48 +146,39 @@ const NoteMenu: FC<NoteMenuProps> = ({
     enterReorderMode,
   ]);
 
-  const handleChangeColor = useCallback(
-    (color: string) => {
-      setColorMutation.mutate(color);
-    },
-    [setColorMutation],
-  );
-
   return (
     <Menu
       anchorEl={anchorEl}
       open={Boolean(anchorEl)}
       onClose={handleCloseMenu}
       transitionDuration={100}
-      slotProps={menuSlotProps}
+      slotProps={getMenuSlotProps(theme)} // Прокидываем тему через обертку или используем хук внутри slotProps
+      // В MUI 6+ и 2026 году предпочтительнее использовать хук прямо в компоненте:
+      PaperProps={{sx: getMenuSlotProps(theme).paper.sx}}
     >
       {menuActions.map((item, idx) => (
         <MenuItem key={idx} onClick={item.onClick} sx={menuItemSx}>
-          <ListItemIcon sx={getListItemIconSx(item.color)}>
+          <ListItemIcon sx={{minWidth: '32px !important', color: item.color}}>
             {React.cloneElement(item.icon, {sx: commonIconSx})}
           </ListItemIcon>
           <ListItemText primary={item.text} slotProps={primaryTextSlotProps} />
         </MenuItem>
       ))}
-
       <Divider sx={dividerSx} />
-
       <Box sx={colorBoxSx}>
         {NOTE_COLORS.map((col) => (
           <ColorItem
             key={col}
             color={col}
             isSelected={selectedMsg?.color === col}
-            onClick={handleChangeColor}
+            onClick={(color) => setColorMutation.mutate(color)}
           />
         ))}
       </Box>
-
       <Divider sx={dividerSx} />
-
       <MenuItem onClick={onDeleteClick} sx={deleteMenuItemSx}>
-        <ListItemIcon sx={baseListItemIconSx}>
-          <Delete sx={deleteIconSx} />
+        <ListItemIcon sx={{minWidth: '32px !important'}}>
+          <Delete sx={{fontSize: 18, color: 'error.main'}} />
         </ListItemIcon>
         <ListItemText primary="Удалить" slotProps={deleteTextSlotProps} />
       </MenuItem>

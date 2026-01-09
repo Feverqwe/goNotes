@@ -1,5 +1,15 @@
 import React, {FC, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
-import {Box, Chip, Container, IconButton, Paper, TextField} from '@mui/material';
+import {
+  Box,
+  Chip,
+  Container,
+  IconButton,
+  Paper,
+  TextField,
+  alpha,
+  useTheme,
+  Theme,
+} from '@mui/material';
 import {AttachFile, Check, Send} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {SnackCtx} from '../../ctx/SnackCtx';
@@ -22,61 +32,45 @@ const attachScrollBoxSx = {
 const tagsContainerSx = {px: 2, pt: 1.5, pb: 1, display: 'flex', gap: 1, flexWrap: 'wrap'};
 
 const tagChipSx = {
-  bgcolor: 'rgba(144, 202, 249, 0.08)',
-  color: '#90caf9',
-  border: '1px solid rgba(144, 202, 249, 0.2)',
+  bgcolor: 'action.selected', // Заменено с rgba(144, 202, 249, 0.08)
+  color: 'primary.main', // Заменено с #90caf9
+  border: '1px solid',
+  borderColor: 'divider',
   borderRadius: '6px',
   fontWeight: 600,
   fontSize: '0.85rem',
   height: '36px',
   '& .MuiChip-deleteIcon': {
     fontSize: 20,
-    color: '#90caf9',
+    color: 'primary.main',
     ml: 1,
     mr: 0.5,
-    '&:hover': {color: '#fff'},
+    '&:hover': {color: 'text.primary'},
   },
   '& .MuiChip-label': {px: 1.5},
 };
 
 const attachBtnSx = {
-  color: '#8e8e93',
+  color: 'text.secondary', // Заменено с #8e8e93
   mb: 0.5,
   '&:focus-visible': {
-    boxShadow: '0 0 0 2px #90caf9',
-    borderColor: '#90caf9',
+    boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
   },
 };
 
 const sendBtnSx = {
-  color: '#90caf9',
+  color: 'primary.main', // Заменено с #90caf9
   mb: 0.5,
-  '&.Mui-disabled': {color: '#3a3a3c'},
+  '&.Mui-disabled': {color: 'text.disabled'}, // Заменено с #3a3a3c
   '&:focus-visible': {
-    boxShadow: '0 0 0 2px #90caf9',
-    borderColor: '#90caf9',
+    boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
   },
 };
 
-const checkIconSx = {
-  fontSize: 26,
-  color: '#90caf9',
-};
-
-const attachInputProps = {
-  hidden: true,
-  multiple: true,
-  type: 'file',
-} as const;
-
+const checkIconSx = {fontSize: 26, color: 'primary.main'};
+const attachInputProps = {hidden: true, multiple: true, type: 'file'} as const;
 const attachIconRotationSx = {transform: 'rotate(45deg)'};
-
 const sendIconSx = {fontSize: 26};
-
-const progressSx = {
-  color: '#90caf9',
-  padding: '2px',
-};
 
 export interface BottomInputFormProps {
   editingNote: Note | null;
@@ -86,7 +80,6 @@ export interface BottomInputFormProps {
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   isDialogMode?: boolean;
-
   inputText: string;
   setInputText: React.Dispatch<React.SetStateAction<string>>;
   existingAttachments: Attachment[];
@@ -95,34 +88,34 @@ export interface BottomInputFormProps {
   onFinish: () => void;
 }
 
-const BottomInputForm: FC<BottomInputFormProps> = ({
-  editingNote,
-  files,
-  currentTags,
-  setCurrentTags,
-  setFiles,
-  endEditing,
-  isDialogMode,
-  inputText,
-  setInputText,
-  existingAttachments,
-  deletedAttachIds,
-  setDeletedAttachIds,
-  onFinish,
-}) => {
+const BottomInputForm: FC<BottomInputFormProps> = (props) => {
+  const {
+    editingNote,
+    files,
+    currentTags,
+    setCurrentTags,
+    setFiles,
+    endEditing,
+    isDialogMode,
+    inputText,
+    setInputText,
+    existingAttachments,
+    deletedAttachIds,
+    setDeletedAttachIds,
+    onFinish,
+  } = props;
+
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
+  const theme = useTheme();
   const inputRef = useRef<HTMLTextAreaElement>(null);
-
   const [isDragging, setIsDragging] = useState(false);
   const refInputText = useRef(inputText);
   refInputText.current = inputText;
 
   useEffect(() => {
     if (!isDialogMode && !editingNote) return;
-    if (inputRef.current) {
-      inputRef.current.focus();
-    }
+    if (inputRef.current) inputRef.current.focus();
   }, [isDialogMode, editingNote]);
 
   const cancelEditing = useCallback(() => {
@@ -155,10 +148,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       showSnackbar('Заметка обновлена', 'success');
       onFinish();
     },
-    onError: (err) => {
-      console.error(err);
-      showSnackbar('Ошибка при сохранении заметки', 'error');
-    },
+    onError: () => showSnackbar('Ошибка при сохранении заметки', 'error'),
   });
 
   const sendMessageMutation = useMutation({
@@ -169,27 +159,23 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       showSnackbar('Заметка отправлена', 'success');
       onFinish();
     },
-    onError: (err) => {
-      console.error(err);
-      showSnackbar('Ошибка при отправкезаметки', 'error');
-    },
+    onError: () => showSnackbar('Ошибка при отправке заметки', 'error'),
   });
 
   const isSending = sendMessageMutation.isPending || updateMessageMutation.isPending;
-
   const canSend = useMemo(() => {
     if (isSending) return false;
-    const hasText = inputText.trim().length > 0;
-    const hasNewFiles = files.length > 0;
-    const hasRemainingFiles = existingAttachments.length > deletedAttachIds.length;
-    return hasText || hasNewFiles || hasRemainingFiles;
+    return (
+      inputText.trim().length > 0 ||
+      files.length > 0 ||
+      existingAttachments.length > deletedAttachIds.length
+    );
   }, [inputText, files, existingAttachments, deletedAttachIds, isSending]);
 
   const handleSend = useCallback(() => {
     if (!canSend) return;
     const formData = new FormData();
     files.forEach((f) => formData.append('attachments', f));
-
     let finalContent = refInputText.current;
     if (editingNote) {
       formData.append('id', String(editingNote.id));
@@ -197,15 +183,11 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       formData.append('delete_attachments', deletedAttachIds.join(','));
       updateMessageMutation.mutate(formData);
     } else {
-      let addTags = '';
-      currentTags.forEach((tag) => {
-        if (!finalContent.includes(`#${tag}`)) {
-          addTags += ` #${tag}`;
-        }
-      });
-      if (addTags) {
-        finalContent += `\n ${addTags.trim()}`;
-      }
+      let addTags = currentTags
+        .filter((tag) => !finalContent.includes(`#${tag}`))
+        .map((tag) => `#${tag}`)
+        .join(' ');
+      if (addTags) finalContent += `\n ${addTags}`;
       formData.append('content', finalContent);
       sendMessageMutation.mutate(formData);
     }
@@ -241,40 +223,28 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       e.preventDefault();
       e.stopPropagation();
       setIsDragging(false);
-      if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      if (e.dataTransfer.files?.length > 0) {
         setFiles((prev) => [...prev, ...Array.from(e.dataTransfer.files)]);
       }
     },
     [setFiles],
   );
 
-  const handleFileKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      e.currentTarget.querySelector('input')?.dispatchEvent(new MouseEvent('click'));
-    }
-  }, []);
-
-  const handleTextChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      setInputText(e.target.value);
-    },
-    [setInputText],
-  );
-
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const newFiles = Array.from(e.target.files ?? []);
-      if (newFiles.length > 0) {
-        setFiles((prev) => [...prev, ...newFiles]);
-      }
+      if (newFiles.length > 0) setFiles((prev) => [...prev, ...newFiles]);
       e.target.value = '';
     },
     [setFiles],
   );
 
   const containerSx = useMemo(
-    () => ({height: isDialogMode ? '100%' : 'auto', display: 'flex', flexDirection: 'column'}),
+    () => ({
+      height: isDialogMode ? '100%' : 'auto',
+      display: 'flex',
+      flexDirection: 'column',
+    }),
     [isDialogMode],
   );
 
@@ -284,44 +254,28 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       bottom: 0,
       left: 0,
       right: 0,
-      bgcolor: isDragging ? 'rgba(26, 31, 36, 0.9)' : 'rgba(18, 18, 18, 0.8)',
+      bgcolor: isDragging
+        ? alpha(theme.palette.primary.main, 0.05)
+        : alpha(theme.palette.background.paper, 0.8),
       backdropFilter: isDialogMode ? 'none' : 'blur(20px) saturate(180%)',
       backgroundImage: 'none',
-      borderTop: isDialogMode
-        ? 'none'
-        : editingNote
-          ? '1px solid rgba(144, 202, 249, 0.5)'
-          : '#2c2c2e',
+      borderTop: isDialogMode ? 'none' : '1px solid',
+      borderColor: editingNote ? alpha(theme.palette.primary.main, 0.5) : 'divider',
       zIndex: 1000,
       boxShadow: 'none',
+      transition: theme.transitions.create(['background-color', 'border-color']),
     }),
-    [isDragging, editingNote, isDialogMode],
-  );
-
-  const inputContainerSx = useMemo(
-    () => ({
-      display: 'flex',
-      alignItems: 'flex-end',
-      px: 0.5,
-      pb: 0.5,
-      pt: 0,
-      flexGrow: 0,
-    }),
-    [],
+    [isDragging, editingNote, isDialogMode, theme],
   );
 
   const textFieldSlotProps = useMemo(
-    () =>
-      ({
-        input: {
-          disableUnderline: true,
-          sx: {color: '#fff', py: 1.5, px: 1, fontSize: '0.95rem'},
-          inputProps: {
-            tabIndex: 3,
-            ref: inputRef,
-          },
-        },
-      }) satisfies React.ComponentProps<typeof TextField>['slotProps'],
+    () => ({
+      input: {
+        disableUnderline: true,
+        sx: {color: 'text.primary', py: 1.5, px: 1, fontSize: '0.95rem'},
+        inputProps: {tabIndex: 3, ref: inputRef},
+      },
+    }),
     [],
   );
 
@@ -337,7 +291,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
       <Container maxWidth="sm" disableGutters sx={containerSx}>
         {!isDialogMode && editingNote && <EditHeader onCancel={cancelEditing} />}
 
-        {existingAttachments.length > 0 && editingNote && (
+        {(existingAttachments.length > 0 || files.length > 0) && (
           <Box sx={attachScrollBoxSx}>
             {existingAttachments.map((att) => (
               <ExistingAttachmentItem
@@ -347,11 +301,6 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
                 onToggle={toggleDeleteExisting}
               />
             ))}
-          </Box>
-        )}
-
-        {files.length > 0 && (
-          <Box sx={attachScrollBoxSx}>
             {files.map((file, idx) => (
               <NewFileItem
                 key={`${file.name}-${idx}`}
@@ -376,8 +325,8 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
           </Box>
         )}
 
-        <Box sx={inputContainerSx}>
-          <IconButton component="label" onKeyDown={handleFileKeyDown} tabIndex={3} sx={attachBtnSx}>
+        <Box sx={{display: 'flex', alignItems: 'flex-end', px: 0.5, pb: 0.5, pt: 0}}>
+          <IconButton component="label" tabIndex={3} sx={attachBtnSx}>
             <AttachFile sx={attachIconRotationSx} />
             <input {...attachInputProps} onChange={handleFileChange} />
           </IconButton>
@@ -390,7 +339,7 @@ const BottomInputForm: FC<BottomInputFormProps> = ({
             variant="standard"
             placeholder={isDragging ? 'Сбросьте файлы...' : 'Заметка...'}
             value={inputText}
-            onChange={handleTextChange}
+            onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             slotProps={textFieldSlotProps}
           />

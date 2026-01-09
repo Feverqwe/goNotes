@@ -6,24 +6,30 @@ const containerSx = {
   textAlign: 'center',
   mt: 8,
   p: 3,
-  bgcolor: 'rgba(255, 255, 255, 0.05)',
+  // Используем системный цвет для едва заметного фона
+  bgcolor: 'action.hover',
   borderRadius: 4,
-  border: '1px dashed rgba(255, 255, 255, 0.1)',
+  // Используем системный divider для пунктирной границы
+  border: '1px dashed',
+  borderColor: 'divider',
 };
 
 const iconSx = {
   fontSize: 64,
-  color: '#8e8e93',
+  // Вместо #8e8e93
+  color: 'text.disabled',
   mb: 2,
 };
 
 const titleSx = {
-  color: '#fff',
+  // Вместо #fff
+  color: 'text.primary',
   mb: 1,
 };
 
 const descriptionSx = {
-  color: '#8e8e93',
+  // Вместо #8e8e93
+  color: 'text.secondary',
   mb: 3,
 };
 
@@ -35,7 +41,6 @@ const EmptyState: FC<EmptyStateProps> = ({hasFilters}) => {
   return (
     <Box sx={containerSx}>
       <NoteAdd sx={iconSx} />
-
       {hasFilters ? (
         <>
           <Typography variant="h6" sx={titleSx}>

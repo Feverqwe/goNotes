@@ -5,8 +5,6 @@ export const API_BASE = '';
 export const themeProps = {
   palette: {
     mode: 'dark',
-    primary: {main: '#90caf9'},
-    background: {default: '#000', paper: '#121212'},
   },
 
   components: {

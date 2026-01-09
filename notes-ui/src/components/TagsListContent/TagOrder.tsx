@@ -1,12 +1,17 @@
-import React, {FC, useMemo, useCallback} from 'react';
-import {Box, IconButton, useMediaQuery, useTheme} from '@mui/material';
+import React, {FC, useCallback} from 'react';
+import {IconButton, ListItemIcon, useMediaQuery, useTheme} from '@mui/material';
 import {ArrowDownward, ArrowUpward, DragHandle} from '@mui/icons-material';
 import {DraggableAttributes, DraggableSyntheticListeners} from '@dnd-kit/core';
 
-const mobileControlsBoxSx = {display: 'flex', gap: 0.5};
-const mobileArrowBtnSx = {color: '#90caf9', p: 0.5};
+const mobileControlsBoxSx = {display: 'flex', gap: 0.5, ml: -0.5, mr: 2};
+const mobileArrowBtnSx = {color: 'primary.main', fontSize: 14};
 const dragHandleSx = {fontSize: 18};
-const listItemIconBaseSx = {minWidth: '32px !important'};
+const containerSx = {
+  color: 'primary.main',
+  cursor: 'grab',
+  display: 'flex',
+  alignItems: 'center',
+};
 
 interface TagOrderProps {
   tag: string;
@@ -37,27 +42,16 @@ const TagOrder: FC<TagOrderProps> = ({tag, index, totalCount, moveStep, attribut
     [tag, moveStep],
   );
 
-  const containerSx = useMemo(
-    () => ({
-      ...listItemIconBaseSx,
-      color: '#90caf9',
-      cursor: 'grab',
-      display: 'flex',
-      alignItems: 'center',
-    }),
-    [],
-  );
-
   if (isMobile) {
     return (
-      <Box sx={mobileControlsBoxSx}>
+      <ListItemIcon sx={mobileControlsBoxSx}>
         <IconButton
           size="small"
           disabled={index === 0}
           onClick={handleMoveUp}
           sx={mobileArrowBtnSx}
         >
-          <ArrowUpward fontSize="small" />
+          <ArrowUpward sx={dragHandleSx} />
         </IconButton>
         <IconButton
           size="small"
@@ -65,16 +59,16 @@ const TagOrder: FC<TagOrderProps> = ({tag, index, totalCount, moveStep, attribut
           onClick={handleMoveDown}
           sx={mobileArrowBtnSx}
         >
-          <ArrowDownward fontSize="small" />
+          <ArrowDownward sx={dragHandleSx} />
         </IconButton>
-      </Box>
+      </ListItemIcon>
     );
   }
 
   return (
-    <Box sx={containerSx} {...attributes} {...listeners}>
+    <ListItemIcon sx={containerSx} {...attributes} {...listeners}>
       <DragHandle sx={dragHandleSx} />
-    </Box>
+    </ListItemIcon>
   );
 };
 

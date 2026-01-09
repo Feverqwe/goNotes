@@ -1,10 +1,11 @@
 import React, {FC, useCallback, useMemo} from 'react';
-import {Box, IconButton, useMediaQuery, useTheme} from '@mui/material';
+import {Box, IconButton, useMediaQuery, useTheme, alpha} from '@mui/material';
 import {ArrowDownward, ArrowUpward, DragHandle} from '@mui/icons-material';
 import {DraggableAttributes, DraggableSyntheticListeners} from '@dnd-kit/core';
 
-const reorderIconSx = {cursor: 'grab', color: '#90caf9', p: 1};
-const reorderArrowSx = {color: '#90caf9'};
+// Используем системный цвет акцента
+const reorderIconSx = {cursor: 'grab', color: 'primary.main', backdropFilter: 'blur(4px)'};
+const reorderArrowSx = {color: 'primary.main', backdropFilter: 'blur(4px)'};
 
 interface NoteOrderProps {
   id: number;
@@ -50,12 +51,11 @@ const NoteOrder: FC<NoteOrderProps> = ({
       display: 'flex',
       gap: 0.5,
       zIndex: 10,
-
-      bgcolor: isMobile ? 'rgba(18, 18, 18, 0.6)' : 'transparent',
+      bgcolor: 'transparent',
       borderRadius: '8px',
       p: 0.2,
     }),
-    [isMobile],
+    [],
   );
 
   return (

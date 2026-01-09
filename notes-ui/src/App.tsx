@@ -33,8 +33,6 @@ import NoteForm from './components/NoteForm/NoteForm';
 
 const wrapperSx = {minHeight: '100vh', display: 'flex', flexDirection: 'column'};
 
-const alertSx = {mb: 1.5};
-
 function App() {
   const theme = useTheme();
   const queryClient = useQueryClient();
@@ -425,14 +423,6 @@ function App() {
           </SideTagsPanel>
 
           <Container maxWidth="sm" sx={bodyCtrSx}>
-            {isError && (
-              <Alert severity="error" sx={alertSx}>
-                {useNoteError instanceof Error
-                  ? useNoteError.message
-                  : 'Ошибка при загрузке заметок'}
-              </Alert>
-            )}
-
             {displayMessages.length === 0 && !isLoading && !isError && (
               <EmptyState hasFilters={hasActiveFilters} />
             )}
@@ -440,6 +430,14 @@ function App() {
             <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
               <SortableContext items={displayMessageIds} strategy={verticalListSortingStrategy}>
                 <Stack spacing={1.5}>
+                  {isError && (
+                    <Alert severity="error">
+                      {useNoteError instanceof Error
+                        ? useNoteError.message
+                        : 'Ошибка при загрузке заметок'}
+                    </Alert>
+                  )}
+
                   {displayMessages.map((msg, index) => (
                     <MessageItem
                       key={msg.id}
@@ -456,15 +454,15 @@ function App() {
                       moveStep={moveStep}
                     />
                   ))}
+
+                  {hasNextPage && (
+                    <Box ref={loadMoreTrigger} display="flex" justifyContent="center">
+                      <CircularProgress />
+                    </Box>
+                  )}
                 </Stack>
               </SortableContext>
             </DndContext>
-
-            {hasNextPage && (
-              <Box ref={loadMoreTrigger} display="flex" justifyContent="center" p={2}>
-                <CircularProgress />
-              </Box>
-            )}
           </Container>
         </Box>
 

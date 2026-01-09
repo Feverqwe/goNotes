@@ -8,7 +8,7 @@ const imageSx = {
   width: '100%',
   borderRadius: 2,
   border: '1px solid',
-  borderColor: 'divider',
+  borderColor: 'divider', // Заменено на системный разделитель
   cursor: 'pointer',
 };
 
@@ -17,7 +17,7 @@ const videoSx = {
   width: '100%',
   borderRadius: 3,
   overflow: 'hidden',
-  bgcolor: '#000',
+  bgcolor: 'common.black', // Вместо #000
 };
 
 const videoStyle = {width: '100%', display: 'block', maxHeight: '500px'};
@@ -25,19 +25,30 @@ const videoStyle = {width: '100%', display: 'block', maxHeight: '500px'};
 const audioSx = {
   mt: 1,
   width: '100%',
-  bgcolor: '#2c2c2e',
+  bgcolor: 'action.hover', // Вместо #2c2c2e используем системный фон для второстепенных элементов
   borderRadius: 2,
   p: 1,
   display: 'flex',
   flexDirection: 'column',
   gap: 0.5,
+  border: '1px solid',
+  borderColor: 'divider',
 };
 
-const audioCaptainSx = {color: '#8e8e93', ml: 1, mb: 0.5};
+const audioCaptainSx = {color: 'text.secondary', ml: 1, mb: 0.5}; // Вместо #8e8e93
 
 const audioStyle = {width: '100%', height: '32px'};
 
-const fileSx = {justifyContent: 'start', textTransform: 'none'};
+const fileSx = {
+  justifyContent: 'start',
+  textTransform: 'none',
+  borderColor: 'divider',
+  color: 'text.primary',
+  '&:hover': {
+    bgcolor: 'action.hover',
+    borderColor: 'primary.main',
+  },
+};
 
 interface NoteAttachmentProps {
   att: Attachment;
@@ -45,6 +56,7 @@ interface NoteAttachmentProps {
 
 const NoteAttachment: FC<NoteAttachmentProps> = ({att}) => {
   const filename = useMemo(() => att.file_path.split('_').slice(1).join('_'), [att.file_path]);
+
   const displayUrl = useMemo(
     () =>
       att.thumbnail_path

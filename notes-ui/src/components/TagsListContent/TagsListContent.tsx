@@ -1,12 +1,10 @@
 import React, {FC, memo} from 'react';
-import {Divider, ListItemIcon, ListItemText, MenuItem, Box} from '@mui/material';
+import {Box, Divider, ListItemIcon, ListItemText, MenuItem} from '@mui/material';
 import {Archive, Check, Sort} from '@mui/icons-material';
 import {DndContext, DragEndEvent} from '@dnd-kit/core';
 import {SortableContext} from '@dnd-kit/sortable';
 import SortableTagItem from './SortableTagItem';
 
-const iconBtnSx = {minWidth: '32px !important'};
-const dividerSx = {borderColor: 'rgba(255, 255, 255, 0.08)'};
 const commonIconSx = {fontSize: 18};
 
 interface TagsListContentProps {
@@ -44,20 +42,28 @@ const TagsListContent: FC<TagsListContentProps> = memo((props: TagsListContentPr
         sx={{
           py: 1.2,
           px: 2,
-          bgcolor: showArchived ? 'rgba(144, 202, 249, 0.08)' : 'transparent',
-          '&:hover': {bgcolor: 'rgba(255, 255, 255, 0.05)'},
         }}
       >
-        <ListItemIcon sx={iconBtnSx}>
-          <Archive sx={{...commonIconSx, color: showArchived ? '#90caf9' : '#8e8e93'}} />
+        <ListItemIcon>
+          <Archive
+            sx={{
+              ...commonIconSx,
+              color: showArchived ? 'primary.main' : 'text.secondary',
+            }}
+          />
         </ListItemIcon>
         <ListItemText
           primary="Архив"
-          slotProps={{primary: {fontSize: '0.85rem', color: showArchived ? '#90caf9' : '#efefef'}}}
+          slotProps={{
+            primary: {
+              fontSize: '0.85rem',
+              color: showArchived ? 'primary.main' : 'text.primary',
+            },
+          }}
         />
       </MenuItem>
 
-      {displayTags.length > 0 && <Divider sx={dividerSx} />}
+      {displayTags.length > 0 && <Divider />}
 
       {displayTags.length > 0 && (
         <DndContext onDragEnd={handleDragEnd}>
@@ -79,20 +85,24 @@ const TagsListContent: FC<TagsListContentProps> = memo((props: TagsListContentPr
         </DndContext>
       )}
 
-      {displayTags.length > 1 && <Divider sx={dividerSx} />}
+      {displayTags.length > 1 && <Divider />}
 
       {displayTags.length > 1 && (
-        <MenuItem tabIndex={0} onClick={handleToggleOrder} sx={{py: 1, px: 2}}>
-          <ListItemIcon sx={iconBtnSx}>
+        <MenuItem tabIndex={0} onClick={handleToggleOrder}>
+          <ListItemIcon>
             {isReorderMode ? (
               <Check color="primary" sx={commonIconSx} />
             ) : (
-              <Sort sx={commonIconSx} />
+              <Sort sx={{...commonIconSx, color: 'text.secondary'}} />
             )}
           </ListItemIcon>
           <ListItemText
             primary={isReorderMode ? 'Сохранить порядок' : 'Изменить порядок'}
-            slotProps={{primary: {fontSize: '0.85rem', color: '#efefef'}}}
+            slotProps={{
+              primary: {
+                fontSize: '0.85rem',
+              },
+            }}
           />
         </MenuItem>
       )}

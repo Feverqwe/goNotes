@@ -1,13 +1,13 @@
 import React, {FC, useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {IconButton, ListItemIcon, ListItemText, MenuItem, Typography} from '@mui/material';
+import {IconButton, ListItemIcon, ListItemText, MenuItem} from '@mui/material';
 import {AddCircleOutline, CheckCircle} from '@mui/icons-material';
+import TagIcon from '@mui/icons-material/Tag';
 import TagOrder from './TagOrder';
 
-const listItemIconBaseSx = {minWidth: '32px !important'};
-const hashTypographySx = {fontSize: 14, fontFamily: 'monospace'};
-const iconSx = {fontSize: 18};
+const tagIconSx = {fontSize: '14px'};
+const iconSx = {fontSize: '18px'};
 
 interface SortableTagItemProps {
   tag: string;
@@ -60,35 +60,24 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
 
   const menuItemSx = useMemo(
     () => ({
-      py: 0.8,
-      px: 2,
-      bgcolor: isActive ? 'rgba(144, 202, 249, 0.05)' : 'transparent',
+      // Используем action.selected для активного тега
+      bgcolor: isActive ? 'action.selected' : 'transparent',
       '&:hover': {
-        bgcolor: isReordering ? 'transparent' : 'rgba(255, 255, 255, 0.05)',
+        bgcolor: isReordering ? 'transparent' : 'action.hover',
         '& .add-tag-btn': {opacity: 1},
       },
       ...(isDragging && {
-        bgcolor: 'rgba(144, 202, 249, 0.1) !important',
+        bgcolor: 'action.active', // Подсветка при перетаскивании
       }),
     }),
     [isActive, isDragging, isReordering],
-  );
-
-  const listItemIconSx = useMemo(
-    () => ({...listItemIconBaseSx, color: isActive ? '#90caf9' : '#48484a'}),
-    [isActive],
-  );
-
-  const hashStyles = useMemo(
-    () => ({...hashTypographySx, fontWeight: isActive ? 700 : 400}),
-    [isActive],
   );
 
   const listItemTextSlotProps = useMemo(
     () => ({
       primary: {
         fontSize: '0.85rem',
-        color: isActive ? '#90caf9' : '#efefef',
+        color: isActive ? 'primary.main' : 'text.primary',
         fontWeight: isActive ? 600 : 400,
       },
     }),
@@ -99,7 +88,7 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
     () => ({
       opacity: isActive ? 1 : 0,
       transition: 'opacity 0.2s',
-      color: isActive ? '#90caf9' : '#8e8e93',
+      color: isActive ? 'primary.main' : 'text.secondary',
       visibility: isReordering ? 'hidden' : 'visible',
     }),
     [isActive, isReordering],
@@ -114,11 +103,10 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
       disableRipple
     >
       {!isReordering && (
-        <ListItemIcon sx={listItemIconSx}>
-          <Typography sx={hashStyles}>#</Typography>
+        <ListItemIcon color={isActive ? 'primary.main' : 'text.disabled'}>
+          <TagIcon sx={tagIconSx} />
         </ListItemIcon>
       )}
-
       {isReordering && (
         <TagOrder
           tag={tag}
@@ -129,9 +117,7 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
           listeners={listeners}
         />
       )}
-
       <ListItemText primary={tag} slotProps={listItemTextSlotProps} />
-
       <IconButton className="add-tag-btn" size="small" onClick={handleToggleClick} sx={iconBtnSx}>
         {isActive ? <CheckCircle sx={iconSx} /> : <AddCircleOutline sx={iconSx} />}
       </IconButton>

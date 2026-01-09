@@ -12,6 +12,14 @@ import {SnackCtx} from '../../ctx/SnackCtx';
 import {api} from '../../tools/api';
 import {DeleteMessageRequest} from '../../tools/types';
 
+const btnSx = {
+  borderRadius: '6px',
+  textTransform: 'none',
+  '&:hover': {
+    bgcolor: 'action.hover',
+  },
+};
+
 interface DeleteDialogProps {
   deleteDialogOpen: boolean;
   closeDeleteDialog: () => void;
@@ -59,11 +67,11 @@ const DeleteDialog: FC<DeleteDialogProps> = ({
       </DialogContent>
 
       <DialogActions>
-        <Button onClick={confirmDelete} fullWidth variant="text" color="error">
+        <Button onClick={confirmDelete} fullWidth variant="text" color="error" sx={btnSx}>
           Удалить
         </Button>
 
-        <Button onClick={closeDeleteDialog} fullWidth variant="text">
+        <Button onClick={closeDeleteDialog} fullWidth variant="text" sx={btnSx}>
           Отмена
         </Button>
       </DialogActions>

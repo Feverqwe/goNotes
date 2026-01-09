@@ -1,7 +1,22 @@
 import React, {FC, useCallback} from 'react';
-import {Chip} from '@mui/material';
+import {Chip, Theme} from '@mui/material';
 
-const chipSx = {border: 'none', bgcolor: '#2c2c2e', fontSize: '0.7rem', height: '20px'};
+const chipSx = {
+  border: '1px solid',
+  // Используем divider для границ и action.selected для ненавязчивого фона
+  borderColor: 'divider',
+  bgcolor: 'action.selected',
+  fontSize: '0.7rem',
+  height: '20px',
+  color: 'text.secondary',
+  transition: (theme: Theme) =>
+    theme.transitions.create(['background-color', 'color', 'border-color']),
+  '&:hover': {
+    bgcolor: 'action.hover',
+    color: 'primary.main',
+    borderColor: 'primary.main',
+  },
+};
 
 interface NoteTagProps {
   tag: string;
@@ -21,6 +36,7 @@ const NoteTag: FC<NoteTagProps> = ({tag, onClick}) => {
       variant="outlined"
       onClick={handleClick}
       sx={chipSx}
+      clickable // Добавляем это свойство для корректной обработки hover-эффектов в MUI
     />
   );
 };
