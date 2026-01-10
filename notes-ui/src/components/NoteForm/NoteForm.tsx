@@ -6,7 +6,7 @@ import {Attachment} from '../../types';
 
 interface NoteFormProps extends Pick<
   NoteEditorDialogProps,
-  'editingNote' | 'endEditing' | 'currentTags' | 'setCurrentTags' | 'open'
+  'editingNote' | 'endEditing' | 'currentTags' | 'setCurrentTags' | 'open' | 'innerRef'
 > {
   setIsEditorDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
 }

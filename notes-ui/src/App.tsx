@@ -1,15 +1,7 @@
 import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {
-  Alert,
-  Box,
-  CircularProgress,
-  Container,
-  Stack,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import {Alert, Box, CircularProgress, Container, Stack, useMediaQuery, useTheme,} from '@mui/material';
 
 import {closestCenter, DndContext, DragEndEvent} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
@@ -70,6 +62,7 @@ function App() {
   refMsgToDelete.current = msgToDelete;
 
   const refGoBack = useRef(false);
+  const bottomInputRef = useRef<HTMLInputElement>(null);
 
   const [deleteBatchDialogOpen, setBatchDeleteDialogOpen] = useState(false);
 
@@ -226,9 +219,10 @@ function App() {
         e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
 
       if ((e.key.toLowerCase() === 'n' || e.key.toLowerCase() === 'т') && !isInput) {
-        if (!refIsMobile.current) {
-          e.preventDefault();
-
+        e.preventDefault();
+        if (refIsMobile.current) {
+          bottomInputRef.current?.focus();
+        } else {
           setIsEditorDialogOpen(true);
         }
       }
@@ -473,6 +467,7 @@ function App() {
           endEditing={endEditing}
           currentTags={currentTags}
           setCurrentTags={setCurrentTags}
+          innerRef={bottomInputRef}
         />
 
         {isSelectMode && (

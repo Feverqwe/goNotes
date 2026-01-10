@@ -1,14 +1,23 @@
-import React, {FC, useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
+import React, {
+  FC,
+  useCallback,
+  useContext,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
+  alpha,
   Box,
   Chip,
   Container,
   IconButton,
   Paper,
   TextField,
-  alpha,
-  useTheme,
   Theme,
+  useTheme,
 } from '@mui/material';
 import {AttachFile, Check, Send} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
@@ -86,6 +95,7 @@ export interface BottomInputFormProps {
   deletedAttachIds: number[];
   setDeletedAttachIds: React.Dispatch<React.SetStateAction<number[]>>;
   onFinish: () => void;
+  innerRef?: React.RefObject<{focus: () => void} | null>;
 }
 
 const BottomInputForm: FC<BottomInputFormProps> = (props) => {
@@ -103,6 +113,7 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
     deletedAttachIds,
     setDeletedAttachIds,
     onFinish,
+    innerRef,
   } = props;
 
   const showSnackbar = useContext(SnackCtx);
@@ -112,6 +123,12 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
   const [isDragging, setIsDragging] = useState(false);
   const refInputText = useRef(inputText);
   refInputText.current = inputText;
+
+  useImperativeHandle(innerRef, () => ({
+    focus: () => {
+      inputRef.current?.focus();
+    },
+  }));
 
   useEffect(() => {
     if (!isDialogMode && !editingNote) return;
@@ -133,8 +150,7 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
 
   const toggleDeleteExisting = useCallback(
     (id: number) => {
-      setDeletedAttachIds((prev) =>
-        prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id],
+      setDeletedAttachIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]),
       );
     },
     [setDeletedAttachIds],
@@ -183,7 +199,7 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
       formData.append('delete_attachments', deletedAttachIds.join(','));
       updateMessageMutation.mutate(formData);
     } else {
-      let addTags = currentTags
+      const addTags = currentTags
         .filter((tag) => !finalContent.includes(`#${tag}`))
         .map((tag) => `#${tag}`)
         .join(' ');
