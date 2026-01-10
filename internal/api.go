@@ -118,7 +118,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			}
 
 			query := fmt.Sprintf(`
-				SELECT id, content, created_at, updated_at, is_archived, sort_order, color
+				SELECT id, content, created_at, updated_at, used_at, is_archived, sort_order, color
 					FROM messages 
 					%s 
 					ORDER BY sort_order DESC
@@ -139,7 +139,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			for rows.Next() {
 				var m MessageDTO
 
-				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.IsArchived, &m.SortOrder, &m.Color); err != nil {
+				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.UsedAt, &m.IsArchived, &m.SortOrder, &m.Color); err != nil {
 					log.Printf("Scan error: %v", err)
 					continue
 				}

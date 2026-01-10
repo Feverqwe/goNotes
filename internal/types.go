@@ -6,6 +6,7 @@ type MessageDTO struct {
 	Content     string          `json:"content"`
 	CreatedAt   string          `json:"created_at"`
 	UpdatedAt   string          `json:"updated_at"`
+	UsedAt      string          `json:"used_at"`
 	IsArchived  int             `json:"is_archived"`
 	Tags        []string        `json:"tags"`
 	Attachments []AttachmentDTO `json:"attachments"`
