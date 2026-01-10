@@ -1,4 +1,4 @@
-import React, {createContext, useContext, useEffect, useState, useMemo} from 'react';
+import React, {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 import {createTheme, ThemeProvider} from '@mui/material';
 import {themeProps as baseThemeProps} from '../constants';
 
@@ -21,9 +21,9 @@ export const AppThemeProvider: React.FC<{children: React.ReactNode}> = ({childre
     return (localStorage.getItem('theme-mode') as ThemeMode) || 'dark';
   });
 
-  const toggleTheme = () => {
+  const toggleTheme = useCallback(() => {
     setMode((prev) => (prev === 'light' ? 'dark' : 'light'));
-  };
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('theme-mode', mode);
@@ -41,8 +41,10 @@ export const AppThemeProvider: React.FC<{children: React.ReactNode}> = ({childre
     [mode],
   );
 
+  const themeValue = useMemo(() => ({mode, toggleTheme}), [mode, toggleTheme]);
+
   return (
-    <ThemeContext.Provider value={{mode, toggleTheme}}>
+    <ThemeContext.Provider value={themeValue}>
       <ThemeProvider theme={theme}>{children}</ThemeProvider>
     </ThemeContext.Provider>
   );

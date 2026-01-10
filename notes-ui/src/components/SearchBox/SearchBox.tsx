@@ -91,7 +91,8 @@ const SearchBox: FC<SearchBoxProps> = ({
   );
 
   const appBarSx = useMemo(
-    () => ({
+    () =>
+      ({
         zIndex: theme.zIndex.drawer + 1,
         py: 0.5,
         px: 1,

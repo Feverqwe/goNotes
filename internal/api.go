@@ -36,6 +36,10 @@ func HandleApi(router *Router, database *sql.DB, config *cfg.Config) {
 
 	handleAction(apiRouter, config)
 
+	apiRouter.Use(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(404)
+	})
+
 	router.All("^/api/", gzipHandler.ServeHTTP)
 }
 
@@ -329,6 +333,20 @@ func handleAction(router *Router, config *cfg.Config) {
 			}
 
 			return "ok", nil
+		})
+	})
+
+	router.Post("/api/messages/use", func(w http.ResponseWriter, r *http.Request) {
+		apiCall(w, func() (string, error) {
+			var data struct {
+				Id int64 `json:"id"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+				return "", err
+			}
+			// Обновляем только used_at, не трогая updated_at
+			_, err := db.Exec("UPDATE messages SET used_at = CURRENT_TIMESTAMP WHERE id = ?", data.Id)
+			return "ok", err
 		})
 	})
 

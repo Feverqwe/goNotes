@@ -22,6 +22,8 @@ import {
   SetColorResponse,
   UpdateMessageRequest,
   UpdateMessageResponse,
+  UseMessageRequest,
+  UseMessageResponse,
 } from './types';
 
 const client = axios.create({
@@ -88,6 +90,10 @@ export const api = {
     update: action<UpdateMessageRequest, UpdateMessageResponse>({
       method: 'POST',
       path: '/api/messages/update',
+    }),
+    use: action<UseMessageRequest, UseMessageResponse>({
+      method: 'POST',
+      path: '/api/messages/use',
     }),
     delete: action<DeleteMessageRequest, DeleteMessageResponse>({
       method: 'DELETE',

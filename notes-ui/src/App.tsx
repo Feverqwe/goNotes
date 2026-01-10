@@ -376,7 +376,8 @@ function App() {
   );
 
   const hasActiveFilters = useMemo(
-    () => searchQuery.length > 0 ||
+    () =>
+      searchQuery.length > 0 ||
       currentTags.length > 0 ||
       showArchived ||
       selectedNoteId !== undefined,

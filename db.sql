@@ -5,6 +5,7 @@ CREATE TABLE IF NOT EXISTS messages (
     content_lower TEXT,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     is_archived INTEGER DEFAULT 0,
     color TEXT DEFAULT ''
 );

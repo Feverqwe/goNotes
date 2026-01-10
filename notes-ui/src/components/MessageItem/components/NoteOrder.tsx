@@ -1,5 +1,5 @@
 import React, {FC, useCallback, useMemo} from 'react';
-import {Box, IconButton, useMediaQuery, useTheme, alpha} from '@mui/material';
+import {Box, IconButton, useMediaQuery, useTheme} from '@mui/material';
 import {ArrowDownward, ArrowUpward, DragHandle} from '@mui/icons-material';
 import {DraggableAttributes, DraggableSyntheticListeners} from '@dnd-kit/core';
 

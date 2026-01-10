@@ -56,3 +56,8 @@ export interface SetColorRequest {
   color: string;
 }
 export type SetColorResponse = 'ok';
+
+export interface UseMessageRequest {
+  id: number;
+}
+export type UseMessageResponse = 'ok';

@@ -1,4 +1,4 @@
-import React, {FC, useCallback, useMemo} from 'react';
+import React, {FC, useCallback, useContext, useMemo} from 'react';
 import {
   Box,
   Card,
@@ -13,11 +13,12 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import {MoreVert} from '@mui/icons-material';
+import {MoreVert, Restore} from '@mui/icons-material';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {Note} from '../../types';
 import {formatFullDate, formatShortDate, getBgColor, getBorderColor} from './utils';
 import CodeP from './CodeP';
@@ -27,6 +28,9 @@ import CodeCode from './CodeCode';
 import NoteAttachment from './components/NoteAttachment';
 import NoteTag from './components/NoteTag';
 import NoteOrder from './components/NoteOrder';
+import {api} from '../../tools/api';
+import {SnackCtx} from '../../ctx/SnackCtx';
+import {UseMessageRequest} from '../../tools/types';
 
 const remarkPlugins = [remarkGfm];
 const remarkComponents = {
@@ -59,8 +63,6 @@ const dateSx = {
   fontSize: '0.7rem',
   whiteSpace: 'nowrap',
   cursor: 'default',
-  lineHeight: 1,
-  mb: '2px',
   textAlign: 'right',
 };
 
@@ -92,6 +94,8 @@ const MessageItem: FC<MessageItemProps> = ({
   totalCount,
 }) => {
   const theme = useTheme();
+  const showSnackbar = useContext(SnackCtx);
+  const queryClient = useQueryClient();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({
     id: msg.id,
@@ -106,6 +110,34 @@ const MessageItem: FC<MessageItemProps> = ({
       opacity: isDragging ? 0.5 : 1,
     }),
     [isDragging, transform, transition],
+  );
+
+  const useItMutation = useMutation({
+    mutationFn: async (params: UseMessageRequest) => {
+      const [r] = await Promise.all([
+        api.messages.use(params),
+        new Promise<void>((resolve) => {
+          setTimeout(resolve, 1000);
+        }),
+      ]);
+      return r;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      showSnackbar('Заметка отмечена как использованная', 'success');
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка при пометке сообщения использованной', 'error');
+    },
+  });
+
+  const handleUseClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      useItMutation.mutate({id: msg.id});
+    },
+    [msg.id, useItMutation],
   );
 
   const handleKeyDown = useCallback(
@@ -139,7 +171,7 @@ const MessageItem: FC<MessageItemProps> = ({
 
     return {
       position: 'relative',
-      '&:hover .message-action': {opacity: 1},
+      '&:hover .message-action, &:hover .action-use': {opacity: 1},
       bgcolor: msg.color ? getBgColor(msg.color) : msg.is_archived ? 'action.hover' : null,
       backgroundImage: msg.is_archived
         ? `repeating-linear-gradient(45deg, rgba(255,255,255,${isDark ? '0.01' : '0.2'}) 0px, rgba(255,255,255,${isDark ? '0.01' : '0.2'}) 2px, transparent 2px, transparent 10px)`
@@ -198,6 +230,20 @@ const MessageItem: FC<MessageItemProps> = ({
     [isMobile],
   );
 
+  const useBtnSx = useMemo(
+    () => ({
+      color: 'text.disabled',
+      '&:hover': {color: 'primary.main'},
+      opacity: {xs: 1, sm: 0},
+      transition: 'opacity 0.2s',
+      '&:focus-visible': {
+        opacity: 1,
+        boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
+      },
+    }),
+    [],
+  );
+
   const fullDate = useMemo(() => formatFullDate(msg.created_at), [msg.created_at]);
   const shortDate = useMemo(() => formatShortDate(msg.created_at), [msg.created_at]);
   const updatedMark = useMemo(() => msg.updated_at !== msg.created_at && ' (ред.)', [msg]);
@@ -248,20 +294,37 @@ const MessageItem: FC<MessageItemProps> = ({
               ))}
             </Stack>
           )}
-          <Box sx={bottomSx}>
+          <Box sx={bottomSx} display="flex" alignItems="center">
             <Box sx={tagsCtrSx}>
               {msg.tags?.map((t) => (
                 <NoteTag key={t} tag={t} onClick={onTagClick} />
               ))}
             </Box>
-            <Tooltip title={fullDate} arrow placement="top" enterDelay={500}>
-              <Typography variant="caption" sx={dateSx}>
-                <Link color="inherit" underline="none" href={dateLink}>
-                  {shortDate}
-                  {updatedMark}
-                </Link>
-              </Typography>
-            </Tooltip>
+
+            <Box sx={{display: 'flex', alignItems: 'center', gap: 0.5}}>
+              {!isSelectMode && !isReorderMode && (
+                <Tooltip title="Отметить использование" arrow>
+                  <IconButton
+                    size="small"
+                    className="action-use"
+                    onClick={handleUseClick}
+                    loading={useItMutation.isPending}
+                    sx={useBtnSx}
+                  >
+                    <Restore sx={{fontSize: 16}} />
+                  </IconButton>
+                </Tooltip>
+              )}
+
+              <Tooltip title={fullDate} arrow>
+                <Typography variant="caption" sx={dateSx}>
+                  <Link color="inherit" underline="none" href={dateLink}>
+                    {shortDate}
+                    {updatedMark}
+                  </Link>
+                </Typography>
+              </Tooltip>
+            </Box>
           </Box>
         </CardContent>
       </Card>
