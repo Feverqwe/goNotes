@@ -1,7 +1,15 @@
 import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {Alert, Box, CircularProgress, Container, Stack, useMediaQuery, useTheme,} from '@mui/material';
+import {
+  Alert,
+  Box,
+  CircularProgress,
+  Container,
+  Stack,
+  useMediaQuery,
+  useTheme,
+} from '@mui/material';
 
 import {closestCenter, DndContext, DragEndEvent} from '@dnd-kit/core';
 import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
@@ -174,37 +182,45 @@ function App() {
   });
 
   useEffect(() => {
-    if (!refGoBack.current) {
-      const url = new URL(window.location.href);
-
-      if (showArchived) {
-        url.searchParams.set('archived', '1');
-      } else {
-        url.searchParams.delete('archived');
-      }
-
-      if (currentTags.length > 0) {
-        url.searchParams.set('tags', currentTags.join(','));
-      } else {
-        url.searchParams.delete('tags');
-      }
-
-      if (searchQuery) {
-        url.searchParams.set('q', searchQuery);
-      } else {
-        url.searchParams.delete('q');
-      }
-
-      if (selectedNoteId) {
-        url.searchParams.set('id', String(selectedNoteId));
-      } else {
-        url.searchParams.delete('id');
-      }
-
-      window.history.replaceState({}, '', url);
+    if (refGoBack.current) {
+      refGoBack.current = false;
+      return;
     }
 
-    refGoBack.current = false;
+    const url = new URL(window.location.href);
+    const oldSearch = url.search;
+
+    if (showArchived) {
+      url.searchParams.set('archived', '1');
+    } else {
+      url.searchParams.delete('archived');
+    }
+
+    if (currentTags.length > 0) {
+      url.searchParams.set('tags', currentTags.join(','));
+    } else {
+      url.searchParams.delete('tags');
+    }
+
+    if (searchQuery) {
+      url.searchParams.set('q', searchQuery);
+    } else {
+      url.searchParams.delete('q');
+    }
+
+    if (selectedNoteId) {
+      url.searchParams.set('id', String(selectedNoteId));
+    } else {
+      url.searchParams.delete('id');
+    }
+
+    const newSearch = url.search;
+
+    if (oldSearch === '' && newSearch !== '') {
+      window.history.pushState({}, '', url);
+    } else {
+      window.history.replaceState({}, '', url);
+    }
 
     const delayDebounceFn = setTimeout(() => {
       queryClient.invalidateQueries({queryKey: ['notes']});
