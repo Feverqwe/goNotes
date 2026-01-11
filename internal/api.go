@@ -165,8 +165,8 @@ func handleAction(router *Router, config *cfg.Config) {
 		})
 	})
 
-	handleAttachment := func(fHeader *multipart.FileHeader, id int64) (fileName string, thumbnailPath string, fileType string, err error) {
-		fileName = fmt.Sprintf("%d_%s", id, fHeader.Filename)
+	handleAttachment := func(fHeader *multipart.FileHeader, tx *sql.Tx, id int64) (err error) {
+		fileName := fmt.Sprintf("%d_%s", id, fHeader.Filename)
 		fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
 
 		err = saveFile(fHeader, fullPath)
@@ -175,8 +175,8 @@ func handleAction(router *Router, config *cfg.Config) {
 			return
 		}
 
-		fileType = "document"
-		thumbnailPath = ""
+		fileType := "document"
+		thumbnailPath := ""
 		if isImage(fileName) {
 			fileType = "image"
 			thumbName := "thumb_" + fileName
@@ -191,6 +191,35 @@ func handleAction(router *Router, config *cfg.Config) {
 			fileType = "audio"
 		} else if isVideo(fileName) {
 			fileType = "video"
+		}
+
+		_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
+			id, fileName, thumbnailPath, fileType)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+
+	handleTags := func(tx *sql.Tx, id int64, content string, isUpdate bool) (err error) {
+		if isUpdate {
+			_, err = tx.Exec("DELETE FROM message_tags WHERE message_id = ?", id)
+			if err != nil {
+				return
+			}
+		}
+
+		tags := extractHashtags(content)
+		for _, t := range tags {
+			_, err = tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
+			if err != nil {
+				break
+			}
+			_, err = tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", id, t)
+			if err != nil {
+				break
+			}
 		}
 		return
 	}
@@ -219,31 +248,15 @@ func handleAction(router *Router, config *cfg.Config) {
 			}
 			msgID, _ := res.LastInsertId()
 
-			tags := extractHashtags(content)
-			for _, t := range tags {
-				_, err = tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
-				if err != nil {
-					return "", err
-				}
-				_, err = tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", msgID, t)
-				if err != nil {
+			files := r.MultipartForm.File["attachments"]
+			for _, fHeader := range files {
+				if err = handleAttachment(fHeader, tx, msgID); err != nil {
 					return "", err
 				}
 			}
 
-			files := r.MultipartForm.File["attachments"]
-			for _, fHeader := range files {
-				fileName, thumbnailPath, fileType, attErr := handleAttachment(fHeader, msgID)
-				if attErr != nil {
-					log.Printf("File save error: %v", attErr)
-					continue
-				}
-
-				_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
-					msgID, fileName, thumbnailPath, fileType)
-				if err != nil {
-					return "", err
-				}
+			if err = handleTags(tx, msgID, content, false); err != nil {
+				return "", err
 			}
 
 			if err := tx.Commit(); err != nil {
@@ -299,33 +312,13 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			files := r.MultipartForm.File["attachments"]
 			for _, fHeader := range files {
-				fileName, thumbnailPath, fileType, attErr := handleAttachment(fHeader, id)
-				if attErr != nil {
-					log.Printf("File save error: %v", attErr)
-					continue
-				}
-				_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
-					id, fileName, thumbnailPath, fileType)
-				if err != nil {
+				if err = handleAttachment(fHeader, tx, id); err != nil {
 					return "", err
 				}
 			}
 
-			_, err = tx.Exec("DELETE FROM message_tags WHERE message_id = ?", id)
-			if err != nil {
+			if err = handleTags(tx, id, content, true); err != nil {
 				return "", err
-			}
-
-			tags := extractHashtags(content)
-			for _, t := range tags {
-				_, err = tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
-				if err != nil {
-					return "", err
-				}
-				_, err = tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", id, t)
-				if err != nil {
-					return "", err
-				}
 			}
 
 			if err := tx.Commit(); err != nil {
