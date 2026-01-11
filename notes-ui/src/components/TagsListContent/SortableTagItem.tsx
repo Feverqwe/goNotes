@@ -1,12 +1,11 @@
 import React, {FC, useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
+import {IconButton, ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
 import {AddCircleOutline, CheckCircle} from '@mui/icons-material';
 import TagIcon from '@mui/icons-material/Tag';
 import TagOrder from './TagOrder';
 
-const tagIconSx = {fontSize: '14px'};
 const iconSx = {fontSize: '18px'};
 
 interface SortableTagItemProps {
@@ -60,17 +59,21 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
 
   const menuItemSx = useMemo(
     () => ({
-      // Используем action.selected для активного тега
-      bgcolor: isActive ? 'action.selected' : 'transparent',
+      ...(isDragging
+        ? {
+            bgcolor: 'action.active',
+          }
+        : {}),
       '&:hover': {
-        bgcolor: isReordering ? 'transparent' : 'action.hover',
+        ...(isReordering
+          ? {
+              bgcolor: 'transparent',
+            }
+          : {}),
         '& .add-tag-btn': {opacity: 1},
       },
-      ...(isDragging && {
-        bgcolor: 'action.active', // Подсветка при перетаскивании
-      }),
     }),
-    [isActive, isDragging, isReordering],
+    [isDragging, isReordering],
   );
 
   const listItemTextSlotProps = useMemo(
@@ -94,36 +97,39 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
     [isActive, isReordering],
   );
 
+  const tagIconSx = useMemo(
+    () => ({fontSize: '14px', color: isActive ? 'primary.main' : 'text.disabled'}),
+    [isActive],
+  );
+
   return (
-    <ListItem
-      disablePadding
+    <ListItemButton
+      selected={isActive}
       ref={setNodeRef}
       style={dndStyle}
       onClick={handleMainClick}
       sx={menuItemSx}
     >
-      <ListItemButton>
-        {!isReordering && (
-          <ListItemIcon color={isActive ? 'primary.main' : 'text.disabled'}>
-            <TagIcon sx={tagIconSx} />
-          </ListItemIcon>
-        )}
-        {isReordering && (
-          <TagOrder
-            tag={tag}
-            index={index}
-            totalCount={totalCount}
-            moveStep={moveStep}
-            attributes={attributes}
-            listeners={listeners}
-          />
-        )}
-        <ListItemText primary={tag} slotProps={listItemTextSlotProps} />
-        <IconButton className="add-tag-btn" size="small" onClick={handleToggleClick} sx={iconBtnSx}>
-          {isActive ? <CheckCircle sx={iconSx} /> : <AddCircleOutline sx={iconSx} />}
-        </IconButton>
-      </ListItemButton>
-    </ListItem>
+      {!isReordering && (
+        <ListItemIcon>
+          <TagIcon sx={tagIconSx} />
+        </ListItemIcon>
+      )}
+      {isReordering && (
+        <TagOrder
+          tag={tag}
+          index={index}
+          totalCount={totalCount}
+          moveStep={moveStep}
+          attributes={attributes}
+          listeners={listeners}
+        />
+      )}
+      <ListItemText primary={tag} slotProps={listItemTextSlotProps} />
+      <IconButton className="add-tag-btn" size="small" onClick={handleToggleClick} sx={iconBtnSx}>
+        {isActive ? <CheckCircle sx={iconSx} /> : <AddCircleOutline sx={iconSx} />}
+      </IconButton>
+    </ListItemButton>
   );
 };
 
