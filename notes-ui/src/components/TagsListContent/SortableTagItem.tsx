@@ -1,7 +1,7 @@
 import React, {FC, useCallback, useMemo} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {IconButton, ListItemIcon, ListItemText, MenuItem} from '@mui/material';
+import {IconButton, ListItem, ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
 import {AddCircleOutline, CheckCircle} from '@mui/icons-material';
 import TagIcon from '@mui/icons-material/Tag';
 import TagOrder from './TagOrder';
@@ -95,33 +95,35 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
   );
 
   return (
-    <MenuItem
+    <ListItem
+      disablePadding
       ref={setNodeRef}
       style={dndStyle}
       onClick={handleMainClick}
       sx={menuItemSx}
-      disableRipple
     >
-      {!isReordering && (
-        <ListItemIcon color={isActive ? 'primary.main' : 'text.disabled'}>
-          <TagIcon sx={tagIconSx} />
-        </ListItemIcon>
-      )}
-      {isReordering && (
-        <TagOrder
-          tag={tag}
-          index={index}
-          totalCount={totalCount}
-          moveStep={moveStep}
-          attributes={attributes}
-          listeners={listeners}
-        />
-      )}
-      <ListItemText primary={tag} slotProps={listItemTextSlotProps} />
-      <IconButton className="add-tag-btn" size="small" onClick={handleToggleClick} sx={iconBtnSx}>
-        {isActive ? <CheckCircle sx={iconSx} /> : <AddCircleOutline sx={iconSx} />}
-      </IconButton>
-    </MenuItem>
+      <ListItemButton>
+        {!isReordering && (
+          <ListItemIcon color={isActive ? 'primary.main' : 'text.disabled'}>
+            <TagIcon sx={tagIconSx} />
+          </ListItemIcon>
+        )}
+        {isReordering && (
+          <TagOrder
+            tag={tag}
+            index={index}
+            totalCount={totalCount}
+            moveStep={moveStep}
+            attributes={attributes}
+            listeners={listeners}
+          />
+        )}
+        <ListItemText primary={tag} slotProps={listItemTextSlotProps} />
+        <IconButton className="add-tag-btn" size="small" onClick={handleToggleClick} sx={iconBtnSx}>
+          {isActive ? <CheckCircle sx={iconSx} /> : <AddCircleOutline sx={iconSx} />}
+        </IconButton>
+      </ListItemButton>
+    </ListItem>
   );
 };
 

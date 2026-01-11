@@ -1,10 +1,9 @@
 import React, {FC, memo, PropsWithChildren} from 'react';
 import {
   Box,
-  Button,
   Divider,
-  List,
   ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
   SwipeableDrawer,
@@ -22,14 +21,14 @@ const drawerSx = {
 };
 
 const contentWrapperSx = {
-  pt: 3,
   display: 'flex',
   flexDirection: 'column',
   height: '100%',
   marginTop: `${HEADER_HEIGHT}px`,
+  overflow: 'auto',
 };
 
-const boxSx = {px: 2, mb: 3};
+const boxSx = {px: 2, my: 3};
 
 const btnSx = {
   textTransform: 'none',
@@ -86,24 +85,23 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
       >
         <Box sx={contentWrapperSx}>
           {isDesktop && (
-            <Box sx={boxSx}>
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={onCreateClick}
-                sx={btnSx}
-                color="primary"
-              >
-                Создать заметку
-              </Button>
-            </Box>
+            <ListItem disablePadding onClick={onCreateClick}>
+              <ListItemButton>
+                <ListItemIcon>
+                  <AddIcon />
+                </ListItemIcon>
+                <ListItemText
+                  primary="Добавить заметку"
+                  slotProps={{primary: {fontSize: '0.85rem'}}}
+                />
+              </ListItemButton>
+            </ListItem>
           )}
           <Box sx={menuSx}>{children}</Box>
           <Box sx={{mt: 'auto'}}>
-            <Divider sx={{borderColor: 'divider'}} />
-            <List>
-              <ListItem>
+            <Divider />
+            <ListItem disablePadding onClick={toggleTheme}>
+              <ListItemButton>
                 <ListItemIcon sx={{minWidth: 40}}>
                   {mode === 'dark' ? <DarkMode fontSize="small" /> : <LightMode fontSize="small" />}
                 </ListItemIcon>
@@ -111,9 +109,9 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
                   primary={mode === 'dark' ? 'Темная тема' : 'Светлая тема'}
                   slotProps={{primary: {fontSize: '0.85rem'}}}
                 />
-                <Switch edge="end" onChange={toggleTheme} checked={mode === 'dark'} size="small" />
-              </ListItem>
-            </List>
+                <Switch edge="end" checked={mode === 'dark'} size="small" />
+              </ListItemButton>
+            </ListItem>
           </Box>
         </Box>
       </SwipeableDrawer>

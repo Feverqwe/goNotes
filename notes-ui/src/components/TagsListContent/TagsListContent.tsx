@@ -1,5 +1,5 @@
 import React, {FC, memo} from 'react';
-import {Box, Divider, ListItemIcon, ListItemText, MenuItem} from '@mui/material';
+import {Box, Divider, ListItem, ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
 import {Archive, Check, Sort} from '@mui/icons-material';
 import {DndContext, DragEndEvent} from '@dnd-kit/core';
 import {SortableContext} from '@dnd-kit/sortable';
@@ -36,32 +36,27 @@ const TagsListContent: FC<TagsListContentProps> = memo((props: TagsListContentPr
 
   return (
     <Box>
-      <MenuItem
-        tabIndex={0}
-        onClick={handleToggleArchive}
-        sx={{
-          py: 1.2,
-          px: 2,
-        }}
-      >
-        <ListItemIcon>
-          <Archive
-            sx={{
-              ...commonIconSx,
-              color: showArchived ? 'primary.main' : 'text.secondary',
+      <ListItem onClick={handleToggleArchive} disablePadding>
+        <ListItemButton>
+          <ListItemIcon>
+            <Archive
+              sx={{
+                ...commonIconSx,
+                color: showArchived ? 'primary.main' : 'text.secondary',
+              }}
+            />
+          </ListItemIcon>
+          <ListItemText
+            primary="Архив"
+            slotProps={{
+              primary: {
+                fontSize: '0.85rem',
+                color: showArchived ? 'primary.main' : 'text.primary',
+              },
             }}
           />
-        </ListItemIcon>
-        <ListItemText
-          primary="Архив"
-          slotProps={{
-            primary: {
-              fontSize: '0.85rem',
-              color: showArchived ? 'primary.main' : 'text.primary',
-            },
-          }}
-        />
-      </MenuItem>
+        </ListItemButton>
+      </ListItem>
 
       {displayTags.length > 0 && <Divider />}
 
@@ -88,23 +83,25 @@ const TagsListContent: FC<TagsListContentProps> = memo((props: TagsListContentPr
       {displayTags.length > 1 && <Divider />}
 
       {displayTags.length > 1 && (
-        <MenuItem tabIndex={0} onClick={handleToggleOrder}>
-          <ListItemIcon>
-            {isReorderMode ? (
-              <Check color="primary" sx={commonIconSx} />
-            ) : (
-              <Sort sx={{...commonIconSx, color: 'text.secondary'}} />
-            )}
-          </ListItemIcon>
-          <ListItemText
-            primary={isReorderMode ? 'Сохранить порядок' : 'Изменить порядок'}
-            slotProps={{
-              primary: {
-                fontSize: '0.85rem',
-              },
-            }}
-          />
-        </MenuItem>
+        <ListItem disablePadding tabIndex={0} onClick={handleToggleOrder}>
+          <ListItemButton>
+            <ListItemIcon>
+              {isReorderMode ? (
+                <Check color="primary" sx={commonIconSx} />
+              ) : (
+                <Sort sx={{...commonIconSx, color: 'text.secondary'}} />
+              )}
+            </ListItemIcon>
+            <ListItemText
+              primary={isReorderMode ? 'Сохранить порядок' : 'Изменить порядок'}
+              slotProps={{
+                primary: {
+                  fontSize: '0.85rem',
+                },
+              }}
+            />
+          </ListItemButton>
+        </ListItem>
       )}
     </Box>
   );
