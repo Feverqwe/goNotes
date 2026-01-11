@@ -34,7 +34,7 @@ func HandleApi(router *Router, database *sql.DB, config *cfg.Config) {
 
 	gzipHandler := gziphandler.GzipHandler(apiRouter)
 
-	handleAction(apiRouter, config)
+	handleAction(apiRouter)
 
 	apiRouter.Use(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
@@ -43,7 +43,7 @@ func HandleApi(router *Router, database *sql.DB, config *cfg.Config) {
 	router.All("^/api/", gzipHandler.ServeHTTP)
 }
 
-func handleAction(router *Router, config *cfg.Config) {
+func handleAction(router *Router) {
 	router.Get("/api/messages/list", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() ([]MessageDTO, error) {
 			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
