@@ -74,11 +74,9 @@ func handleAction(router *Router) {
 					words := strings.Fields(searchQuery)
 
 					for _, word := range words {
-						processedWord := strings.ToLower(strings.ReplaceAll(word, "*", "%"))
+						processedWord := strings.ToLower(word)
 
-						if !strings.Contains(word, "*") {
-							processedWord = "%" + processedWord + "%"
-						}
+						processedWord = "%" + processedWord + "%"
 
 						clauses = append(clauses, "content_lower LIKE ?")
 						args = append(args, processedWord)
