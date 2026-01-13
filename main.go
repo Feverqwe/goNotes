@@ -39,20 +39,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	migrations := []string{
-		"ALTER TABLE messages ADD COLUMN is_archived INTEGER DEFAULT 0;",
-		"ALTER TABLE messages ADD COLUMN sort_order INTEGER DEFAULT 0; UPDATE messages SET sort_order = id WHERE sort_order = 0;",
-		"ALTER TABLE messages ADD COLUMN content_lower TEXT; UPDATE messages SET content_lower = LOWER(content) WHERE content_lower IS NULL; DROP INDEX IF EXISTS idx_messages_content_lower;",
-		"ALTER TABLE tags ADD COLUMN sort_order INTEGER DEFAULT 0; UPDATE tags SET sort_order = id WHERE sort_order = 0;",
-		"ALTER TABLE messages ADD COLUMN color TEXT DEFAULT '';",
-		"ALTER TABLE messages ADD COLUMN used_at DATETIME DEFAULT 0;",
-	}
-	for _, migration := range migrations {
-		_, err = db.Query(migration)
-		if err != nil && !strings.Contains(err.Error(), "duplicate column") {
-			log.Printf("Migrate query error: %v", err)
-		}
-	}
+	internal.MigrateDB(db)
 
 	if _, err := db.Exec(schemaSQL); err != nil {
 		log.Fatalf("Init DB error: %v", err)
