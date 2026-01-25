@@ -180,7 +180,7 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
       queryClient.invalidateQueries({queryKey: ['tags']});
-      document.body.scrollTo({top: 0});
+      document.body.scrollIntoView(true);
       onFinish();
     },
     onError: () => showSnackbar('Ошибка при отправке заметки', 'error'),
