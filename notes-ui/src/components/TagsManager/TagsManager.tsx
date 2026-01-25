@@ -40,9 +40,10 @@ const TagsManager: FC<TagsManagerProps> = memo(
         setCurrentTags((prev) =>
           prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
         );
+        setShowArchived(false);
         onActionFinished();
       },
-      [setCurrentTags, onActionFinished],
+      [setCurrentTags, setShowArchived, onActionFinished],
     );
 
     const handleToggleArchive = useCallback(() => {
@@ -95,6 +96,7 @@ const TagsManager: FC<TagsManagerProps> = memo(
     const setExclusiveTag = useCallback(
       (tag: string) => {
         setCurrentTags((prev) => (prev.length === 1 && prev[0] === tag ? [] : [tag]));
+        setShowArchived(false);
         onActionFinished();
       },
       [setCurrentTags, onActionFinished],
