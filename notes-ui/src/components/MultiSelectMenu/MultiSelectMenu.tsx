@@ -88,8 +88,7 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
 
   const handleDelete = useCallback(() => {
     askBatchDeleteConfirmation();
-    cancelSelectMode();
-  }, [askBatchDeleteConfirmation, cancelSelectMode]);
+  }, [askBatchDeleteConfirmation]);
 
   const paperSx = useMemo(
     () => ({

@@ -42,6 +42,7 @@ const BatchDeleteDialog: FC<BatchDeleteDialogProps> = ({
       queryClient.invalidateQueries({queryKey: ['notes']});
       queryClient.invalidateQueries({queryKey: ['tags']});
       cancelSelectMode();
+      closeBatchDeleteDialog();
     },
     onError: (err) => {
       console.error(err);

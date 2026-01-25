@@ -122,6 +122,7 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const refInputText = useRef(inputText);
+  refInputText.current = inputText;
 
   useImperativeHandle(innerRef, () => ({
     focus: () => {
