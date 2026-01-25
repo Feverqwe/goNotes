@@ -1,12 +1,12 @@
 import React, {FC, useCallback, useContext, useMemo} from 'react';
 import {
+  alpha,
   Box,
   Divider,
   ListItemIcon,
   ListItemText,
   Menu,
   MenuItem,
-  alpha,
   Theme,
   useTheme,
 } from '@mui/material';
@@ -105,9 +105,8 @@ const NoteMenu: FC<NoteMenuProps> = ({
     if (selectedMsg) {
       navigator.clipboard.writeText(selectedMsg.content);
       handleCloseMenu();
-      showSnackbar('Текст скопирован в буфер обмена', 'success');
     }
-  }, [selectedMsg, handleCloseMenu, showSnackbar]);
+  }, [selectedMsg, handleCloseMenu]);
 
   const onSelectClick = useCallback(() => {
     if (selectedMsg) enterSelectMode(selectedMsg);

@@ -125,7 +125,6 @@ const MessageItem: FC<MessageItemProps> = ({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
-      showSnackbar('Заметка отмечена как использованная', 'success');
     },
     onError: (err) => {
       console.error(err);

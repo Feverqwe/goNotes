@@ -39,7 +39,6 @@ const DeleteDialog: FC<DeleteDialogProps> = ({
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
       queryClient.invalidateQueries({queryKey: ['tags']});
-      showSnackbar('Заметка удалена', 'info');
       closeDeleteDialog();
     },
     onError: (err) => {

@@ -1,4 +1,4 @@
-import React, {FC, useCallback, useContext, useRef, useState, useMemo, memo} from 'react';
+import React, {FC, memo, useCallback, useContext, useMemo, useRef, useState} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {arrayMove} from '@dnd-kit/sortable';
 import {DragEndEvent} from '@dnd-kit/core';
@@ -78,7 +78,6 @@ const TagsManager: FC<TagsManagerProps> = memo(
       mutationFn: (params: ReorderTagsRequest) => api.tags.reorder(params),
       onSuccess: async () => {
         await queryClient.invalidateQueries({queryKey: ['tags']});
-        showSnackbar('Порядок сохранен');
         setIsReorderMode(false);
         setDndTags([]);
       },
