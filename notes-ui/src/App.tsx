@@ -495,10 +495,10 @@ function App() {
           onFullscreen={openFullScreenEditor}
         />
 
-        {isFullScreenEditorOpen && editingNote?.id && (
+        {isFullScreenEditorOpen && (
           <FullScreenNoteEditor
             open={isFullScreenEditorOpen}
-            noteId={editingNote.id}
+            noteId={editingNote?.id || null}
             onClose={endEditing}
           />
         )}

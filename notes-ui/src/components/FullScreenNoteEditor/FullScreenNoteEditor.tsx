@@ -1,4 +1,4 @@
-import React, {FC} from 'react';
+import React, {FC, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {Box, CircularProgress, Dialog, DialogContent} from '@mui/material';
 import {api} from '../../tools/api';
@@ -11,16 +11,28 @@ export interface FullScreenNoteEditorProps {
 }
 
 const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({open, noteId, onClose}) => {
+  const [currentNoteId, setCurrentNoteId] = useState(noteId);
+
   const {data: editingNote, isLoading} = useQuery({
-    queryKey: ['note', noteId],
+    queryKey: ['note', currentNoteId],
     queryFn: () =>
-      noteId ? api.messages.list({id: noteId}).then((notes) => notes[0] || null) : null,
-    enabled: open && Boolean(noteId),
+      currentNoteId
+        ? api.messages.list({id: currentNoteId}).then((notes) => notes[0] || null)
+        : null,
+    enabled: open && Boolean(currentNoteId),
     staleTime: 0,
   });
 
-  if (!open || !noteId) {
+  if (!open) {
     return null;
+  }
+
+  const handleNoteCreated = (noteId: number) => {
+    setCurrentNoteId(noteId);
+  };
+
+  if (!currentNoteId) {
+    return <FullScreenNoteEditorContent onClose={onClose} onNoteCreated={handleNoteCreated} />;
   }
 
   if (isLoading) {

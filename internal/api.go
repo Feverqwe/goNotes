@@ -222,10 +222,14 @@ func handleAction(router *Router) {
 		return
 	}
 
+	type SendMessageResponse struct {
+		ID int64 `json:"id"`
+	}
+
 	router.Post("/api/messages/send", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (string, error) {
+		apiCall(w, func() (SendMessageResponse, error) {
 			if err := r.ParseMultipartForm(32 << 20); err != nil {
-				return "", err
+				return SendMessageResponse{}, err
 			}
 
 			content := r.FormValue("content")
@@ -233,7 +237,7 @@ func handleAction(router *Router) {
 
 			tx, err := db.Begin()
 			if err != nil {
-				return "", err
+				return SendMessageResponse{}, err
 			}
 			defer tx.Rollback()
 
@@ -242,26 +246,26 @@ func handleAction(router *Router) {
 
 			res, err := tx.Exec("INSERT INTO messages (content, content_lower, sort_order) VALUES (?, ?, ?)", content, contentLower, maxOrder+1)
 			if err != nil {
-				return "", err
+				return SendMessageResponse{}, err
 			}
 			msgID, _ := res.LastInsertId()
 
 			files := r.MultipartForm.File["attachments"]
 			for _, fHeader := range files {
 				if err = handleAttachment(fHeader, tx, msgID); err != nil {
-					return "", err
+					return SendMessageResponse{}, err
 				}
 			}
 
 			if err = handleTags(tx, msgID, content, false); err != nil {
-				return "", err
+				return SendMessageResponse{}, err
 			}
 
 			if err := tx.Commit(); err != nil {
-				return "", err
+				return SendMessageResponse{}, err
 			}
 
-			return "ok", nil
+			return SendMessageResponse{ID: msgID}, nil
 		})
 	})
 

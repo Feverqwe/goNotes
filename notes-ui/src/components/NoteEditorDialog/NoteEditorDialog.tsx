@@ -96,7 +96,7 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, onFullscreen, ...pro
           </Typography>
         </Box>
         <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
-          {editingNote && onFullscreen && (
+          {onFullscreen && (
             <IconButton onClick={onFullscreen} size="small" sx={closeSx}>
               <Fullscreen />
             </IconButton>

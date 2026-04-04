@@ -12,7 +12,9 @@ export interface ListMessagesRequest {
 export type ListMessagesResponse = Note[];
 
 export type SendMessageRequest = FormData;
-export type SendMessageResponse = 'ok';
+export interface SendMessageResponse {
+  id: number;
+}
 
 export type UpdateMessageRequest = FormData;
 export type UpdateMessageResponse = 'ok';

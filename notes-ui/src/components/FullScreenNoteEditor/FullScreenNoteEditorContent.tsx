@@ -25,7 +25,7 @@ import {SnackCtx} from '../../ctx/SnackCtx';
 import {useAppTheme} from '../../ctx/ThemeCtx';
 import {Note} from '../../types';
 import {api} from '../../tools/api';
-import {UpdateMessageRequest} from '../../tools/types';
+import {SendMessageRequest, SendMessageResponse, UpdateMessageRequest} from '../../tools/types';
 import AttachmentsPanel from './AttachmentsPanel';
 import {editor} from 'monaco-editor';
 
@@ -67,13 +67,15 @@ const editorContainerFullscreenSx = {
 };
 
 export interface FullScreenNoteEditorContentProps {
-  editingNote: Note;
+  editingNote?: Note;
   onClose: () => void;
+  onNoteCreated?: (noteId: number) => void;
 }
 
 const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   editingNote,
   onClose,
+  onNoteCreated,
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const {mode} = useAppTheme();
@@ -82,22 +84,63 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
-  const [files, setFiles] = useState<File[]>([]);
-  const [deletedAttachIds, setDeletedAttachIds] = useState<number[]>([]);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef('');
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
 
+  const [files, setFiles] = useState<File[]>([]);
+  const refFiles = useRef(files);
+  refFiles.current = files;
+
+  const [deletedAttachIds, setDeletedAttachIds] = useState<number[]>([]);
+  const refDeletedAttachIds = useRef(deletedAttachIds);
+  refDeletedAttachIds.current = deletedAttachIds;
+
   const contentRef = useRef(editingNote?.content ?? '');
 
+  useEffect(() => {
+    if (editingNote) {
+      lastSavedContentRef.current = editingNote.content;
+      contentRef.current = editingNote.content;
+      setHasUnsavedChanges(false);
+    } else {
+      lastSavedContentRef.current = '';
+      contentRef.current = '';
+      setHasUnsavedChanges(false);
+    }
+  }, [editingNote?.id]);
+
   const monacoTheme = mode === 'dark' ? 'vs-dark' : 'vs';
+
+  const sendMessageMutation = useMutation({
+    mutationFn: (params: SendMessageRequest) => api.messages.send(params),
+    onSuccess: (response: SendMessageResponse) => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      queryClient.invalidateQueries({queryKey: ['tags']});
+      lastSavedContentRef.current = contentRef.current;
+      setHasUnsavedChanges(false);
+      setFiles([]);
+      setDeletedAttachIds([]);
+
+      if (onNoteCreated) {
+        onNoteCreated(response.id);
+      } else {
+        onClose();
+      }
+    },
+    onError: () => {
+      showSnackbar('Ошибка при создании заметки', 'error');
+    },
+  });
 
   const updateMessageMutation = useMutation({
     mutationFn: (params: UpdateMessageRequest) => api.messages.update(params),
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
-      queryClient.invalidateQueries({queryKey: ['note', editingNote.id]});
       queryClient.invalidateQueries({queryKey: ['tags']});
+      if (editingNote) {
+        queryClient.invalidateQueries({queryKey: ['note', editingNote.id]});
+      }
       lastSavedContentRef.current = contentRef.current;
       setHasUnsavedChanges(false);
       setFiles([]);
@@ -109,7 +152,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   });
 
   useEffect(() => {
-    if (!editorRef.current) return;
+    if (!editorRef.current || !editingNote) return;
 
     if (editorRef.current.getValue() !== editingNote.content) {
       editorRef.current.setValue(editingNote.content);
@@ -132,22 +175,22 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   }, [hasUnsavedChanges]);
 
   useEffect(() => {
-    if (!editingNote || contentRef.current === lastSavedContentRef.current) {
-      setHasUnsavedChanges(false);
-      return;
-    }
-
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
     if (autoSaveEnabled) {
       autoSaveTimerRef.current = setTimeout(() => {
-        if (editingNote && contentRef.current !== lastSavedContentRef.current) {
+        if (contentRef.current !== lastSavedContentRef.current) {
           const formData = new FormData();
-          formData.append('id', String(editingNote.id));
           formData.append('content', contentRef.current);
-          updateMessageMutation.mutate(formData);
+
+          if (editingNote) {
+            formData.append('id', String(editingNote.id));
+            updateMessageMutation.mutate(formData);
+          } else {
+            sendMessageMutation.mutate(formData);
+          }
         }
       }, 3000);
     }
@@ -157,7 +200,15 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [editingNote, updateMessageMutation, autoSaveEnabled]);
+  }, [editingNote, updateMessageMutation, sendMessageMutation, autoSaveEnabled]);
+
+  useEffect(() => {
+    const hasChanges =
+      contentRef.current !== lastSavedContentRef.current ||
+      files.length > 0 ||
+      deletedAttachIds.length > 0;
+    setHasUnsavedChanges(hasChanges);
+  }, [files.length, deletedAttachIds.length]);
 
   const handleContentChange = useCallback((value: string | undefined) => {
     contentRef.current = value || '';
@@ -167,32 +218,38 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
     }
 
     autoSaveTimerRef.current = setTimeout(() => {
-      setHasUnsavedChanges(true);
+      const hasChanges =
+        contentRef.current !== lastSavedContentRef.current ||
+        refFiles.current.length > 0 ||
+        refDeletedAttachIds.current.length > 0;
+      setHasUnsavedChanges(hasChanges);
     }, 300);
   }, []);
 
   const handleManualSave = useCallback(() => {
     if (
-      !editingNote ||
-      (contentRef.current === lastSavedContentRef.current &&
-        files.length === 0 &&
-        deletedAttachIds.length === 0)
+      contentRef.current === lastSavedContentRef.current &&
+      files.length === 0 &&
+      deletedAttachIds.length === 0
     ) {
       return;
     }
 
     const formData = new FormData();
-    formData.append('id', String(editingNote.id));
     formData.append('content', contentRef.current);
 
     files.forEach((file) => formData.append('attachments', file));
 
-    if (deletedAttachIds.length > 0) {
-      formData.append('delete_attachments', deletedAttachIds.join(','));
+    if (editingNote) {
+      formData.append('id', String(editingNote.id));
+      if (deletedAttachIds.length > 0) {
+        formData.append('delete_attachments', deletedAttachIds.join(','));
+      }
+      updateMessageMutation.mutate(formData);
+    } else {
+      sendMessageMutation.mutate(formData);
     }
-
-    updateMessageMutation.mutate(formData);
-  }, [editingNote, updateMessageMutation, files, deletedAttachIds]);
+  }, [editingNote, updateMessageMutation, sendMessageMutation, files, deletedAttachIds]);
 
   const handleClose = useCallback(() => {
     if (hasUnsavedChanges) {
@@ -216,27 +273,21 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
     const newFiles = Array.from(e.target.files ?? []);
     if (newFiles.length > 0) {
       setFiles((prev) => [...prev, ...newFiles]);
-      setHasUnsavedChanges(true);
     }
     e.target.value = '';
   }, []);
 
   const removeFile = useCallback((index: number) => {
     setFiles((prev) => prev.filter((_, i) => i !== index));
-    setHasUnsavedChanges(true);
   }, []);
 
   const toggleDeleteAttachment = useCallback((id: number) => {
     setDeletedAttachIds((prev) => {
-      const newIds = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
-      setHasUnsavedChanges(true);
-      return newIds;
+      return prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
     });
   }, []);
 
   useEffect(() => {
-    if (!editingNote) return;
-
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.ctrlKey || event.metaKey) && event.key === 's') {
         event.preventDefault();
@@ -248,7 +299,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown);
     };
-  }, [editingNote, handleManualSave]);
+  }, [handleManualSave]);
 
   return (
     <Dialog
@@ -287,7 +338,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
           <IconButton
             onClick={handleManualSave}
             disabled={!hasUnsavedChanges}
-            loading={updateMessageMutation.isPending}
+            loading={updateMessageMutation.isPending || sendMessageMutation.isPending}
             size="small"
             color="primary"
             sx={{p: 0.5}}
@@ -304,9 +355,9 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
       </DialogTitle>
 
       <DialogContent sx={{p: 0}}>
-        {updateMessageMutation.isError && (
+        {(updateMessageMutation.isError || sendMessageMutation.isError) && (
           <Alert severity="error" sx={{m: 2}}>
-            Ошибка при сохранении заметки
+            {editingNote ? 'Ошибка при сохранении заметки' : 'Ошибка при создании заметки'}
           </Alert>
         )}
 
