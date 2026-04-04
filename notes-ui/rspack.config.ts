@@ -1,6 +1,10 @@
 import { defineConfig } from '@rspack/cli';
 import * as rspack from '@rspack/core';
 import * as Path from 'path';
+import { fileURLToPath } from 'url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = Path.dirname(__filename);
 
 export default defineConfig({
   entry: {
