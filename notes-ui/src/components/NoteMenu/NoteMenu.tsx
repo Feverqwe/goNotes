@@ -1,6 +1,5 @@
 import React, {FC, useCallback, useContext, useMemo} from 'react';
 import {
-  alpha,
   Box,
   Divider,
   ListItemIcon,

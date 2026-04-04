@@ -33,12 +33,13 @@ import remarkSecret from './remarkSecret';
 import {api} from '../../tools/api';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {UseMessageRequest} from '../../tools/types';
+import {Components} from 'react-markdown/lib';
 
 const remarkPlugins = [remarkGfm, remarkSecret];
-const remarkComponents = {
-  span: ({ node, ...props }: any) => {
+const remarkComponents: Components = {
+  span: ({node, ...props}) => {
     if (props.className === 'secret-spoiler') {
-      return <Secret>{props['data-secret']}</Secret>;
+      return <Secret>{(props as Record<string, string>)['data-secret']}</Secret>;
     }
     return <span {...props} />;
   },

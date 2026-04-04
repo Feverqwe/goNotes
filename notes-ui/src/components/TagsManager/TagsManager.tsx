@@ -35,7 +35,8 @@ const TagsManager: FC<TagsManagerProps> = memo(
 
     const toggleTag = useCallback(
       (tag: string) => {
-        setCurrentTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]),
+        setCurrentTags((prev) =>
+          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
         );
         onActionFinished();
       },
