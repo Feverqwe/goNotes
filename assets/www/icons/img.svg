@@ -1,0 +1,30 @@
+<svg width="256" height="256" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Основной блокнот -->
+  <!-- Синий фон -->
+  <rect x="18" y="14" width="64" height="82" rx="6" fill="#449ef3" />
+
+  <!-- Отверстия под кольца (Круглые) -->
+  <!-- Позиция cy=19 (чуть ниже края) -->
+  <circle cx="26" cy="19" r="3.5" fill="#1564c0" />
+  <circle cx="42" cy="19" r="3.5" fill="#1564c0" />
+  <circle cx="58" cy="19" r="3.5" fill="#1564c0" />
+  <circle cx="74" cy="19" r="3.5" fill="#1564c0" />
+
+  <!-- Металлические кольца (Пружины) -->
+  <!-- Высота 12, начало y=9 -->
+  <rect x="24" y="9" width="4" height="12" rx="2" fill="#cfd8dc" />
+  <rect x="40" y="9" width="4" height="12" rx="2" fill="#cfd8dc" />
+  <rect x="56" y="9" width="4" height="12" rx="2" fill="#cfd8dc" />
+  <rect x="72" y="9" width="4" height="12" rx="2" fill="#cfd8dc" />
+
+  <!-- Текстовые линии -->
+  <!-- Верхний блок -->
+  <rect x="28" y="32" width="44" height="4" rx="1" fill="#1564c0" />
+  <rect x="28" y="40" width="44" height="4" rx="1" fill="#1564c0" />
+  <rect x="28" y="48" width="16" height="4" rx="1" fill="#1564c0" />
+
+  <!-- Нижний блок -->
+  <rect x="28" y="64" width="38" height="4" rx="1" fill="#1564c0" />
+  <rect x="28" y="72" width="24" height="4" rx="1" fill="#1564c0" />
+  <rect x="56" y="72" width="16" height="4" rx="1" fill="#1564c0" />
+</svg>
