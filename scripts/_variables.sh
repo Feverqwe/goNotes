@@ -7,3 +7,5 @@ NAME="goNotes"
 AUTHOR="Anton V"
 APP_ID="com.rndnm.gonotes"
 ICON_PATH="./assets/icon.icns"
+
+VERSION=1.0.0
