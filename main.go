@@ -22,7 +22,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var Version = "1.0.0"
+var Version = "1.1.0"
 
 var DEBUG_UI = os.Getenv("DEBUG_UI") == "1"
 
@@ -113,7 +113,7 @@ func handleWww(router *internal.Router, config *cfg.Config) {
 				mTime = info.ModTime()
 			}
 		} else {
-			content, err = assets.Asset("www" + assetPath)
+			content, err = assets.WWW.ReadFile("www" + assetPath)
 		}
 		if err != nil {
 			w.WriteHeader(404)
