@@ -233,6 +233,8 @@ func handleAction(router *Router) {
 			}
 
 			content := r.FormValue("content")
+			content = strings.ReplaceAll(content, "\r\n", "\n")
+
 			contentLower := strings.ToLower(content)
 
 			tx, err := db.Begin()
@@ -278,6 +280,8 @@ func handleAction(router *Router) {
 
 			idStr := r.FormValue("id")
 			content := r.FormValue("content")
+			content = strings.ReplaceAll(content, "\r\n", "\n")
+
 			contentLower := strings.ToLower(content)
 
 			deleteAttachIDs := r.FormValue("delete_attachments")

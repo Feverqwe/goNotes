@@ -2,7 +2,7 @@ import React, {FC, useCallback, useEffect, useRef, useState} from 'react';
 import {useMediaQuery, useTheme} from '@mui/material';
 import BottomInputForm from '../BottomInputForm/BottomInputForm';
 import NoteEditorDialog, {NoteEditorDialogProps} from '../NoteEditorDialog/NoteEditorDialog';
-import {Attachment, Note} from '../../types';
+import {Attachment} from '../../types';
 import FullScreenNoteEditor from '../FullScreenNoteEditor/FullScreenNoteEditor';
 
 interface NoteFormProps extends Pick<
@@ -41,9 +41,7 @@ const NoteForm: FC<NoteFormProps> = (props) => {
   useEffect(() => {
     if (editingNote) {
       setInputText(editingNote.content);
-      if (editingNote.attachments) {
-        setExistingAttachments(editingNote.attachments);
-      }
+      setExistingAttachments(editingNote.attachments ?? []);
       setDeletedAttachIds([]);
     } else {
       setExistingAttachments([]);
@@ -110,7 +108,7 @@ const NoteForm: FC<NoteFormProps> = (props) => {
 
       {!isMobile && !isFullScreenEditorOpen && open && (
         <NoteEditorDialog
-          key={String(editingNote ? 1 : 0)}
+          key={String(editingNote?.id || '-')}
           {...props}
           {...localProps}
           onFullscreen={openFullScreenEditor}
@@ -119,6 +117,7 @@ const NoteForm: FC<NoteFormProps> = (props) => {
 
       {!isMobile && isFullScreenEditorOpen && open && (
         <FullScreenNoteEditor
+          key={String(editingNote?.id || '-')}
           open={open}
           noteId={editingNote?.id || null}
           onClose={closeFullScreenEditor}
@@ -129,6 +128,7 @@ const NoteForm: FC<NoteFormProps> = (props) => {
           existingAttachments={existingAttachments}
           deletedAttachIds={deletedAttachIds}
           setDeletedAttachIds={setDeletedAttachIds}
+          setExistingAttachments={setExistingAttachments}
         />
       )}
     </>

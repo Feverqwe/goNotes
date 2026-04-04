@@ -16,6 +16,7 @@ export interface FullScreenNoteEditorProps {
   existingAttachments: Attachment[];
   deletedAttachIds: number[];
   setDeletedAttachIds: React.Dispatch<React.SetStateAction<number[]>>;
+  setExistingAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
 }
 
 const boxSx = {display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px'};
@@ -30,6 +31,7 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
   existingAttachments,
   deletedAttachIds,
   setDeletedAttachIds,
+  setExistingAttachments,
 }) => {
   const [currentNoteId, setCurrentNoteId] = useState(noteId);
 
@@ -59,6 +61,7 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
         existingAttachments={existingAttachments}
         deletedAttachIds={deletedAttachIds}
         setDeletedAttachIds={setDeletedAttachIds}
+        setExistingAttachments={setExistingAttachments}
       />
     );
   }
@@ -89,6 +92,7 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
       existingAttachments={existingAttachments}
       deletedAttachIds={deletedAttachIds}
       setDeletedAttachIds={setDeletedAttachIds}
+      setExistingAttachments={setExistingAttachments}
     />
   );
 };
