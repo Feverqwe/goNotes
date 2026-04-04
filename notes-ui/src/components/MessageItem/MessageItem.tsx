@@ -28,12 +28,20 @@ import CodeCode from './CodeCode';
 import NoteAttachment from './components/NoteAttachment';
 import NoteTag from './components/NoteTag';
 import NoteOrder from './components/NoteOrder';
+import Secret from './components/Secret';
+import remarkSecret from './remarkSecret';
 import {api} from '../../tools/api';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {UseMessageRequest} from '../../tools/types';
 
-const remarkPlugins = [remarkGfm];
+const remarkPlugins = [remarkGfm, remarkSecret];
 const remarkComponents = {
+  span: ({ node, ...props }: any) => {
+    if (props.className === 'secret-spoiler') {
+      return <Secret>{props['data-secret']}</Secret>;
+    }
+    return <span {...props} />;
+  },
   code: CodeCode,
   p: CodeP,
   ul: CodeUl,
