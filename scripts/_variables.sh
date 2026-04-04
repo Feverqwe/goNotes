@@ -8,4 +8,4 @@ AUTHOR="Anton V"
 APP_ID="com.rndnm.gonotes"
 ICON_PATH="./assets/icon.icns"
 
-VERSION=1.1.0
+VERSION=1.1.1
