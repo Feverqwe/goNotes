@@ -1,11 +1,10 @@
-import React, {CSSProperties, FC, PropsWithChildren, useCallback, useMemo} from 'react';
-import {Box, IconButton, Theme, Typography, useTheme} from '@mui/material';
+import React, {FC, PropsWithChildren, useCallback, useMemo} from 'react';
+import {Box, IconButton, SxProps, Theme, Typography, useTheme} from '@mui/material';
 import {ContentCopy} from '@mui/icons-material';
 import {PrismAsync as SyntaxHighlighter} from 'react-syntax-highlighter';
 import {oneDark, oneLight} from 'react-syntax-highlighter/dist/esm/styles/prism';
 
-// Стили для инлайнового кода теперь используют функции темы
-const getInlineCodeStyle = (theme: Theme): CSSProperties => ({
+const getInlineCodeStyle = (theme: Theme): SxProps<Theme> => ({
   backgroundColor: theme.palette.action.selected,
   color: theme.palette.primary.main,
   padding: '2px 5px',
@@ -15,7 +14,9 @@ const getInlineCodeStyle = (theme: Theme): CSSProperties => ({
   cursor: 'pointer',
   border: `1px solid ${theme.palette.divider}`,
   wordBreak: 'break-word',
-  transition: theme.transitions.create(['background-color']),
+  '&:active': {
+    bgcolor: theme.palette.action.hover,
+  },
 });
 
 const codeBoxSx = {
@@ -24,7 +25,7 @@ const codeBoxSx = {
   overflow: 'hidden',
   border: '1px solid',
   borderColor: 'divider',
-  bgcolor: 'background.paper', // Раньше был жесткий #282c34
+  bgcolor: 'background.paper',
 };
 
 const codeHeaderSx = {
@@ -33,7 +34,7 @@ const codeHeaderSx = {
   justifyContent: 'space-between',
   px: 1.5,
   py: 0.2,
-  bgcolor: 'action.hover', // Раньше была ручная прозрачность
+  bgcolor: 'action.hover',
   borderBottom: '1px solid',
   borderColor: 'divider',
 };
@@ -103,34 +104,19 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
     [codeContent],
   );
 
-  const handleMouseEnter = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      e.currentTarget.style.backgroundColor = theme.palette.action.hover;
-    },
-    [theme],
-  );
-
-  const onMouseLeave = useCallback(
-    (e: React.MouseEvent<HTMLElement>) => {
-      e.currentTarget.style.backgroundColor = theme.palette.action.selected;
-    },
-    [theme],
-  );
-
   if (!isMultiline) {
     return (
-      <code
+      <Box
+        component={'code'}
         tabIndex={0}
         className="inline"
         onKeyDown={handleKeyDown}
         onClick={handleCopy}
-        style={getInlineCodeStyle(theme)}
-        onMouseEnter={handleMouseEnter}
-        onMouseLeave={onMouseLeave}
+        sx={getInlineCodeStyle(theme)}
         {...props}
       >
         {children}
-      </code>
+      </Box>
     );
   }
 
