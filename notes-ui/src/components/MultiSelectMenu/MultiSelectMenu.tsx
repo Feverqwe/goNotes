@@ -72,9 +72,8 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
 
   const batchArchiveMutation = useMutation({
     mutationFn: (archive: number) => api.messages.batchArchive({ids: selectedIds, archive}),
-    onSuccess: (_, archive) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
-      showSnackbar(archive ? 'Заметки архивированы' : 'Заметки восстановлены', 'success');
       cancelSelectMode();
     },
     onError: (err) => {
@@ -86,6 +85,10 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
   const handleArchive = useCallback(() => {
     batchArchiveMutation.mutate(showArchived ? 0 : 1);
   }, [batchArchiveMutation, showArchived]);
+
+  const handleDelete = useCallback(() => {
+    askBatchDeleteConfirmation();
+  }, [askBatchDeleteConfirmation]);
 
   const paperSx = useMemo(
     () => ({
@@ -133,7 +136,7 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
             disabled={isActionDisabled}
             startIcon={<Delete />}
             sx={btnSx}
-            onClick={askBatchDeleteConfirmation}
+            onClick={handleDelete}
           >
             Удалить
           </Button>

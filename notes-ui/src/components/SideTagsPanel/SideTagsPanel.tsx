@@ -1,15 +1,12 @@
-import React, {FC, PropsWithChildren, memo} from 'react';
+import React, {FC, memo, PropsWithChildren, useMemo} from 'react';
 import {
   Box,
-  Button,
   Divider,
-  List,
-  ListItem,
+  ListItemButton,
   ListItemIcon,
   ListItemText,
   SwipeableDrawer,
   Switch,
-  Theme,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -19,24 +16,6 @@ import {useAppTheme} from '../../ctx/ThemeCtx';
 
 const drawerSx = {
   width: SIDE_PANEL_WIDTH,
-};
-
-const contentWrapperSx = {
-  pt: 3,
-  display: 'flex',
-  flexDirection: 'column',
-  height: '100%',
-  marginTop: `${HEADER_HEIGHT}px`,
-};
-
-const boxSx = {px: 2, mb: 3};
-
-const btnSx = {
-  textTransform: 'none',
-  borderRadius: '8px',
-  '&:focus-visible': {
-    boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
-  },
 };
 
 const menuSx = {
@@ -57,18 +36,23 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
     const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
     const {mode, toggleTheme} = useAppTheme();
 
-    const drawerSlotProps = {
-      paper: {
-        sx: {
-          width: SIDE_PANEL_WIDTH,
-          borderRight: '1px solid',
-          borderColor: 'divider',
-          boxShadow: 'none',
-        },
-        variant: 'elevation',
-        elevation: 1,
-      },
-    } satisfies React.ComponentProps<typeof SwipeableDrawer>['slotProps'];
+    const drawerSlotProps = useMemo(
+      () =>
+        ({
+          paper: {
+            sx: {
+              width: SIDE_PANEL_WIDTH,
+              borderRight: '1px solid',
+              borderColor: 'divider',
+              boxShadow: 'none',
+              paddingTop: `${HEADER_HEIGHT}px`,
+            },
+            variant: 'elevation',
+            elevation: 1,
+          },
+        }) satisfies React.ComponentProps<typeof SwipeableDrawer>['slotProps'],
+      [],
+    );
 
     return (
       <SwipeableDrawer
@@ -84,37 +68,32 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
         slotProps={drawerSlotProps}
         elevation={2}
       >
-        <Box sx={contentWrapperSx}>
+        <Box sx={menuSx}>
           {isDesktop && (
-            <Box sx={boxSx}>
-              <Button
-                fullWidth
-                variant="outlined"
-                startIcon={<AddIcon />}
-                onClick={onCreateClick}
-                sx={btnSx}
-                color="primary"
-              >
-                Создать заметку
-              </Button>
-            </Box>
+            <ListItemButton onClick={onCreateClick}>
+              <ListItemIcon>
+                <AddIcon sx={{fontSize: 18}} />
+              </ListItemIcon>
+              <ListItemText
+                primary="Добавить заметку"
+                slotProps={{primary: {fontSize: '0.85rem'}}}
+              />
+            </ListItemButton>
           )}
-          <Box sx={menuSx}>{children}</Box>
-          <Box sx={{mt: 'auto'}}>
-            <Divider sx={{borderColor: 'divider'}} />
-            <List>
-              <ListItem>
-                <ListItemIcon sx={{minWidth: 40}}>
-                  {mode === 'dark' ? <DarkMode fontSize="small" /> : <LightMode fontSize="small" />}
-                </ListItemIcon>
-                <ListItemText
-                  primary={mode === 'dark' ? 'Темная тема' : 'Светлая тема'}
-                  slotProps={{primary: {fontSize: '0.85rem'}}}
-                />
-                <Switch edge="end" onChange={toggleTheme} checked={mode === 'dark'} size="small" />
-              </ListItem>
-            </List>
-          </Box>
+          {children}
+        </Box>
+        <Box sx={{mt: 'auto'}}>
+          <Divider />
+          <ListItemButton onClick={toggleTheme}>
+            <ListItemIcon sx={{minWidth: 40}}>
+              {mode === 'dark' ? <DarkMode fontSize="small" /> : <LightMode fontSize="small" />}
+            </ListItemIcon>
+            <ListItemText
+              primary={mode === 'dark' ? 'Темная тема' : 'Светлая тема'}
+              slotProps={{primary: {fontSize: '0.85rem'}}}
+            />
+            <Switch edge="end" checked={mode === 'dark'} size="small" />
+          </ListItemButton>
         </Box>
       </SwipeableDrawer>
     );

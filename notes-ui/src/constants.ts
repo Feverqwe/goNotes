@@ -23,7 +23,7 @@ export const HEADER_HEIGHT = 49;
 
 export const SIDE_PANEL_WIDTH = 240;
 
-export const POST_LIMIT = 6;
+export const POST_LIMIT = 16;
 
 export const NOTE_COLORS = [
   '', // Стандартный (без цвета)

@@ -34,7 +34,7 @@ func HandleApi(router *Router, database *sql.DB, config *cfg.Config) {
 
 	gzipHandler := gziphandler.GzipHandler(apiRouter)
 
-	handleAction(apiRouter, config)
+	handleAction(apiRouter)
 
 	apiRouter.Use(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
@@ -43,7 +43,7 @@ func HandleApi(router *Router, database *sql.DB, config *cfg.Config) {
 	router.All("^/api/", gzipHandler.ServeHTTP)
 }
 
-func handleAction(router *Router, config *cfg.Config) {
+func handleAction(router *Router) {
 	router.Get("/api/messages/list", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() ([]MessageDTO, error) {
 			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
@@ -74,11 +74,9 @@ func handleAction(router *Router, config *cfg.Config) {
 					words := strings.Fields(searchQuery)
 
 					for _, word := range words {
-						processedWord := strings.ToLower(strings.ReplaceAll(word, "*", "%"))
+						processedWord := strings.ToLower(word)
 
-						if !strings.Contains(word, "*") {
-							processedWord = "%" + processedWord + "%"
-						}
+						processedWord = "%" + processedWord + "%"
 
 						clauses = append(clauses, "content_lower LIKE ?")
 						args = append(args, processedWord)
@@ -118,7 +116,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			}
 
 			query := fmt.Sprintf(`
-				SELECT id, content, created_at, updated_at, is_archived, sort_order, color
+				SELECT id, content, created_at, updated_at, used_at, is_archived, sort_order, color
 					FROM messages 
 					%s 
 					ORDER BY sort_order DESC
@@ -139,7 +137,7 @@ func handleAction(router *Router, config *cfg.Config) {
 			for rows.Next() {
 				var m MessageDTO
 
-				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.IsArchived, &m.SortOrder, &m.Color); err != nil {
+				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.UsedAt, &m.IsArchived, &m.SortOrder, &m.Color); err != nil {
 					log.Printf("Scan error: %v", err)
 					continue
 				}
@@ -165,8 +163,8 @@ func handleAction(router *Router, config *cfg.Config) {
 		})
 	})
 
-	handleAttachment := func(fHeader *multipart.FileHeader, id int64) (fileName string, thumbnailPath string, fileType string, err error) {
-		fileName = fmt.Sprintf("%d_%s", id, fHeader.Filename)
+	handleAttachment := func(fHeader *multipart.FileHeader, tx *sql.Tx, id int64) (err error) {
+		fileName := fmt.Sprintf("%d_%s", id, fHeader.Filename)
 		fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
 
 		err = saveFile(fHeader, fullPath)
@@ -175,8 +173,8 @@ func handleAction(router *Router, config *cfg.Config) {
 			return
 		}
 
-		fileType = "document"
-		thumbnailPath = ""
+		fileType := "document"
+		thumbnailPath := ""
 		if isImage(fileName) {
 			fileType = "image"
 			thumbName := "thumb_" + fileName
@@ -191,6 +189,35 @@ func handleAction(router *Router, config *cfg.Config) {
 			fileType = "audio"
 		} else if isVideo(fileName) {
 			fileType = "video"
+		}
+
+		_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
+			id, fileName, thumbnailPath, fileType)
+		if err != nil {
+			return
+		}
+
+		return
+	}
+
+	handleTags := func(tx *sql.Tx, id int64, content string, isUpdate bool) (err error) {
+		if isUpdate {
+			_, err = tx.Exec("DELETE FROM message_tags WHERE message_id = ?", id)
+			if err != nil {
+				return
+			}
+		}
+
+		tags := extractHashtags(content)
+		for _, t := range tags {
+			_, err = tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
+			if err != nil {
+				break
+			}
+			_, err = tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", id, t)
+			if err != nil {
+				break
+			}
 		}
 		return
 	}
@@ -219,31 +246,15 @@ func handleAction(router *Router, config *cfg.Config) {
 			}
 			msgID, _ := res.LastInsertId()
 
-			tags := extractHashtags(content)
-			for _, t := range tags {
-				_, err = tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
-				if err != nil {
-					return "", err
-				}
-				_, err = tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", msgID, t)
-				if err != nil {
+			files := r.MultipartForm.File["attachments"]
+			for _, fHeader := range files {
+				if err = handleAttachment(fHeader, tx, msgID); err != nil {
 					return "", err
 				}
 			}
 
-			files := r.MultipartForm.File["attachments"]
-			for _, fHeader := range files {
-				fileName, thumbnailPath, fileType, attErr := handleAttachment(fHeader, msgID)
-				if attErr != nil {
-					log.Printf("File save error: %v", attErr)
-					continue
-				}
-
-				_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
-					msgID, fileName, thumbnailPath, fileType)
-				if err != nil {
-					return "", err
-				}
+			if err = handleTags(tx, msgID, content, false); err != nil {
+				return "", err
 			}
 
 			if err := tx.Commit(); err != nil {
@@ -299,33 +310,13 @@ func handleAction(router *Router, config *cfg.Config) {
 
 			files := r.MultipartForm.File["attachments"]
 			for _, fHeader := range files {
-				fileName, thumbnailPath, fileType, attErr := handleAttachment(fHeader, id)
-				if attErr != nil {
-					log.Printf("File save error: %v", attErr)
-					continue
-				}
-				_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
-					id, fileName, thumbnailPath, fileType)
-				if err != nil {
+				if err = handleAttachment(fHeader, tx, id); err != nil {
 					return "", err
 				}
 			}
 
-			_, err = tx.Exec("DELETE FROM message_tags WHERE message_id = ?", id)
-			if err != nil {
+			if err = handleTags(tx, id, content, true); err != nil {
 				return "", err
-			}
-
-			tags := extractHashtags(content)
-			for _, t := range tags {
-				_, err = tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
-				if err != nil {
-					return "", err
-				}
-				_, err = tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", id, t)
-				if err != nil {
-					return "", err
-				}
 			}
 
 			if err := tx.Commit(); err != nil {
@@ -386,37 +377,6 @@ func handleAction(router *Router, config *cfg.Config) {
 			rowsAffected, _ := result.RowsAffected()
 			if rowsAffected == 0 {
 				return "", errors.New("Message not found")
-			}
-
-			return "ok", nil
-		})
-	})
-
-	router.Post("/api/messages/batch-archive", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (string, error) {
-			var data struct {
-				IDs     []int64 `json:"ids"`
-				Archive int     `json:"archive"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-				return "", err
-			}
-
-			if len(data.IDs) == 0 {
-				return "ok", nil
-			}
-
-			query := fmt.Sprintf("UPDATE messages SET is_archived = ? WHERE id IN (%s)", generatePlaceholders(len(data.IDs)))
-
-			args := make([]any, len(data.IDs)+1)
-			args[0] = data.Archive
-			for i, id := range data.IDs {
-				args[i+1] = id
-			}
-
-			_, err := db.Exec(query, args...)
-			if err != nil {
-				return "", err
 			}
 
 			return "ok", nil
@@ -488,6 +448,37 @@ func handleAction(router *Router, config *cfg.Config) {
 			if err != nil {
 				return "", err
 			}
+			return "ok", nil
+		})
+	})
+
+	router.Post("/api/messages/batch-archive", func(w http.ResponseWriter, r *http.Request) {
+		apiCall(w, func() (string, error) {
+			var data struct {
+				IDs     []int64 `json:"ids"`
+				Archive int     `json:"archive"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+				return "", err
+			}
+
+			if len(data.IDs) == 0 {
+				return "ok", nil
+			}
+
+			query := fmt.Sprintf("UPDATE messages SET is_archived = ? WHERE id IN (%s)", generatePlaceholders(len(data.IDs)))
+
+			args := make([]any, len(data.IDs)+1)
+			args[0] = data.Archive
+			for i, id := range data.IDs {
+				args[i+1] = id
+			}
+
+			_, err := db.Exec(query, args...)
+			if err != nil {
+				return "", err
+			}
+
 			return "ok", nil
 		})
 	})

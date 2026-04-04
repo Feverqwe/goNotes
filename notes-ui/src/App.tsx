@@ -156,7 +156,6 @@ function App() {
       try {
         await queryClient.invalidateQueries({queryKey: ['notes']});
       } finally {
-        showSnackbar('Порядок сохранен');
         setIsReorderMode(false);
         setDndMessages([]);
       }
@@ -171,7 +170,6 @@ function App() {
     mutationFn: (params: ArchiveMessageRequest) => api.messages.archive(params),
     onSuccess: (_, {archive}) => {
       queryClient.invalidateQueries({queryKey: ['notes']});
-      showSnackbar(archive ? 'Заметка в архиве' : 'Заметка восстановлена');
       handleCloseMenu();
     },
     onError: (err) => {

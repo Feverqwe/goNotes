@@ -132,8 +132,16 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
 
   useEffect(() => {
     if (!isDialogMode && !editingNote) return;
-    if (inputRef.current) inputRef.current.focus();
+    if (inputRef.current) {
+      inputRef.current.focus();
+    }
   }, [isDialogMode, editingNote]);
+
+  useEffect(() => {
+    if (isDialogMode && editingNote) {
+      inputRef.current?.scrollIntoView(false);
+    }
+  }, [editingNote, isDialogMode]);
 
   const cancelEditing = useCallback(() => {
     endEditing();
@@ -162,7 +170,6 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
       queryClient.invalidateQueries({queryKey: ['tags']});
-      showSnackbar('Заметка обновлена', 'success');
       onFinish();
     },
     onError: () => showSnackbar('Ошибка при сохранении заметки', 'error'),
@@ -173,7 +180,7 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
       queryClient.invalidateQueries({queryKey: ['tags']});
-      showSnackbar('Заметка отправлена', 'success');
+      document.body.scrollIntoView(true);
       onFinish();
     },
     onError: () => showSnackbar('Ошибка при отправке заметки', 'error'),

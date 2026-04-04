@@ -41,8 +41,8 @@ const BatchDeleteDialog: FC<BatchDeleteDialogProps> = ({
     onSuccess: (_, {ids}) => {
       queryClient.invalidateQueries({queryKey: ['notes']});
       queryClient.invalidateQueries({queryKey: ['tags']});
-      showSnackbar(`Удалено сообщений: ${ids.length}`, 'info');
       cancelSelectMode();
+      closeBatchDeleteDialog();
     },
     onError: (err) => {
       console.error(err);

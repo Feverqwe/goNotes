@@ -1,4 +1,4 @@
-import React, {FC, memo, useCallback, useContext, useMemo, useRef, useState} from 'react';
+import React, {FC, memo, useCallback, useMemo, useRef, useState} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {arrayMove} from '@dnd-kit/sortable';
 import {DragEndEvent} from '@dnd-kit/core';
@@ -6,7 +6,6 @@ import {DragEndEvent} from '@dnd-kit/core';
 import {api} from '../../tools/api';
 import {useTags} from '../../hooks/useTags';
 import {ReorderTagsRequest} from '../../tools/types';
-import {SnackCtx} from '../../ctx/SnackCtx';
 import TagsListContent from '../TagsListContent/TagsListContent';
 
 interface TagsManagerProps {
@@ -25,7 +24,6 @@ const TagsManager: FC<TagsManagerProps> = memo(
     setShowArchived,
     onActionFinished,
   }: TagsManagerProps) => {
-    const showSnackbar = useContext(SnackCtx);
     const queryClient = useQueryClient();
 
     const [isReorderMode, setIsReorderMode] = useState(false);
@@ -37,8 +35,7 @@ const TagsManager: FC<TagsManagerProps> = memo(
 
     const toggleTag = useCallback(
       (tag: string) => {
-        setCurrentTags((prev) =>
-          prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
+        setCurrentTags((prev) => (prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag]),
         );
         onActionFinished();
       },
@@ -78,7 +75,6 @@ const TagsManager: FC<TagsManagerProps> = memo(
       mutationFn: (params: ReorderTagsRequest) => api.tags.reorder(params),
       onSuccess: async () => {
         await queryClient.invalidateQueries({queryKey: ['tags']});
-        showSnackbar('Порядок сохранен');
         setIsReorderMode(false);
         setDndTags([]);
       },

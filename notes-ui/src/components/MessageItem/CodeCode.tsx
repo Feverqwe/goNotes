@@ -1,9 +1,8 @@
-import React, {CSSProperties, FC, PropsWithChildren, useCallback, useContext, useMemo} from 'react';
+import React, {CSSProperties, FC, PropsWithChildren, useCallback, useMemo} from 'react';
 import {Box, IconButton, Theme, Typography, useTheme} from '@mui/material';
 import {ContentCopy} from '@mui/icons-material';
 import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter';
 import {oneDark, oneLight} from 'react-syntax-highlighter/dist/esm/styles/prism';
-import {SnackCtx} from '../../ctx/SnackCtx';
 
 // Стили для инлайнового кода теперь используют функции темы
 const getInlineCodeStyle = (theme: Theme): CSSProperties => ({
@@ -75,7 +74,6 @@ interface CodeCodeProps extends PropsWithChildren {
 }
 
 const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
-  const showSnackbar = useContext(SnackCtx);
   const theme = useTheme();
 
   const isMultiline = useMemo(() => /\n/.test(String(children)), [children]);
@@ -90,9 +88,8 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
     (e: React.MouseEvent) => {
       e.stopPropagation();
       navigator.clipboard.writeText(codeContent);
-      showSnackbar('Код скопирован', 'success');
     },
-    [codeContent, showSnackbar],
+    [codeContent],
   );
 
   const handleKeyDown = useCallback(
@@ -101,10 +98,9 @@ const CodeCode: FC<CodeCodeProps> = ({node, className, children, ...props}) => {
       if (e.key.toLowerCase() === 'enter') {
         e.stopPropagation();
         navigator.clipboard.writeText(codeContent);
-        showSnackbar('Код скопирован', 'success');
       }
     },
-    [codeContent, showSnackbar],
+    [codeContent],
   );
 
   const handleMouseEnter = useCallback(

@@ -62,6 +62,7 @@ const selectCheckboxSx = {
   right: 4,
   color: 'text.secondary',
   backdropFilter: 'blur(4px)',
+  zIndex: 10,
 };
 
 const cardContentSx = {'&:last-child': {pb: 1.5}, p: 1.5};
@@ -134,7 +135,6 @@ const MessageItem: FC<MessageItemProps> = ({
     },
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
-      showSnackbar('Заметка отмечена как использованная', 'success');
     },
     onError: (err) => {
       console.error(err);
@@ -232,6 +232,7 @@ const MessageItem: FC<MessageItemProps> = ({
       position: 'absolute',
       top: 4,
       right: 4,
+      zIndex: 10,
       opacity: {xs: 1, sm: 0},
       transition: 'opacity 0.2s',
       color: 'text.secondary',
