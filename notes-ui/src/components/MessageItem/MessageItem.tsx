@@ -78,6 +78,7 @@ interface MessageItemProps {
   moveStep?: (id: number, direction: 'up' | 'down') => void;
   index: number;
   totalCount: number;
+  askDeleteConfirmation: (id: number) => void;
 }
 
 const MessageItem: FC<MessageItemProps> = ({
@@ -92,6 +93,7 @@ const MessageItem: FC<MessageItemProps> = ({
   moveStep,
   index,
   totalCount,
+  askDeleteConfirmation,
 }) => {
   const theme = useTheme();
   const showSnackbar = useContext(SnackCtx);
@@ -147,8 +149,12 @@ const MessageItem: FC<MessageItemProps> = ({
         e.preventDefault();
         startEditing(msg);
       }
+      if (e.key.toLowerCase() === 'd' || e.key.toLowerCase() === 'в') {
+        e.preventDefault();
+        askDeleteConfirmation(msg.id);
+      }
     },
-    [startEditing, msg],
+    [startEditing, msg, askDeleteConfirmation],
   );
 
   const handleCardClick = useCallback(

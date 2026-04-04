@@ -463,6 +463,7 @@ function App() {
                       index={index}
                       totalCount={displayMessages.length}
                       moveStep={moveStep}
+                      askDeleteConfirmation={askDeleteConfirmation}
                     />
                   ))}
 
