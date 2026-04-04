@@ -11,8 +11,8 @@ import {
   useTheme,
 } from '@mui/material';
 
-import {DndContext, DragEndEvent, closestCenter} from '@dnd-kit/core';
-import {SortableContext, arrayMove, verticalListSortingStrategy} from '@dnd-kit/sortable';
+import {closestCenter, DndContext, DragEndEvent} from '@dnd-kit/core';
+import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {Note} from './types';
 import MessageItem from './components/MessageItem/MessageItem';
 import {SnackCtx} from './ctx/SnackCtx';
@@ -30,10 +30,8 @@ import {ArchiveMessageRequest, ReorderMessagesRequest} from './tools/types';
 import SideTagsPanel from './components/SideTagsPanel/SideTagsPanel';
 import TagsManager from './components/TagsManager/TagsManager';
 import NoteForm from './components/NoteForm/NoteForm';
-import FullScreenNoteEditor from './components/FullScreenNoteEditor/FullScreenNoteEditor';
 
 const wrapperSx = {minHeight: '100vh', display: 'flex', flexDirection: 'column'};
-
 function App() {
   const theme = useTheme();
   const queryClient = useQueryClient();
@@ -89,8 +87,6 @@ function App() {
   refIsMobile.current = isMobile;
 
   const [isEditorDialogOpen, setIsEditorDialogOpen] = useState(false);
-  const [isFullScreenEditorOpen, setIsFullScreenEditorOpen] = useState(false);
-
   useEffect(() => {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
@@ -256,14 +252,7 @@ function App() {
   const endEditing = useCallback(() => {
     setEditingNote(null);
     setIsEditorDialogOpen(false);
-    setIsFullScreenEditorOpen(false);
   }, []);
-
-  const openFullScreenEditor = useCallback(() => {
-    setIsFullScreenEditorOpen(true);
-    setIsEditorDialogOpen(false);
-  }, []);
-
   const handleOpenMenu = useCallback((event: React.MouseEvent, msg: Note) => {
     setAnchorEl(event.currentTarget);
     setSelectedMsg(msg);
@@ -398,9 +387,9 @@ function App() {
     () => ({
       flexGrow: 1,
       pt: 1,
-      pb: isMobile ? 7.5 : 1,
+      pb: isMobile ? 7.5 * (currentTags.length ? 2 : 1) : 1,
     }),
-    [isMobile],
+    [currentTags.length, isMobile],
   );
 
   const handleCreateClick = useCallback(() => {
@@ -492,17 +481,7 @@ function App() {
           currentTags={currentTags}
           setCurrentTags={setCurrentTags}
           innerRef={bottomInputRef}
-          onFullscreen={openFullScreenEditor}
         />
-
-        {isFullScreenEditorOpen && (
-          <FullScreenNoteEditor
-            open={isFullScreenEditorOpen}
-            noteId={editingNote?.id || null}
-            onClose={endEditing}
-          />
-        )}
-
         {isSelectMode && (
           <MultiSelectMenu
             cancelSelectMode={cancelSelectMode}

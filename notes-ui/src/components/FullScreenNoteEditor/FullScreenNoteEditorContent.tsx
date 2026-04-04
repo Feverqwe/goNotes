@@ -2,13 +2,13 @@ import React, {
   FC,
   Suspense,
   lazy,
+  memo,
   useCallback,
   useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
-  memo,
 } from 'react';
 import {
   Alert,
@@ -25,7 +25,7 @@ import {Close, Fullscreen, FullscreenExit, Save} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {useAppTheme} from '../../ctx/ThemeCtx';
-import {Note} from '../../types';
+import {Attachment, Note} from '../../types';
 import {api} from '../../tools/api';
 import {SendMessageRequest, SendMessageResponse, UpdateMessageRequest} from '../../tools/types';
 import AttachmentsPanel from './AttachmentsPanel';
@@ -77,17 +77,41 @@ const MONACO_EDITOR_OPTIONS: editor.IStandaloneEditorConstructionOptions = {
   automaticLayout: true,
   padding: {top: 16, bottom: 16},
 };
-
+const formControlLabelSx = {mr: 0, '& .MuiFormControlLabel-label': {fontSize: '0.75rem'}};
+const iconButtonBoxSx = {display: 'flex', alignItems: 'center', gap: 0.5};
+const saveIconButtonSx = {p: 0.5};
+const dialogContentSx = {p: 0};
+const alertSx = {m: 2};
+const suspenseBoxSx = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: '100%',
+};
 export interface FullScreenNoteEditorContentProps {
   editingNote?: Note;
   onClose: () => void;
   onNoteCreated?: (noteId: number) => void;
+  files: File[];
+  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  refInputText: React.RefObject<string>;
+  setInputText: React.Dispatch<React.SetStateAction<string>>;
+  existingAttachments: Attachment[];
+  deletedAttachIds: number[];
+  setDeletedAttachIds: React.Dispatch<React.SetStateAction<number[]>>;
 }
 
 const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   editingNote,
   onClose,
   onNoteCreated,
+  files,
+  setFiles,
+  refInputText,
+  setInputText,
+  existingAttachments,
+  deletedAttachIds,
+  setDeletedAttachIds,
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const {mode} = useAppTheme();
@@ -100,51 +124,40 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   const changesTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef('');
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
-
-  const [files, setFiles] = useState<File[]>([]);
+  const contentRef = refInputText;
   const refFiles = useRef(files);
   refFiles.current = files;
-
-  const [deletedAttachIds, setDeletedAttachIds] = useState<number[]>([]);
   const refDeletedAttachIds = useRef(deletedAttachIds);
   refDeletedAttachIds.current = deletedAttachIds;
 
-  const contentRef = useRef(editingNote?.content ?? '');
-
   const monacoTheme = useMemo(() => (mode === 'dark' ? 'vs-dark' : 'vs'), [mode]);
-  
-  // Memoize the attachments array to prevent unnecessary re-renders
-  const attachments = useMemo(() => editingNote?.attachments ?? [], [editingNote?.attachments]);
-  
-  // Memoize inline sx objects to prevent unnecessary re-renders
-  const formControlLabelSx = useMemo(() => ({mr: 0, '& .MuiFormControlLabel-label': {fontSize: '0.75rem'}}), []);
-  const iconButtonBoxSx = useMemo(() => ({display: 'flex', alignItems: 'center', gap: 0.5}), []);
-  const saveIconButtonSx = useMemo(() => ({p: 0.5}), []);
-  const dialogContentSx = useMemo(() => ({p: 0}), []);
-  const alertSx = useMemo(() => ({m: 2}), []);
-  const suspenseBoxSx = useMemo(() => ({
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    height: '100%',
-  }), []);
-  const dialogSx = useMemo(() => ({
-    '& .MuiDialog-container': {
-      alignItems: isFullscreen ? 'flex-start' : 'center',
-    },
-  }), [isFullscreen]);
+
+  const dialogSx = useMemo(
+    () => ({
+      '& .MuiDialog-container': {
+        alignItems: isFullscreen ? 'flex-start' : 'center',
+      },
+    }),
+    [isFullscreen],
+  );
+
+  const getHasChanges = useCallback(() => {
+    return (
+      contentRef.current !== lastSavedContentRef.current ||
+      refFiles.current.length > 0 ||
+      refDeletedAttachIds.current.length > 0
+    );
+  }, [contentRef]);
 
   useEffect(() => {
     if (editingNote) {
       lastSavedContentRef.current = editingNote.content;
-      contentRef.current = editingNote.content;
-      setHasUnsavedChanges(false);
     } else {
       lastSavedContentRef.current = '';
-      contentRef.current = '';
-      setHasUnsavedChanges(false);
     }
-  }, [editingNote]);
+    contentRef.current = refInputText.current;
+    setHasUnsavedChanges(getHasChanges());
+  }, [contentRef, editingNote, getHasChanges, refInputText]);
 
   const sendMessageMutation = useMutation({
     mutationFn: (params: SendMessageRequest) => api.messages.send(params),
@@ -234,31 +247,27 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [editingNote, updateMessageMutation, sendMessageMutation, autoSaveEnabled]);
+  }, [editingNote, updateMessageMutation, sendMessageMutation, autoSaveEnabled, contentRef]);
 
   useEffect(() => {
-    const hasChanges =
-      contentRef.current !== lastSavedContentRef.current ||
-      files.length > 0 ||
-      deletedAttachIds.length > 0;
-    setHasUnsavedChanges(hasChanges);
-  }, [files.length, deletedAttachIds.length]);
+    setHasUnsavedChanges(getHasChanges());
+  }, [files.length, deletedAttachIds.length, contentRef, getHasChanges]);
 
-  const handleContentChange = useCallback((value: string | undefined) => {
-    contentRef.current = value || '';
+  const handleContentChange = useCallback(
+    (value: string | undefined) => {
+      contentRef.current = value || '';
 
-    if (changesTimerRef.current) {
-      clearTimeout(changesTimerRef.current);
-    }
+      if (changesTimerRef.current) {
+        clearTimeout(changesTimerRef.current);
+      }
 
-    changesTimerRef.current = setTimeout(() => {
-      const hasChanges =
-        contentRef.current !== lastSavedContentRef.current ||
-        refFiles.current.length > 0 ||
-        refDeletedAttachIds.current.length > 0;
-      setHasUnsavedChanges(hasChanges);
-    }, 300);
-  }, []);
+      changesTimerRef.current = setTimeout(() => {
+        setHasUnsavedChanges(getHasChanges());
+        setInputText(contentRef.current);
+      }, 300);
+    },
+    [contentRef, getHasChanges, setInputText],
+  );
 
   const handleManualSave = useCallback(() => {
     if (
@@ -283,7 +292,14 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
     } else {
       sendMessageMutation.mutate(formData);
     }
-  }, [editingNote, updateMessageMutation, sendMessageMutation, files, deletedAttachIds]);
+  }, [
+    contentRef,
+    files,
+    deletedAttachIds,
+    editingNote,
+    updateMessageMutation,
+    sendMessageMutation,
+  ]);
 
   const handleClose = useCallback(() => {
     if (hasUnsavedChanges) {
@@ -303,23 +319,32 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
     setAutoSaveEnabled((prev) => !prev);
   }, []);
 
-  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const newFiles = Array.from(e.target.files ?? []);
-    if (newFiles.length > 0) {
-      setFiles((prev) => [...prev, ...newFiles]);
-    }
-    e.target.value = '';
-  }, []);
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newFiles = Array.from(e.target.files ?? []);
+      if (newFiles.length > 0) {
+        setFiles((prev) => [...prev, ...newFiles]);
+      }
+      e.target.value = '';
+    },
+    [setFiles],
+  );
 
-  const removeFile = useCallback((index: number) => {
-    setFiles((prev) => prev.filter((_, i) => i !== index));
-  }, []);
+  const removeFile = useCallback(
+    (index: number) => {
+      setFiles((prev) => prev.filter((_, i) => i !== index));
+    },
+    [setFiles],
+  );
 
-  const toggleDeleteAttachment = useCallback((id: number) => {
-    setDeletedAttachIds((prev) => {
-      return prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
-    });
-  }, []);
+  const toggleDeleteAttachment = useCallback(
+    (id: number) => {
+      setDeletedAttachIds((prev) => {
+        return prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
+      });
+    },
+    [setDeletedAttachIds],
+  );
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -414,7 +439,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
         </Box>
 
         <AttachmentsPanel
-          existingAttachments={attachments}
+          existingAttachments={existingAttachments}
           deletedAttachIds={deletedAttachIds}
           files={files}
           onToggleDeleteAttachment={toggleDeleteAttachment}

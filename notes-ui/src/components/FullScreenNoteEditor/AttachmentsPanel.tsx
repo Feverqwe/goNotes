@@ -1,5 +1,5 @@
-import React, {FC, Fragment, useCallback, useMemo, memo} from 'react';
-import {Box, IconButton, Typography} from '@mui/material';
+import React, {FC, Fragment, memo, useMemo} from 'react';
+import {Box, IconButton} from '@mui/material';
 import {AttachFile} from '@mui/icons-material';
 import {Attachment} from '../../types';
 import ExistingAttachmentItem from '../BottomInputForm/ExistingAttachmentItem';

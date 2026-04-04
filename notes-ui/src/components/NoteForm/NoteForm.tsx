@@ -2,7 +2,8 @@ import React, {FC, useCallback, useEffect, useRef, useState} from 'react';
 import {useMediaQuery, useTheme} from '@mui/material';
 import BottomInputForm from '../BottomInputForm/BottomInputForm';
 import NoteEditorDialog, {NoteEditorDialogProps} from '../NoteEditorDialog/NoteEditorDialog';
-import {Attachment} from '../../types';
+import {Attachment, Note} from '../../types';
+import FullScreenNoteEditor from '../FullScreenNoteEditor/FullScreenNoteEditor';
 
 interface NoteFormProps extends Pick<
   NoteEditorDialogProps,
@@ -13,7 +14,7 @@ interface NoteFormProps extends Pick<
 }
 
 const NoteForm: FC<NoteFormProps> = (props) => {
-  const {editingNote, endEditing, setIsEditorDialogOpen} = props;
+  const {editingNote, endEditing, setIsEditorDialogOpen, open} = props;
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
@@ -27,6 +28,8 @@ const NoteForm: FC<NoteFormProps> = (props) => {
 
   const [existingAttachments, setExistingAttachments] = useState<Attachment[]>([]);
   const [deletedAttachIds, setDeletedAttachIds] = useState<number[]>([]);
+
+  const [isFullScreenEditorOpen, setIsFullScreenEditorOpen] = useState(false);
 
   useEffect(() => {
     if (isMobile) return;
@@ -81,6 +84,15 @@ const NoteForm: FC<NoteFormProps> = (props) => {
     setDeletedAttachIds([]);
   }, [endEditing]);
 
+  const openFullScreenEditor = useCallback(() => {
+    setIsFullScreenEditorOpen(true);
+  }, []);
+
+  const closeFullScreenEditor = useCallback(() => {
+    setIsFullScreenEditorOpen(false);
+    onFinish();
+  }, [onFinish]);
+
   const localProps = {
     files,
     setFiles,
@@ -96,12 +108,27 @@ const NoteForm: FC<NoteFormProps> = (props) => {
     <>
       {isMobile && <BottomInputForm {...props} {...localProps} />}
 
-      {!isMobile && props.open && (
+      {!isMobile && !isFullScreenEditorOpen && open && (
         <NoteEditorDialog
           key={String(editingNote ? 1 : 0)}
           {...props}
           {...localProps}
-          onFullscreen={props.onFullscreen}
+          onFullscreen={openFullScreenEditor}
+        />
+      )}
+
+      {!isMobile && isFullScreenEditorOpen && open && (
+        <FullScreenNoteEditor
+          open={open}
+          noteId={editingNote?.id || null}
+          onClose={closeFullScreenEditor}
+          files={files}
+          setFiles={setFiles}
+          refInputText={refInputText}
+          setInputText={setInputText}
+          existingAttachments={existingAttachments}
+          deletedAttachIds={deletedAttachIds}
+          setDeletedAttachIds={setDeletedAttachIds}
         />
       )}
     </>
