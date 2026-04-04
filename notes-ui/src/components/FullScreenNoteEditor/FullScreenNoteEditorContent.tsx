@@ -62,7 +62,7 @@ const EDITOR_CONTAINER_SX = {
 };
 
 const EDITOR_CONTAINER_FULLSCREEN_SX = {
-  height: 'calc(100vh - 120px)',
+  height: 'calc(100vh - 106px)',
   border: '1px solid',
   borderColor: 'divider',
   overflow: 'hidden',
