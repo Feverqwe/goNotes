@@ -26,17 +26,7 @@ import {Attachment, Note} from '../../types';
 import {api} from '../../tools/api';
 import {SendMessageRequest, UpdateMessageRequest} from '../../tools/types';
 import EditHeader from './EditHeader';
-import ExistingAttachmentItem from './ExistingAttachmentItem';
-import NewFileItem from './NewFileItem';
-
-const attachScrollBoxSx = {
-  display: 'flex',
-  gap: 1.5,
-  px: 2,
-  pt: 1.5,
-  overflowX: 'auto',
-  '&::-webkit-scrollbar': {display: 'none'},
-};
+import AttachmentsPanel from '../FullScreenNoteEditor/AttachmentsPanel';
 
 const tagsContainerSx = {px: 2, pt: 1.5, pb: 1, display: 'flex', gap: 1, flexWrap: 'wrap'};
 
@@ -315,26 +305,13 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
       <Container maxWidth="sm" disableGutters sx={containerSx}>
         {!isDialogMode && editingNote && <EditHeader onCancel={cancelEditing} />}
 
-        {(existingAttachments.length > 0 || files.length > 0) && (
-          <Box sx={attachScrollBoxSx}>
-            {existingAttachments.map((att) => (
-              <ExistingAttachmentItem
-                key={att.id}
-                att={att}
-                isDeleted={deletedAttachIds.includes(att.id)}
-                onToggle={toggleDeleteExisting}
-              />
-            ))}
-            {files.map((file, idx) => (
-              <NewFileItem
-                key={`${file.name}-${idx}`}
-                file={file}
-                index={idx}
-                onRemove={removeNewFile}
-              />
-            ))}
-          </Box>
-        )}
+        <AttachmentsPanel
+          existingAttachments={existingAttachments}
+          deletedAttachIds={deletedAttachIds}
+          files={files}
+          onToggleDeleteAttachment={toggleDeleteExisting}
+          onRemoveFile={removeNewFile}
+        />
 
         {currentTags.length > 0 && !editingNote && (
           <Box sx={tagsContainerSx}>

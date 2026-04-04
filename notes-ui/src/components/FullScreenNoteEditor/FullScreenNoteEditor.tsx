@@ -11,7 +11,6 @@ import React, {
 import {
   Alert,
   Box,
-  Button,
   CircularProgress,
   Dialog,
   DialogContent,
@@ -19,18 +18,17 @@ import {
   FormControlLabel,
   IconButton,
   Switch,
-  Typography,
-  useTheme,
 } from '@mui/material';
 import {Close, Fullscreen, FullscreenExit, Save} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {useAppTheme} from '../../ctx/ThemeCtx';
-import {Attachment, Note} from '../../types';
+import {Note} from '../../types';
 import {api} from '../../tools/api';
 import {UpdateMessageRequest} from '../../tools/types';
+import AttachmentsPanel from './AttachmentsPanel';
+import {editor} from 'monaco-editor';
 
-// Lazy load Monaco Editor
 const MonacoEditor = lazy(() => import('@monaco-editor/react'));
 
 const dialogTitleSx = {
@@ -42,7 +40,6 @@ const dialogTitleSx = {
   minHeight: '48px',
 };
 
-const iconSx = {color: 'primary.main', fontSize: 20};
 const dialogTitleBoxSx = {display: 'flex', alignItems: 'center', gap: 1};
 
 const closeSx = {
@@ -54,7 +51,7 @@ const closeSx = {
 };
 
 const editorContainerSx = {
-  height: 'calc(100vh - 140px)',
+  height: 'calc(100vh - 200px)',
   minHeight: '400px',
   border: '1px solid',
   borderColor: 'divider',
@@ -63,7 +60,7 @@ const editorContainerSx = {
 };
 
 const editorContainerFullscreenSx = {
-  height: 'calc(100vh - 60px)',
+  height: 'calc(100vh - 120px)',
   border: '1px solid',
   borderColor: 'divider',
   overflow: 'hidden',
@@ -73,29 +70,23 @@ export interface FullScreenNoteEditorProps {
   open: boolean;
   editingNote: Note | null;
   onClose: () => void;
-  onSave?: () => void;
 }
 
-const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
-  open,
-  editingNote,
-  onClose,
-  onSave,
-}) => {
+const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({open, editingNote, onClose}) => {
   const showSnackbar = useContext(SnackCtx);
   const {mode} = useAppTheme();
-  const theme = useTheme();
   const queryClient = useQueryClient();
   const [content, setContent] = useState('');
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
+  const [files, setFiles] = useState<File[]>([]);
+  const [deletedAttachIds, setDeletedAttachIds] = useState<number[]>([]);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef('');
   const contentRef = useRef(content);
-  const editorRef = useRef<any>(null);
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
 
-  // Используем стандартную тему Monaco в зависимости от темы приложения
   const monacoTheme = mode === 'dark' ? 'vs-dark' : 'vs';
 
   const updateMessageMutation = useMutation({
@@ -111,20 +102,22 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
     },
   });
 
-  // Initialize content when editingNote changes
   useEffect(() => {
     if (editingNote) {
       setContent(editingNote.content);
       lastSavedContentRef.current = editingNote.content;
       setHasUnsavedChanges(false);
+      setFiles([]);
+      setDeletedAttachIds([]);
     } else {
       setContent('');
       lastSavedContentRef.current = '';
       setHasUnsavedChanges(false);
+      setFiles([]);
+      setDeletedAttachIds([]);
     }
   }, [editingNote]);
 
-  // Block browser tab close when there are unsaved changes
   useEffect(() => {
     if (!hasUnsavedChanges) return;
 
@@ -141,19 +134,16 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
     };
   }, [hasUnsavedChanges]);
 
-  // Auto-save functionality
   useEffect(() => {
     if (!editingNote || contentRef.current === lastSavedContentRef.current) {
       setHasUnsavedChanges(false);
       return;
     }
 
-    // Clear existing timer
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
-    // Set new timer for auto-save (3 seconds delay) only if auto-save is enabled
     if (autoSaveEnabled) {
       autoSaveTimerRef.current = setTimeout(() => {
         if (editingNote && contentRef.current !== lastSavedContentRef.current) {
@@ -174,11 +164,11 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
 
   const handleContentChange = useCallback((value: string | undefined) => {
     contentRef.current = value || '';
-    
+
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
-    
+
     autoSaveTimerRef.current = setTimeout(() => {
       setContent(value || '');
       setHasUnsavedChanges(true);
@@ -186,15 +176,27 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
   }, []);
 
   const handleManualSave = useCallback(() => {
-    if (!editingNote || contentRef.current === lastSavedContentRef.current) {
+    if (
+      !editingNote ||
+      (contentRef.current === lastSavedContentRef.current &&
+        files.length === 0 &&
+        deletedAttachIds.length === 0)
+    ) {
       return;
     }
 
     const formData = new FormData();
     formData.append('id', String(editingNote.id));
     formData.append('content', contentRef.current);
+
+    files.forEach((file) => formData.append('attachments', file));
+
+    if (deletedAttachIds.length > 0) {
+      formData.append('delete_attachments', deletedAttachIds.join(','));
+    }
+
     updateMessageMutation.mutate(formData);
-  }, [editingNote, updateMessageMutation]);
+  }, [editingNote, updateMessageMutation, files, deletedAttachIds]);
 
   const handleClose = useCallback(() => {
     if (hasUnsavedChanges) {
@@ -214,7 +216,28 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
     setAutoSaveEnabled(!autoSaveEnabled);
   }, [autoSaveEnabled]);
 
-  // Ctrl+S hotkey handler
+  const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFiles = Array.from(e.target.files ?? []);
+    if (newFiles.length > 0) {
+      setFiles((prev) => [...prev, ...newFiles]);
+      setHasUnsavedChanges(true);
+    }
+    e.target.value = '';
+  }, []);
+
+  const removeFile = useCallback((index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+    setHasUnsavedChanges(true);
+  }, []);
+
+  const toggleDeleteAttachment = useCallback((id: number) => {
+    setDeletedAttachIds((prev) => {
+      const newIds = prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
+      setHasUnsavedChanges(true);
+      return newIds;
+    });
+  }, []);
+
   useEffect(() => {
     if (!open) return;
 
@@ -331,6 +354,16 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
             />
           </Suspense>
         </Box>
+
+        <AttachmentsPanel
+          existingAttachments={editingNote?.attachments ?? []}
+          deletedAttachIds={deletedAttachIds}
+          files={files}
+          onToggleDeleteAttachment={toggleDeleteAttachment}
+          onRemoveFile={removeFile}
+          onFileChange={handleFileChange}
+          isEditorMode={true}
+        />
       </DialogContent>
     </Dialog>
   );

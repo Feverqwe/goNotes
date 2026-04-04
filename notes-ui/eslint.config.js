@@ -14,18 +14,18 @@ export default [
       '@typescript-eslint/no-non-null-assertion': 'off',
       'consistent-return': 'off',
       'no-param-reassign': 'off',
-      'no-nested-ternary': 'off'
-    }
+      'no-nested-ternary': 'off',
+    },
   },
   {
     files: ['**/*.js'],
     languageOptions: {
       globals: {
-        self: 'readonly'
-      }
+        self: 'readonly',
+      },
     },
     rules: {
-      'no-unused-vars': 'off'
-    }
-  }
+      'no-unused-vars': 'off',
+    },
+  },
 ];
