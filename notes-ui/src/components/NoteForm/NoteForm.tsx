@@ -9,6 +9,7 @@ interface NoteFormProps extends Pick<
   'editingNote' | 'endEditing' | 'currentTags' | 'setCurrentTags' | 'open' | 'innerRef'
 > {
   setIsEditorDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
+  onFullscreen?: () => void;
 }
 
 const NoteForm: FC<NoteFormProps> = (props) => {
@@ -95,8 +96,13 @@ const NoteForm: FC<NoteFormProps> = (props) => {
     <>
       {isMobile && <BottomInputForm {...props} {...localProps} />}
 
-      {!isMobile && (
-        <NoteEditorDialog key={String(editingNote ? 1 : 0)} {...props} {...localProps} />
+      {!isMobile && props.open && (
+        <NoteEditorDialog
+          key={String(editingNote ? 1 : 0)}
+          {...props}
+          {...localProps}
+          onFullscreen={props.onFullscreen}
+        />
       )}
     </>
   );

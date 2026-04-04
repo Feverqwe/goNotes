@@ -1,4 +1,4 @@
-import React, {FC, useMemo} from 'react';
+import React, {FC, useCallback, useEffect, useMemo, useState} from 'react';
 import {
   Box,
   Dialog,
@@ -9,7 +9,7 @@ import {
   Theme,
   Typography,
 } from '@mui/material';
-import {AddCircleOutline, Close, Edit} from '@mui/icons-material';
+import {AddCircleOutline, Close, Edit, Fullscreen} from '@mui/icons-material';
 import BottomInputForm, {BottomInputFormProps} from '../BottomInputForm/BottomInputForm';
 
 const dialogTitleSx = {
@@ -36,9 +36,10 @@ const closeSx = {
 
 export interface NoteEditorDialogProps extends Omit<BottomInputFormProps, 'isDialogMode'> {
   open: boolean;
+  onFullscreen?: () => void;
 }
 
-const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
+const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, onFullscreen, ...props}) => {
   const {onFinish, editingNote, inputText, files} = props;
 
   const hasChanges = useMemo(() => {
@@ -49,10 +50,37 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
     return inputText.length > 0 || hasFiles;
   }, [inputText, files, editingNote, props.deletedAttachIds]);
 
+  const handleClose = useCallback(() => {
+    if (hasChanges) {
+      if (window.confirm('У вас есть несохраненные изменения. Закрыть без сохранения?')) {
+        onFinish();
+      }
+    } else {
+      onFinish();
+    }
+  }, [hasChanges, onFinish]);
+
+  // Block browser tab close when there are unsaved changes
+  useEffect(() => {
+    if (!hasChanges) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+      return '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasChanges]);
+
   return (
     <Dialog
       open={open}
-      onClose={onFinish}
+      onClose={handleClose}
       disableEscapeKeyDown={hasChanges}
       maxWidth="sm"
       fullWidth
@@ -67,9 +95,16 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, ...props}) => {
             {editingNote ? 'Редактировать заметку' : 'Новая заметка'}
           </Typography>
         </Box>
-        <IconButton onClick={onFinish} size="small" sx={closeSx}>
-          <Close />
-        </IconButton>
+        <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+          {editingNote && onFullscreen && (
+            <IconButton onClick={onFullscreen} size="small" sx={closeSx}>
+              <Fullscreen />
+            </IconButton>
+          )}
+          <IconButton onClick={handleClose} size="small" sx={closeSx}>
+            <Close />
+          </IconButton>
+        </Box>
       </DialogTitle>
       <Divider sx={dividerSx} />
       <DialogContent sx={dialogContentSx}>

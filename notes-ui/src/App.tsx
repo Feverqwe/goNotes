@@ -30,6 +30,7 @@ import {ArchiveMessageRequest, ReorderMessagesRequest} from './tools/types';
 import SideTagsPanel from './components/SideTagsPanel/SideTagsPanel';
 import TagsManager from './components/TagsManager/TagsManager';
 import NoteForm from './components/NoteForm/NoteForm';
+import FullScreenNoteEditor from './components/FullScreenNoteEditor/FullScreenNoteEditor';
 
 const wrapperSx = {minHeight: '100vh', display: 'flex', flexDirection: 'column'};
 
@@ -88,6 +89,7 @@ function App() {
   refIsMobile.current = isMobile;
 
   const [isEditorDialogOpen, setIsEditorDialogOpen] = useState(false);
+  const [isFullScreenEditorOpen, setIsFullScreenEditorOpen] = useState(false);
 
   useEffect(() => {
     const handlePopState = () => {
@@ -253,6 +255,12 @@ function App() {
 
   const endEditing = useCallback(() => {
     setEditingNote(null);
+    setIsEditorDialogOpen(false);
+    setIsFullScreenEditorOpen(false);
+  }, []);
+
+  const openFullScreenEditor = useCallback(() => {
+    setIsFullScreenEditorOpen(true);
     setIsEditorDialogOpen(false);
   }, []);
 
@@ -484,7 +492,16 @@ function App() {
           currentTags={currentTags}
           setCurrentTags={setCurrentTags}
           innerRef={bottomInputRef}
+          onFullscreen={openFullScreenEditor}
         />
+
+        {isFullScreenEditorOpen && (
+          <FullScreenNoteEditor
+            open={isFullScreenEditorOpen}
+            editingNote={editingNote}
+            onClose={endEditing}
+          />
+        )}
 
         {isSelectMode && (
           <MultiSelectMenu
