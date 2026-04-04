@@ -5,8 +5,10 @@ import React, {
   useCallback,
   useContext,
   useEffect,
+  useMemo,
   useRef,
   useState,
+  memo,
 } from 'react';
 import {
   Alert,
@@ -31,7 +33,7 @@ import {editor} from 'monaco-editor';
 
 const MonacoEditor = lazy(() => import('@monaco-editor/react'));
 
-const dialogTitleSx = {
+const DIALOG_TITLE_SX = {
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'space-between',
@@ -40,9 +42,9 @@ const dialogTitleSx = {
   minHeight: '48px',
 };
 
-const dialogTitleBoxSx = {display: 'flex', alignItems: 'center', gap: 1};
+const DIALOG_TITLE_BOX_SX = {display: 'flex', alignItems: 'center', gap: 1};
 
-const closeSx = {
+const CLOSE_SX = {
   color: 'text.secondary',
   '&:focus-visible': {
     boxShadow: (theme: {palette: {primary: {main: string}}}) =>
@@ -50,7 +52,7 @@ const closeSx = {
   },
 };
 
-const editorContainerSx = {
+const EDITOR_CONTAINER_SX = {
   height: 'calc(100vh - 200px)',
   minHeight: '400px',
   border: '1px solid',
@@ -59,11 +61,21 @@ const editorContainerSx = {
   overflow: 'hidden',
 };
 
-const editorContainerFullscreenSx = {
+const EDITOR_CONTAINER_FULLSCREEN_SX = {
   height: 'calc(100vh - 120px)',
   border: '1px solid',
   borderColor: 'divider',
   overflow: 'hidden',
+};
+
+const MONACO_EDITOR_OPTIONS: editor.IStandaloneEditorConstructionOptions = {
+  minimap: {enabled: false},
+  fontSize: 13,
+  lineNumbers: 'on',
+  scrollBeyondLastLine: false,
+  wordWrap: 'on',
+  automaticLayout: true,
+  padding: {top: 16, bottom: 16},
 };
 
 export interface FullScreenNoteEditorContentProps {
@@ -85,6 +97,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const changesTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef('');
   const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
 
@@ -98,6 +111,29 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
 
   const contentRef = useRef(editingNote?.content ?? '');
 
+  const monacoTheme = useMemo(() => (mode === 'dark' ? 'vs-dark' : 'vs'), [mode]);
+  
+  // Memoize the attachments array to prevent unnecessary re-renders
+  const attachments = useMemo(() => editingNote?.attachments ?? [], [editingNote?.attachments]);
+  
+  // Memoize inline sx objects to prevent unnecessary re-renders
+  const formControlLabelSx = useMemo(() => ({mr: 0, '& .MuiFormControlLabel-label': {fontSize: '0.75rem'}}), []);
+  const iconButtonBoxSx = useMemo(() => ({display: 'flex', alignItems: 'center', gap: 0.5}), []);
+  const saveIconButtonSx = useMemo(() => ({p: 0.5}), []);
+  const dialogContentSx = useMemo(() => ({p: 0}), []);
+  const alertSx = useMemo(() => ({m: 2}), []);
+  const suspenseBoxSx = useMemo(() => ({
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    height: '100%',
+  }), []);
+  const dialogSx = useMemo(() => ({
+    '& .MuiDialog-container': {
+      alignItems: isFullscreen ? 'flex-start' : 'center',
+    },
+  }), [isFullscreen]);
+
   useEffect(() => {
     if (editingNote) {
       lastSavedContentRef.current = editingNote.content;
@@ -108,9 +144,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
       contentRef.current = '';
       setHasUnsavedChanges(false);
     }
-  }, [editingNote?.id]);
-
-  const monacoTheme = mode === 'dark' ? 'vs-dark' : 'vs';
+  }, [editingNote]);
 
   const sendMessageMutation = useMutation({
     mutationFn: (params: SendMessageRequest) => api.messages.send(params),
@@ -175,25 +209,25 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   }, [hasUnsavedChanges]);
 
   useEffect(() => {
+    if (!autoSaveEnabled) return () => {};
+
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
-    if (autoSaveEnabled) {
-      autoSaveTimerRef.current = setTimeout(() => {
-        if (contentRef.current !== lastSavedContentRef.current) {
-          const formData = new FormData();
-          formData.append('content', contentRef.current);
+    autoSaveTimerRef.current = setTimeout(() => {
+      if (contentRef.current !== lastSavedContentRef.current) {
+        const formData = new FormData();
+        formData.append('content', contentRef.current);
 
-          if (editingNote) {
-            formData.append('id', String(editingNote.id));
-            updateMessageMutation.mutate(formData);
-          } else {
-            sendMessageMutation.mutate(formData);
-          }
+        if (editingNote) {
+          formData.append('id', String(editingNote.id));
+          updateMessageMutation.mutate(formData);
+        } else {
+          sendMessageMutation.mutate(formData);
         }
-      }, 3000);
-    }
+      }
+    }, 3000);
 
     return () => {
       if (autoSaveTimerRef.current) {
@@ -213,11 +247,11 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   const handleContentChange = useCallback((value: string | undefined) => {
     contentRef.current = value || '';
 
-    if (autoSaveTimerRef.current) {
-      clearTimeout(autoSaveTimerRef.current);
+    if (changesTimerRef.current) {
+      clearTimeout(changesTimerRef.current);
     }
 
-    autoSaveTimerRef.current = setTimeout(() => {
+    changesTimerRef.current = setTimeout(() => {
       const hasChanges =
         contentRef.current !== lastSavedContentRef.current ||
         refFiles.current.length > 0 ||
@@ -262,12 +296,12 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   }, [hasUnsavedChanges, onClose]);
 
   const toggleFullscreen = useCallback(() => {
-    setIsFullscreen(!isFullscreen);
-  }, [isFullscreen]);
+    setIsFullscreen((prev) => !prev);
+  }, []);
 
   const toggleAutoSave = useCallback(() => {
-    setAutoSaveEnabled(!autoSaveEnabled);
-  }, [autoSaveEnabled]);
+    setAutoSaveEnabled((prev) => !prev);
+  }, []);
 
   const handleFileChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files ?? []);
@@ -312,15 +346,11 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
       scroll="paper"
       transitionDuration={100}
       disableRestoreFocus={true}
-      sx={{
-        '& .MuiDialog-container': {
-          alignItems: isFullscreen ? 'flex-start' : 'center',
-        },
-      }}
+      sx={dialogSx}
       disableEnforceFocus={true}
     >
-      <DialogTitle sx={dialogTitleSx}>
-        <Box sx={dialogTitleBoxSx}>
+      <DialogTitle sx={DIALOG_TITLE_SX}>
+        <Box sx={DIALOG_TITLE_BOX_SX}>
           <FormControlLabel
             control={
               <Switch
@@ -331,47 +361,40 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
               />
             }
             label="Автосохранение"
-            sx={{mr: 0, '& .MuiFormControlLabel-label': {fontSize: '0.75rem'}}}
+            sx={formControlLabelSx}
           />
         </Box>
-        <Box sx={{display: 'flex', alignItems: 'center', gap: 0.5}}>
+        <Box sx={iconButtonBoxSx}>
           <IconButton
             onClick={handleManualSave}
             disabled={!hasUnsavedChanges}
             loading={updateMessageMutation.isPending || sendMessageMutation.isPending}
             size="small"
             color="primary"
-            sx={{p: 0.5}}
+            sx={saveIconButtonSx}
           >
             <Save fontSize="small" />
           </IconButton>
-          <IconButton onClick={toggleFullscreen} size="small" sx={{p: 0.5}}>
+          <IconButton onClick={toggleFullscreen} size="small" sx={saveIconButtonSx}>
             {isFullscreen ? <FullscreenExit fontSize="small" /> : <Fullscreen fontSize="small" />}
           </IconButton>
-          <IconButton onClick={handleClose} size="small" sx={{...closeSx, p: 0.5}}>
+          <IconButton onClick={handleClose} size="small" sx={{...CLOSE_SX, ...saveIconButtonSx}}>
             <Close fontSize="small" />
           </IconButton>
         </Box>
       </DialogTitle>
 
-      <DialogContent sx={{p: 0}}>
+      <DialogContent sx={dialogContentSx}>
         {(updateMessageMutation.isError || sendMessageMutation.isError) && (
-          <Alert severity="error" sx={{m: 2}}>
+          <Alert severity="error" sx={alertSx}>
             {editingNote ? 'Ошибка при сохранении заметки' : 'Ошибка при создании заметки'}
           </Alert>
         )}
 
-        <Box sx={isFullscreen ? editorContainerFullscreenSx : editorContainerSx}>
+        <Box sx={isFullscreen ? EDITOR_CONTAINER_FULLSCREEN_SX : EDITOR_CONTAINER_SX}>
           <Suspense
             fallback={
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  height: '100%',
-                }}
-              >
+              <Box sx={suspenseBoxSx}>
                 <CircularProgress />
               </Box>
             }
@@ -382,15 +405,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
               defaultValue={contentRef.current}
               onChange={handleContentChange}
               theme={monacoTheme}
-              options={{
-                minimap: {enabled: false},
-                fontSize: 13,
-                lineNumbers: 'on',
-                scrollBeyondLastLine: false,
-                wordWrap: 'on',
-                automaticLayout: true,
-                padding: {top: 16, bottom: 16},
-              }}
+              options={MONACO_EDITOR_OPTIONS}
               onMount={(editor) => {
                 editorRef.current = editor;
               }}
@@ -399,7 +414,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
         </Box>
 
         <AttachmentsPanel
-          existingAttachments={editingNote?.attachments ?? []}
+          existingAttachments={attachments}
           deletedAttachIds={deletedAttachIds}
           files={files}
           onToggleDeleteAttachment={toggleDeleteAttachment}
@@ -412,4 +427,4 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   );
 };
 
-export default FullScreenNoteEditorContent;
+export default memo(FullScreenNoteEditorContent);

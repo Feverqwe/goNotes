@@ -1,4 +1,4 @@
-import React, {FC, Fragment, useCallback, useMemo} from 'react';
+import React, {FC, Fragment, useCallback, useMemo, memo} from 'react';
 import {Box, IconButton, Typography} from '@mui/material';
 import {AttachFile} from '@mui/icons-material';
 import {Attachment} from '../../types';
@@ -25,6 +25,8 @@ const attachScrollBoxSx = {
   '&::-webkit-scrollbar': {display: 'none'},
 };
 
+const iconButtonSx = {p: 0.5, height: '42px', width: '42px'};
+
 const AttachmentsPanel: FC<AttachmentsPanelProps> = ({
   existingAttachments,
   deletedAttachIds,
@@ -36,10 +38,6 @@ const AttachmentsPanel: FC<AttachmentsPanelProps> = ({
 }) => {
   const hasAttachments = existingAttachments.length > 0 || files.length > 0;
 
-  if (!hasAttachments && !isEditorMode) {
-    return null;
-  }
-
   const sx = useMemo(() => {
     const s = attachScrollBoxSx;
     if (isEditorMode) {
@@ -47,12 +45,16 @@ const AttachmentsPanel: FC<AttachmentsPanelProps> = ({
       s.pb = 1;
     }
     return s;
-  }, []);
+  }, [isEditorMode]);
+
+  if (!hasAttachments && !isEditorMode) {
+    return null;
+  }
 
   return (
     <Box sx={sx}>
       {isEditorMode && onFileChange && (
-        <IconButton component="label" size="small" sx={{p: 0.5, height: '42px', width: '42px'}}>
+        <IconButton component="label" size="small" sx={iconButtonSx}>
           <AttachFile fontSize="small" />
           <input hidden multiple type="file" onChange={onFileChange} />
         </IconButton>
@@ -83,4 +85,4 @@ const AttachmentsPanel: FC<AttachmentsPanelProps> = ({
   );
 };
 
-export default AttachmentsPanel;
+export default memo(AttachmentsPanel);
