@@ -93,7 +93,7 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const lastSavedContentRef = useRef('');
   const contentRef = useRef(content);
-  contentRef.current = content;
+  const editorRef = useRef<any>(null);
 
   // Используем стандартную тему Monaco в зависимости от темы приложения
   const monacoTheme = mode === 'dark' ? 'vs-dark' : 'vs';
@@ -148,8 +148,6 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
       return;
     }
 
-    setHasUnsavedChanges(true);
-
     // Clear existing timer
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
@@ -175,7 +173,16 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
   }, [content, editingNote, updateMessageMutation, autoSaveEnabled]);
 
   const handleContentChange = useCallback((value: string | undefined) => {
-    setContent(value || '');
+    contentRef.current = value || '';
+    
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+    
+    autoSaveTimerRef.current = setTimeout(() => {
+      setContent(value || '');
+      setHasUnsavedChanges(true);
+    }, 300);
   }, []);
 
   const handleManualSave = useCallback(() => {
@@ -244,10 +251,10 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
           alignItems: isFullscreen ? 'flex-start' : 'center',
         },
       }}
+      disableEnforceFocus={true}
     >
       <DialogTitle sx={dialogTitleSx}>
         <Box sx={dialogTitleBoxSx}>
-          {updateMessageMutation.isPending && <CircularProgress size={14} color="primary" />}
           <FormControlLabel
             control={
               <Switch
@@ -311,12 +318,15 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
               theme={monacoTheme}
               options={{
                 minimap: {enabled: false},
-                fontSize: 14,
+                fontSize: 13,
                 lineNumbers: 'on',
                 scrollBeyondLastLine: false,
                 wordWrap: 'on',
                 automaticLayout: true,
                 padding: {top: 16, bottom: 16},
+              }}
+              onMount={(editor) => {
+                editorRef.current = editor;
               }}
             />
           </Suspense>
