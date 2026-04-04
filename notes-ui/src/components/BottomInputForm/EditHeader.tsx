@@ -1,5 +1,5 @@
 import React, {FC, memo} from 'react';
-import {Box, IconButton, Typography, alpha, Theme} from '@mui/material';
+import {Box, IconButton, Theme, Typography, alpha} from '@mui/material';
 import {Close, Edit} from '@mui/icons-material';
 
 const editHeaderSx = {

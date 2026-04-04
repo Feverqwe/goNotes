@@ -11,8 +11,8 @@ import {
   useTheme,
 } from '@mui/material';
 
-import {closestCenter, DndContext, DragEndEvent} from '@dnd-kit/core';
-import {arrayMove, SortableContext, verticalListSortingStrategy} from '@dnd-kit/sortable';
+import {DndContext, DragEndEvent, closestCenter} from '@dnd-kit/core';
+import {SortableContext, arrayMove, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {Note} from './types';
 import MessageItem from './components/MessageItem/MessageItem';
 import {SnackCtx} from './ctx/SnackCtx';

@@ -6,8 +6,8 @@ import {
   ListItemText,
   Menu,
   MenuItem,
-  alpha,
   Theme,
+  alpha,
   useTheme,
 } from '@mui/material';
 import {
@@ -122,7 +122,12 @@ const NoteMenu: FC<NoteMenuProps> = ({
         onClick: onSelectClick,
         color: 'text.secondary',
       },
-      {icon: <ContentCopy />, text: 'Копировать', onClick: handleCopy, color: 'text.secondary'},
+      {
+        icon: <ContentCopy />,
+        text: 'Копировать',
+        onClick: handleCopy,
+        color: 'text.secondary',
+      },
       {icon: <Edit />, text: 'Изменить', onClick: onEditClick, color: 'primary.main'},
       {
         icon: isArchived ? <Unarchive /> : <Archive />,

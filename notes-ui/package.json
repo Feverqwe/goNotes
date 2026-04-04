@@ -37,6 +37,8 @@
     "remark-gfm": "^4.0.1"
   },
   "devDependencies": {
+    "@gravity-ui/eslint-config": "^4.0.0",
+    "@gravity-ui/prettier-config": "^1.1.0",
     "@rspack/cli": "^1.7.11",
     "@rspack/core": "^1.7.11",
     "@types/react-dom": "^19.0.2",
@@ -44,21 +46,11 @@
     "@typescript-eslint/eslint-plugin": "^8.19.0",
     "@typescript-eslint/parser": "^8.19.0",
     "del-cli": "^6.0.0",
-    "eslint": "^8.27.0",
-    "eslint-config-airbnb": "^19.0.4",
-    "eslint-plugin-import": "^2.26.0",
-    "eslint-plugin-jsx-a11y": "^6.6.1",
-    "eslint-plugin-react": "^7.31.10",
-    "eslint-plugin-react-hooks": "^5.1.0",
+    "eslint": "^9.0.0",
     "eslint-plugin-unused-imports": "^4.1.4",
     "ncp": "^2.0.0",
     "prettier": "^3.0.2",
     "ts-node": "^10.7.0",
     "typescript": "^5.0.4"
-  },
-  "overrides": {
-    "eslint-config-airbnb": {
-      "eslint-plugin-react-hooks": "$eslint-plugin-react-hooks"
-    }
   }
 }

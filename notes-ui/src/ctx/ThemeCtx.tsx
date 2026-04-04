@@ -1,5 +1,5 @@
 import React, {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react';
-import {createTheme, ThemeProvider} from '@mui/material';
+import {ThemeProvider, createTheme} from '@mui/material';
 import {themeProps as baseThemeProps} from '../constants';
 
 type ThemeMode = 'light' | 'dark';
