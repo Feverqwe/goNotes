@@ -1,6 +1,7 @@
 _trash
 .idea
 uploads/
+assets/www
 
 notes.db*
 goNotes
