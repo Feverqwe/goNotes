@@ -1,7 +1,7 @@
 import React, {CSSProperties, FC, PropsWithChildren, useCallback, useMemo} from 'react';
 import {Box, IconButton, Theme, Typography, useTheme} from '@mui/material';
 import {ContentCopy} from '@mui/icons-material';
-import {Prism as SyntaxHighlighter} from 'react-syntax-highlighter';
+import {PrismAsync as SyntaxHighlighter} from 'react-syntax-highlighter';
 import {oneDark, oneLight} from 'react-syntax-highlighter/dist/esm/styles/prism';
 
 // Стили для инлайнового кода теперь используют функции темы

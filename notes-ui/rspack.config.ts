@@ -17,6 +17,7 @@ export default defineConfig({
   },
   optimization: {
     splitChunks: {
+      chunks: 'all',
       cacheGroups: {
         commons: {
           name: 'commons',
