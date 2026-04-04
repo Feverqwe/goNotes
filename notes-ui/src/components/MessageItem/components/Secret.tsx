@@ -1,5 +1,6 @@
 import React, {FC, PropsWithChildren, useState} from 'react';
 import {Typography} from '@mui/material';
+import CodeCode from '../CodeCode';
 
 interface SecretProps extends PropsWithChildren {
   node?: unknown;
@@ -15,7 +16,7 @@ const Secret: FC<SecretProps> = ({children}) => {
   const placeholderText = String(children).replace(/[^\s\n]/g, '•');
 
   if (isRevealed) {
-    return <>{children}</>;
+    return <CodeCode>{children}</CodeCode>;
   }
 
   return (

@@ -17,7 +17,7 @@ const remarkSecret: Plugin<[], Root> = () => {
         if (text[i] === '|' && text[i + 1] === '|') {
           const start = i;
           let content = '';
-          let j = i + 2; // Пропускаем открывающие ||
+          let j = i + 2;
           let foundEnd = false;
 
           while (j < text.length) {
@@ -55,7 +55,7 @@ const remarkSecret: Plugin<[], Root> = () => {
               },
             });
 
-            i = j + 2; // Прыгаем за закрывающие ||
+            i = j + 2;
             lastIndex = i;
             continue;
           }
@@ -63,7 +63,6 @@ const remarkSecret: Plugin<[], Root> = () => {
         i++;
       }
 
-      // Добавляем хвост текста
       if (lastIndex < text.length) {
         nodes.push({type: 'text', value: text.slice(lastIndex)});
       }
