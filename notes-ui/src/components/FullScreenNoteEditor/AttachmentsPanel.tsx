@@ -46,7 +46,7 @@ const AttachmentsPanel: FC<AttachmentsPanelProps> = ({
       s.pt = 1;
       s.pb = 1;
     }
-    return s
+    return s;
   }, []);
 
   return (
