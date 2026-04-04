@@ -1,9 +1,8 @@
-import * as HtmlWebpackPlugin from 'html-webpack-plugin';
+import { defineConfig } from '@rspack/cli';
+import * as rspack from '@rspack/core';
 import * as Path from 'path';
-import * as CopyPlugin from 'copy-webpack-plugin';
-import {CallableWebpackConfiguration} from 'webpack-cli/lib/types';
 
-const getOptions: CallableWebpackConfiguration = (env, argv) => ({
+export default defineConfig({
   entry: {
     index: './src/index',
   },
@@ -29,27 +28,32 @@ const getOptions: CallableWebpackConfiguration = (env, argv) => ({
         test: /\.tsx?$/,
         use: [
           {
-            loader: 'ts-loader',
+            loader: 'builtin:swc-loader',
+            options: {
+              jsc: {
+                parser: {
+                  syntax: 'typescript',
+                  tsx: true,
+                },
+                transform: {
+                  react: {
+                    runtime: 'automatic',
+                  },
+                },
+              },
+            },
           },
         ],
-        exclude: /node_modules/,
       },
       {
         test: /\.png$/,
-        use: [
-          {
-            loader: 'url-loader',
-          },
-        ],
+        type: 'asset/resource',
       },
       {
         test: /\.(less|css)$/,
         use: [
           {
-            loader: 'style-loader',
-          },
-          {
-            loader: 'css-loader',
+            loader: 'builtin:css-loader',
             options: {
               sourceMap: true,
             },
@@ -65,17 +69,17 @@ const getOptions: CallableWebpackConfiguration = (env, argv) => ({
     ],
   },
   plugins: [
-    new HtmlWebpackPlugin({
+    new rspack.HtmlRspackPlugin({
       filename: 'index.html',
       template: './src/assets/index.html',
       chunks: ['index'],
       scriptLoading: 'blocking',
     }),
-    new CopyPlugin({
+    new rspack.CopyRspackPlugin({
       patterns: [
-        {from: './src/assets/icons', to: 'icons'},
-        {from: './src/assets/manifest.json', to: 'manifest.json'},
-        {from: './src/sw.js', to: 'sw.js'},
+        { from: './src/assets/icons', to: 'icons' },
+        { from: './src/assets/manifest.json', to: 'manifest.json' },
+        { from: './src/sw.js', to: 'sw.js' },
       ],
     }),
   ],
@@ -83,5 +87,3 @@ const getOptions: CallableWebpackConfiguration = (env, argv) => ({
     extensions: ['.js', '.jsx', '.ts', '.tsx'],
   },
 });
-
-export default getOptions;
