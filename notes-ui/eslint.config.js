@@ -21,6 +21,7 @@ export default [
       'consistent-return': 'off',
       'no-param-reassign': 'off',
       'no-nested-ternary': 'off',
+      'no-negated-condition': 'off',
     },
   },
   {

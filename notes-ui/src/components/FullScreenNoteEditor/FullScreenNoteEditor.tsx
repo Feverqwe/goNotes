@@ -1,4 +1,4 @@
-import React, {FC, memo, useState} from 'react';
+import React, {FC, memo, useCallback, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {Box, CircularProgress, Dialog, DialogContent} from '@mui/material';
 import {api} from '../../tools/api';
@@ -20,6 +20,7 @@ export interface FullScreenNoteEditorProps {
 }
 
 const boxSx = {display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px'};
+
 const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
   open,
   noteId,
@@ -34,6 +35,8 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
   setExistingAttachments,
 }) => {
   const [currentNoteId, setCurrentNoteId] = useState(noteId);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(false);
 
   const {data: editingNote, isLoading} = useQuery({
     queryKey: ['note', currentNoteId],
@@ -45,55 +48,55 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
     staleTime: 0,
   });
 
+  const toggleFullscreen = useCallback(() => {
+    setIsFullscreen((prev) => !prev);
+  }, []);
+
+  const toggleAutoSave = useCallback(() => {
+    setAutoSaveEnabled((prev) => !prev);
+  }, []);
+
   if (!open) {
     return null;
   }
 
-  if (!currentNoteId) {
-    return (
-      <FullScreenNoteEditorContent
-        onClose={onClose}
-        onNoteCreated={setCurrentNoteId}
-        files={files}
-        setFiles={setFiles}
-        refInputText={refInputText}
-        setInputText={setInputText}
-        existingAttachments={existingAttachments}
-        deletedAttachIds={deletedAttachIds}
-        setDeletedAttachIds={setDeletedAttachIds}
-        setExistingAttachments={setExistingAttachments}
-      />
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <Dialog open={open} onClose={onClose}>
-        <DialogContent>
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth={isFullscreen ? false : 'lg'}
+      fullWidth
+      fullScreen={isFullscreen}
+      scroll="paper"
+      disableRestoreFocus={true}
+      disableEnforceFocus={true}
+    >
+      <DialogContent sx={{p: 0}}>
+        {currentNoteId && isLoading ? (
           <Box sx={boxSx}>
             <CircularProgress />
           </Box>
-        </DialogContent>
-      </Dialog>
-    );
-  }
-
-  if (!editingNote) {
-    return null;
-  }
-  return (
-    <FullScreenNoteEditorContent
-      editingNote={editingNote}
-      onClose={onClose}
-      files={files}
-      setFiles={setFiles}
-      refInputText={refInputText}
-      setInputText={setInputText}
-      existingAttachments={existingAttachments}
-      deletedAttachIds={deletedAttachIds}
-      setDeletedAttachIds={setDeletedAttachIds}
-      setExistingAttachments={setExistingAttachments}
-    />
+        ) : currentNoteId && !editingNote ? null : (
+          <FullScreenNoteEditorContent
+            editingNote={editingNote ?? undefined}
+            onNoteCreated={setCurrentNoteId}
+            onClose={onClose}
+            files={files}
+            setFiles={setFiles}
+            refInputText={refInputText}
+            setInputText={setInputText}
+            existingAttachments={existingAttachments}
+            deletedAttachIds={deletedAttachIds}
+            setDeletedAttachIds={setDeletedAttachIds}
+            setExistingAttachments={setExistingAttachments}
+            fullscreen={isFullscreen}
+            autoSave={autoSaveEnabled}
+            onToggleAutoSave={toggleAutoSave}
+            onToggleFullscreen={toggleFullscreen}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
   );
 };
 
