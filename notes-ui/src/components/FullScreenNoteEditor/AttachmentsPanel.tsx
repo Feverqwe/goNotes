@@ -24,7 +24,6 @@ const attachScrollBoxSx = {
   pt: 1.5,
   pb: 0,
   overflowX: 'auto',
-  '&::-webkit-scrollbar': {display: 'none'},
 };
 
 const iconButtonSx = {p: 0.5, height: '42px', width: '42px'};
