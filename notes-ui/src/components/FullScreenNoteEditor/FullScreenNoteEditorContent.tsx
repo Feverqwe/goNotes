@@ -180,7 +180,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
 
   useEffect(() => {
     setHasUnsavedChanges(getHasChanges());
-  }, [getHasChanges]);
+  }, [files.length, deletedAttachIds.length, getHasChanges]);
 
   const sendMessageMutation = useMutation({
     mutationFn: (params: SendMessageRequest) => api.messages.send(params),
