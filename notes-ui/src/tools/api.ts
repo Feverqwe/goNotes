@@ -1,5 +1,7 @@
 import axios, {AxiosRequestConfig, AxiosResponse} from 'axios';
+
 import {API_BASE} from '../constants';
+
 import {
   ArchiveMessageRequest,
   ArchiveMessageResponse,

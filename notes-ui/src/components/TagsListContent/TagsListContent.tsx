@@ -1,8 +1,10 @@
 import React, {FC, memo} from 'react';
-import {Box, Divider, ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
-import {Archive, Check, Sort} from '@mui/icons-material';
+
 import {DndContext, DragEndEvent} from '@dnd-kit/core';
 import {SortableContext} from '@dnd-kit/sortable';
+import {Archive, Check, Sort} from '@mui/icons-material';
+import {Box, Divider, ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
+
 import SortableTagItem from './SortableTagItem';
 
 const commonIconSx = {fontSize: 18};
@@ -20,7 +22,7 @@ interface TagsListContentProps {
   setExclusiveTag: (tag: string) => void;
 }
 
-const TagsListContent: FC<TagsListContentProps> = memo((props: TagsListContentProps) => {
+const TagsListContent: FC<TagsListContentProps> = (props: TagsListContentProps) => {
   const {
     displayTags,
     currentTags,
@@ -95,6 +97,6 @@ const TagsListContent: FC<TagsListContentProps> = memo((props: TagsListContentPr
       )}
     </Box>
   );
-});
+};
 
-export default TagsListContent;
+export default memo(TagsListContent);

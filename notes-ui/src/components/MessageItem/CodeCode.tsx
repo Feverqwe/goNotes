@@ -1,6 +1,7 @@
 import React, {FC, PropsWithChildren, useCallback, useMemo} from 'react';
-import {Box, IconButton, SxProps, Theme, Typography, useTheme} from '@mui/material';
+
 import {ContentCopy} from '@mui/icons-material';
+import {Box, IconButton, SxProps, Theme, Typography, useTheme} from '@mui/material';
 import {PrismAsync as SyntaxHighlighter} from 'react-syntax-highlighter';
 import {oneDark, oneLight} from 'react-syntax-highlighter/dist/esm/styles/prism';
 

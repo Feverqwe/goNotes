@@ -1,4 +1,5 @@
 import React, {FC, useCallback, useContext} from 'react';
+
 import {
   Button,
   Dialog,
@@ -8,6 +9,7 @@ import {
   DialogTitle,
 } from '@mui/material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {api} from '../../tools/api';
 import {DeleteMessageRequest} from '../../tools/types';
@@ -52,7 +54,7 @@ const DeleteDialog: FC<DeleteDialogProps> = ({
     const msgToDelete = refMsgToDelete.current;
     if (!msgToDelete) return;
     deleteMutation.mutate({id: msgToDelete});
-  }, [refMsgToDelete, deleteMutation]);
+  }, [deleteMutation, refMsgToDelete]);
 
   return (
     <Dialog open={deleteDialogOpen} onClose={closeDeleteDialog} transitionDuration={250}>

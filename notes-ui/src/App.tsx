@@ -1,6 +1,7 @@
 import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
-import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {DndContext, DragEndEvent, closestCenter} from '@dnd-kit/core';
+import {SortableContext, arrayMove, verticalListSortingStrategy} from '@dnd-kit/sortable';
 import {
   Alert,
   Box,
@@ -10,26 +11,24 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import {DndContext, DragEndEvent, closestCenter} from '@dnd-kit/core';
-import {SortableContext, arrayMove, verticalListSortingStrategy} from '@dnd-kit/sortable';
-import {Note} from './types';
-import MessageItem from './components/MessageItem/MessageItem';
-import {SnackCtx} from './ctx/SnackCtx';
-import SearchBox from './components/SearchBox/SearchBox';
-import MultiSelectMenu from './components/MultiSelectMenu/MultiSelectMenu';
-import NoteMenu from './components/NoteMenu/NoteMenu';
 import BatchDeleteDialog from './components/BatchDeleteDialog/BatchDeleteDialog';
 import DeleteDialog from './components/DeleteDialog/DeleteDialog';
 import EmptyState from './components/EmptyState/EmptyState';
-
+import MessageItem from './components/MessageItem/MessageItem';
+import MultiSelectMenu from './components/MultiSelectMenu/MultiSelectMenu';
+import NoteForm from './components/NoteForm/NoteForm';
+import NoteMenu from './components/NoteMenu/NoteMenu';
 import ReorderMenu from './components/ReorderMenu/ReorderMenu';
-import {api} from './tools/api';
-import {useNotes} from './hooks/useNotes';
-import {ArchiveMessageRequest, ReorderMessagesRequest} from './tools/types';
+import SearchBox from './components/SearchBox/SearchBox';
 import SideTagsPanel from './components/SideTagsPanel/SideTagsPanel';
 import TagsManager from './components/TagsManager/TagsManager';
-import NoteForm from './components/NoteForm/NoteForm';
+import {SnackCtx} from './ctx/SnackCtx';
+import {useNotes} from './hooks/useNotes';
+import {api} from './tools/api';
+import {ArchiveMessageRequest, ReorderMessagesRequest} from './tools/types';
+import {Note} from './types';
 
 const wrapperSx = {minHeight: '100vh', display: 'flex', flexDirection: 'column'};
 function App() {

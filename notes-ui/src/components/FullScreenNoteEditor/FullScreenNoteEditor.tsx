@@ -1,9 +1,13 @@
-import React, {FC, memo, useCallback, useState} from 'react';
-import {useQuery} from '@tanstack/react-query';
+import React, {FC, memo, useCallback, useEffect, useState} from 'react';
+
 import {Box, CircularProgress, Dialog, DialogContent} from '@mui/material';
+import {useQuery} from '@tanstack/react-query';
+import {isEqual} from 'lodash';
+
 import {api} from '../../tools/api';
-import FullScreenNoteEditorContent from './FullScreenNoteEditorContent';
 import {Attachment} from '../../types';
+
+import FullScreenNoteEditorContent from './FullScreenNoteEditorContent';
 
 export interface FullScreenNoteEditorProps {
   open: boolean;
@@ -46,7 +50,14 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
         : null,
     enabled: open && Boolean(currentNoteId),
     staleTime: 0,
+    refetchInterval: 30000,
   });
+
+  useEffect(() => {
+    if (!editingNote) return;
+
+    setExistingAttachments(editingNote.attachments ?? []);
+  }, [editingNote, setExistingAttachments]);
 
   const toggleFullscreen = useCallback(() => {
     setIsFullscreen((prev) => !prev);
@@ -84,13 +95,12 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
             files={files}
             setFiles={setFiles}
             refInputText={refInputText}
-            setInputText={setInputText}
             existingAttachments={existingAttachments}
             deletedAttachIds={deletedAttachIds}
+            setInputText={setInputText}
             setDeletedAttachIds={setDeletedAttachIds}
-            setExistingAttachments={setExistingAttachments}
-            fullscreen={isFullscreen}
-            autoSave={autoSaveEnabled}
+            isFullscreen={isFullscreen}
+            autoSaveEnabled={autoSaveEnabled}
             onToggleAutoSave={toggleAutoSave}
             onToggleFullscreen={toggleFullscreen}
           />

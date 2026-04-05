@@ -1,4 +1,6 @@
 import React, {FC, useEffect, useMemo} from 'react';
+
+import {Close, Done} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -9,7 +11,6 @@ import {
   alpha,
   useTheme,
 } from '@mui/material';
-import {Close, Done} from '@mui/icons-material';
 
 const containerSx = {
   display: 'flex',

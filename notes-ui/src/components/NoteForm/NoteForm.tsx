@@ -1,9 +1,11 @@
 import React, {FC, useCallback, useEffect, useRef, useState} from 'react';
+
 import {useMediaQuery, useTheme} from '@mui/material';
-import BottomInputForm from '../BottomInputForm/BottomInputForm';
-import NoteEditorDialog, {NoteEditorDialogProps} from '../NoteEditorDialog/NoteEditorDialog';
+
 import {Attachment} from '../../types';
+import BottomInputForm from '../BottomInputForm/BottomInputForm';
 import FullScreenNoteEditor from '../FullScreenNoteEditor/FullScreenNoteEditor';
+import NoteEditorDialog, {NoteEditorDialogProps} from '../NoteEditorDialog/NoteEditorDialog';
 
 interface NoteFormProps extends Pick<
   NoteEditorDialogProps,
@@ -117,9 +119,8 @@ const NoteForm: FC<NoteFormProps> = (props) => {
 
       {!isMobile && isFullScreenEditorOpen && open && (
         <FullScreenNoteEditor
-          key={String(editingNote?.id || '-')}
           open={open}
-          noteId={editingNote?.id || null}
+          noteId={editingNote?.id ?? null}
           onClose={closeFullScreenEditor}
           files={files}
           setFiles={setFiles}

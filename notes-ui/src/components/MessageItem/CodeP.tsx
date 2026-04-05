@@ -1,4 +1,5 @@
 import React, {FC, PropsWithChildren} from 'react';
+
 import {Typography} from '@mui/material';
 
 const sx = {mb: 1, lineHeight: 1.6};

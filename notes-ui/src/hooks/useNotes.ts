@@ -1,7 +1,8 @@
 import {useInfiniteQuery} from '@tanstack/react-query';
+
+import {POST_LIMIT} from '../constants';
 import {api} from '../tools/api';
 import {ListMessagesRequest} from '../tools/types';
-import {POST_LIMIT} from '../constants';
 
 export const useNotes = (filters: {
   id: ListMessagesRequest['id'];

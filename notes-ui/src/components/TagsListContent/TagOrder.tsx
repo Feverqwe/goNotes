@@ -1,7 +1,8 @@
 import React, {FC, useCallback} from 'react';
-import {IconButton, ListItemIcon, useMediaQuery, useTheme} from '@mui/material';
-import {ArrowDownward, ArrowUpward, DragHandle} from '@mui/icons-material';
+
 import {DraggableAttributes, DraggableSyntheticListeners} from '@dnd-kit/core';
+import {ArrowDownward, ArrowUpward, DragHandle} from '@mui/icons-material';
+import {IconButton, ListItemIcon, useMediaQuery, useTheme} from '@mui/material';
 
 const mobileControlsBoxSx = {display: 'flex', gap: 0.5, ml: -0.5, mr: 2};
 const mobileArrowBtnSx = {color: 'primary.main', fontSize: 14};

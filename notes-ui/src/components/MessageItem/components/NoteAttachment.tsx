@@ -1,8 +1,10 @@
 import React, {FC, useMemo} from 'react';
-import {Box, Button, Link, Typography} from '@mui/material';
+
 import {InsertDriveFile} from '@mui/icons-material';
-import {Attachment} from '../../../types';
+import {Box, Button, Link, Typography} from '@mui/material';
+
 import {API_BASE} from '../../../constants';
+import {Attachment} from '../../../types';
 
 const imageSx = {
   width: '100%',

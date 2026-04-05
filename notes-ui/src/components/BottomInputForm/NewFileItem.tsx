@@ -1,6 +1,7 @@
 import React, {FC, memo, useCallback, useMemo} from 'react';
-import {Box, IconButton, Typography, alpha, useTheme} from '@mui/material';
+
 import {Close} from '@mui/icons-material';
+import {Box, IconButton, Typography, alpha, useTheme} from '@mui/material';
 
 interface NewFileItemProps {
   file: File;
@@ -8,7 +9,7 @@ interface NewFileItemProps {
   onRemove: (index: number) => void;
 }
 
-const NewFileItem: FC<NewFileItemProps> = memo(({file, index, onRemove}: NewFileItemProps) => {
+const NewFileItem: FC<NewFileItemProps> = ({file, index, onRemove}: NewFileItemProps) => {
   const theme = useTheme();
   const handleRemove = useCallback(() => onRemove(index), [onRemove, index]);
 
@@ -51,6 +52,6 @@ const NewFileItem: FC<NewFileItemProps> = memo(({file, index, onRemove}: NewFile
       </IconButton>
     </Box>
   );
-});
+};
 
-export default NewFileItem;
+export default memo(NewFileItem);

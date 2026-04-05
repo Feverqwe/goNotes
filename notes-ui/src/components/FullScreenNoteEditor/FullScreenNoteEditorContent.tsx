@@ -10,16 +10,19 @@ import React, {
   useRef,
   useState,
 } from 'react';
-import {Alert, Box, CircularProgress, FormControlLabel, IconButton, Switch} from '@mui/material';
+
 import {Close, Fullscreen, FullscreenExit, Save} from '@mui/icons-material';
+import {Alert, Box, CircularProgress, FormControlLabel, IconButton, Switch} from '@mui/material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {editor} from 'monaco-editor';
+
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {useAppTheme} from '../../ctx/ThemeCtx';
-import {Attachment, Note} from '../../types';
 import {api} from '../../tools/api';
 import {SendMessageRequest, SendMessageResponse, UpdateMessageRequest} from '../../tools/types';
+import {Attachment, Note} from '../../types';
+
 import AttachmentsPanel from './AttachmentsPanel';
-import {editor} from 'monaco-editor';
 
 const MonacoEditor = lazy(() => import('@monaco-editor/react'));
 
@@ -69,7 +72,6 @@ const MONACO_EDITOR_OPTIONS: editor.IStandaloneEditorConstructionOptions = {
 const formControlLabelSx = {mr: 0, '& .MuiFormControlLabel-label': {fontSize: '0.75rem'}};
 const iconButtonBoxSx = {display: 'flex', alignItems: 'center', gap: 0.5};
 const saveIconButtonSx = {p: 0.5};
-const alertSx = {m: 2};
 const suspenseBoxSx = {
   display: 'flex',
   justifyContent: 'center',
@@ -83,15 +85,14 @@ export interface FullScreenNoteEditorContentProps {
   files: File[];
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   refInputText: React.RefObject<string>;
-  setInputText: React.Dispatch<React.SetStateAction<string>>;
   existingAttachments: Attachment[];
   deletedAttachIds: number[];
   setDeletedAttachIds: React.Dispatch<React.SetStateAction<number[]>>;
-  setExistingAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
-  fullscreen?: boolean;
-  autoSave?: boolean;
-  onToggleAutoSave?: () => void;
-  onToggleFullscreen?: () => void;
+  setInputText: React.Dispatch<React.SetStateAction<string>>;
+  isFullscreen: boolean;
+  autoSaveEnabled: boolean;
+  onToggleAutoSave: () => void;
+  onToggleFullscreen: () => void;
 }
 
 const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
@@ -100,39 +101,38 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   onNoteCreated,
   files,
   setFiles,
-  refInputText,
   setInputText,
+  refInputText: inputTextRef,
   existingAttachments,
   deletedAttachIds,
   setDeletedAttachIds,
-  setExistingAttachments,
-  fullscreen,
-  autoSave,
-  onToggleAutoSave,
-  onToggleFullscreen,
+  isFullscreen,
+  autoSaveEnabled,
+  onToggleAutoSave: handleToggleAutoSave,
+  onToggleFullscreen: handleToggleFullscreen,
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const {mode} = useAppTheme();
   const queryClient = useQueryClient();
 
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasRemoteChanges, setHasRemoteChanges] = useState(false);
   const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const changesTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const lastSavedContentRef = useRef('');
-  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
-  const inputTextRef = refInputText;
+  const lastSavedContentRef = useRef<null | string>(editingNote?.content ?? '');
+
+  const refEditor = useRef<editor.IStandaloneCodeEditor>(null);
+
   const refFiles = useRef(files);
   refFiles.current = files;
+
   const refDeletedAttachIds = useRef(deletedAttachIds);
   refDeletedAttachIds.current = deletedAttachIds;
 
-  const monacoTheme = useMemo(() => (mode === 'dark' ? 'vs-dark' : 'vs'), [mode]);
+  const refEditingNote = useRef(editingNote);
+  refEditingNote.current = editingNote;
 
-  // Use props from parent instead of local state
-  const isFullscreen = fullscreen || false;
-  const autoSaveEnabled = autoSave || false;
-  const handleToggleFullscreen = onToggleFullscreen || (() => {});
-  const handleToggleAutoSave = onToggleAutoSave || (() => {});
+  const monacoTheme = useMemo(() => (mode === 'dark' ? 'vs-dark' : 'vs'), [mode]);
 
   const getHasChanges = useCallback(() => {
     return (
@@ -143,15 +143,44 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   }, [inputTextRef]);
 
   useEffect(() => {
-    if (editingNote) {
-      lastSavedContentRef.current = editingNote.content;
-      setExistingAttachments(editingNote.attachments ?? []);
+    if (!editingNote) return;
+    const content = editingNote.content;
+
+    const hasLocalContentChanges = inputTextRef.current !== lastSavedContentRef.current;
+
+    if (content !== lastSavedContentRef.current) {
+      if (hasLocalContentChanges) {
+        setHasRemoteChanges(true);
+      } else {
+        inputTextRef.current = content;
+        refEditor.current?.setValue(content);
+        setHasRemoteChanges(false);
+      }
     } else {
-      lastSavedContentRef.current = '';
-      setExistingAttachments([]);
+      setHasRemoteChanges(false);
     }
+
     setHasUnsavedChanges(getHasChanges());
-  }, [editingNote, getHasChanges, refInputText, setExistingAttachments]);
+  }, [editingNote, getHasChanges, inputTextRef]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      return '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    setHasUnsavedChanges(getHasChanges());
+  }, [getHasChanges]);
 
   const sendMessageMutation = useMutation({
     mutationFn: (params: SendMessageRequest) => api.messages.send(params),
@@ -188,40 +217,44 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
     },
   });
 
+  const saveNote = useCallback(() => {
+    if (!getHasChanges()) return;
+
+    const formData = new FormData();
+    formData.append('content', inputTextRef.current);
+
+    files.forEach((file) => formData.append('attachments', file));
+
+    const editingNote = refEditingNote.current;
+    if (editingNote) {
+      formData.append('id', String(editingNote.id));
+
+      if (deletedAttachIds.length > 0) {
+        formData.append('delete_attachments', deletedAttachIds.join(','));
+      }
+
+      updateMessageMutation.mutate(formData);
+    } else {
+      sendMessageMutation.mutate(formData);
+    }
+  }, [
+    deletedAttachIds,
+    files,
+    getHasChanges,
+    inputTextRef,
+    sendMessageMutation,
+    updateMessageMutation,
+  ]);
+
   useEffect(() => {
-    if (!hasUnsavedChanges) return;
-
-    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
-      event.preventDefault();
-      return '';
-    };
-
-    window.addEventListener('beforeunload', handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener('beforeunload', handleBeforeUnload);
-    };
-  }, [hasUnsavedChanges]);
-
-  useEffect(() => {
-    if (!autoSaveEnabled) return () => {};
+    if (!autoSaveEnabled) return;
 
     if (autoSaveTimerRef.current) {
       clearTimeout(autoSaveTimerRef.current);
     }
 
     autoSaveTimerRef.current = setTimeout(() => {
-      if (inputTextRef.current !== lastSavedContentRef.current) {
-        const formData = new FormData();
-        formData.append('content', inputTextRef.current);
-
-        if (editingNote?.id) {
-          formData.append('id', String(editingNote.id));
-          updateMessageMutation.mutate(formData);
-        } else {
-          sendMessageMutation.mutate(formData);
-        }
-      }
+      saveNote();
     }, 3000);
 
     return () => {
@@ -229,11 +262,21 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
         clearTimeout(autoSaveTimerRef.current);
       }
     };
-  }, [editingNote?.id, updateMessageMutation, sendMessageMutation, autoSaveEnabled, inputTextRef]);
+  }, [autoSaveEnabled, saveNote]);
 
   useEffect(() => {
-    setHasUnsavedChanges(getHasChanges());
-  }, [files.length, deletedAttachIds.length, inputTextRef, getHasChanges]);
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        saveNote();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [saveNote]);
 
   const handleContentChange = useCallback(
     (value: string | undefined) => {
@@ -248,37 +291,20 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
         setHasUnsavedChanges(getHasChanges());
       }, 300);
     },
-    [inputTextRef, getHasChanges, setInputText],
+    [inputTextRef, setInputText, getHasChanges],
   );
 
-  const handleManualSave = useCallback(() => {
-    if (!getHasChanges()) {
-      return;
-    }
+  const handleUpdateFromRemote = useCallback(() => {
+    const editingNote = refEditingNote.current;
+    if (!editingNote) return;
+    const content = editingNote.content;
 
-    const formData = new FormData();
-    formData.append('content', inputTextRef.current);
-
-    files.forEach((file) => formData.append('attachments', file));
-
-    if (editingNote?.id) {
-      formData.append('id', String(editingNote.id));
-      if (deletedAttachIds.length > 0) {
-        formData.append('delete_attachments', deletedAttachIds.join(','));
-      }
-      updateMessageMutation.mutate(formData);
-    } else {
-      sendMessageMutation.mutate(formData);
-    }
-  }, [
-    getHasChanges,
-    inputTextRef,
-    files,
-    editingNote?.id,
-    deletedAttachIds,
-    updateMessageMutation,
-    sendMessageMutation,
-  ]);
+    inputTextRef.current = content;
+    lastSavedContentRef.current = content;
+    refEditor.current?.setValue(content);
+    setHasRemoteChanges(false);
+    setHasUnsavedChanges(getHasChanges());
+  }, [inputTextRef, getHasChanges]);
 
   const handleClose = useCallback(() => {
     if (hasUnsavedChanges) {
@@ -317,20 +343,6 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
     [setDeletedAttachIds],
   );
 
-  useEffect(() => {
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
-        event.preventDefault();
-        handleManualSave();
-      }
-    };
-
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, [handleManualSave]);
-
   return (
     <Box>
       {/* Header moved to body as part of the content */}
@@ -351,7 +363,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
         </Box>
         <Box sx={iconButtonBoxSx}>
           <IconButton
-            onClick={handleManualSave}
+            onClick={saveNote}
             disabled={!hasUnsavedChanges}
             loading={updateMessageMutation.isPending || sendMessageMutation.isPending}
             size="small"
@@ -370,8 +382,21 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
       </Box>
 
       <Box>
+        {hasRemoteChanges && (
+          <Alert
+            severity="info"
+            action={
+              <IconButton color="inherit" size="small" onClick={handleUpdateFromRemote}>
+                <Save fontSize="small" />
+              </IconButton>
+            }
+          >
+            Заметка была изменена на другом устройстве. Нажмите значок сохранения, чтобы обновить
+            содержимое.
+          </Alert>
+        )}
         {(updateMessageMutation.isError || sendMessageMutation.isError) && (
-          <Alert severity="error" sx={alertSx}>
+          <Alert severity="error">
             {editingNote ? 'Ошибка при сохранении заметки' : 'Ошибка при создании заметки'}
           </Alert>
         )}
@@ -392,7 +417,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
               theme={monacoTheme}
               options={MONACO_EDITOR_OPTIONS}
               onMount={(editor) => {
-                editorRef.current = editor;
+                refEditor.current = editor;
               }}
             />
           </Suspense>

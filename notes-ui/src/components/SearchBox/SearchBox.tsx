@@ -1,4 +1,6 @@
 import React, {FC, useCallback, useMemo} from 'react';
+
+import {Clear, Menu as MenuIcon, Search as SearchIcon} from '@mui/icons-material';
 import {
   AppBar,
   Badge,
@@ -10,7 +12,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import {Clear, Menu as MenuIcon, Search as SearchIcon} from '@mui/icons-material';
+
 import {SIDE_PANEL_WIDTH} from '../../constants';
 
 const textFieldWrapperSx = {

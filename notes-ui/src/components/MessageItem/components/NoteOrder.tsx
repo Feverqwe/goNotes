@@ -1,7 +1,8 @@
 import React, {FC, useCallback, useMemo} from 'react';
-import {Box, IconButton, useMediaQuery, useTheme} from '@mui/material';
-import {ArrowDownward, ArrowUpward, DragHandle} from '@mui/icons-material';
+
 import {DraggableAttributes, DraggableSyntheticListeners} from '@dnd-kit/core';
+import {ArrowDownward, ArrowUpward, DragHandle} from '@mui/icons-material';
+import {Box, IconButton, useMediaQuery, useTheme} from '@mui/material';
 
 // Используем системный цвет акцента
 const reorderIconSx = {cursor: 'grab', color: 'primary.main', backdropFilter: 'blur(4px)'};

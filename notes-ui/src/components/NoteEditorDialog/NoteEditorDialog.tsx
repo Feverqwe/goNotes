@@ -1,4 +1,6 @@
 import React, {FC, useCallback, useEffect, useMemo, useState} from 'react';
+
+import {AddCircleOutline, Close, Edit, Fullscreen} from '@mui/icons-material';
 import {
   Box,
   Dialog,
@@ -9,7 +11,7 @@ import {
   Theme,
   Typography,
 } from '@mui/material';
-import {AddCircleOutline, Close, Edit, Fullscreen} from '@mui/icons-material';
+
 import BottomInputForm, {BottomInputFormProps} from '../BottomInputForm/BottomInputForm';
 
 const dialogTitleSx = {

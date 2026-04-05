@@ -1,18 +1,16 @@
 import gravityConfig from '@gravity-ui/eslint-config';
+import importOrderConfig from '@gravity-ui/eslint-config/import-order';
 import prettierConfig from '@gravity-ui/eslint-config/prettier';
-import reactHooksPlugin from 'eslint-plugin-react-hooks';
+import reactConfig from '@gravity-ui/eslint-config/react';
 
 export default [
   ...gravityConfig,
+  ...reactConfig,
+  ...importOrderConfig,
   ...prettierConfig,
   {
     files: ['**/*.ts', '**/*.tsx'],
-    plugins: {
-      'react-hooks': reactHooksPlugin,
-    },
     rules: {
-      'react-hooks/rules-of-hooks': 'error',
-      'react-hooks/exhaustive-deps': 'warn',
       '@typescript-eslint/parameter-properties': 'off',
       '@typescript-eslint/no-unused-vars': 'off',
       '@typescript-eslint/no-shadow': 'off',
@@ -22,6 +20,7 @@ export default [
       'no-param-reassign': 'off',
       'no-nested-ternary': 'off',
       'no-negated-condition': 'off',
+      'react-hooks/refs': 'off',
     },
   },
   {

@@ -1,5 +1,7 @@
 import React, {FC, memo} from 'react';
+
 import {Box} from '@mui/material';
+
 import {getBgColor, getBorderColor} from '../MessageItem/utils';
 
 interface ColorItemProps {
@@ -8,7 +10,7 @@ interface ColorItemProps {
   onClick: (color: string) => void;
 }
 
-const ColorItem: FC<ColorItemProps> = memo(({color, isSelected, onClick}: ColorItemProps) => {
+const ColorItem: FC<ColorItemProps> = ({color, isSelected, onClick}: ColorItemProps) => {
   return (
     <Box
       onClick={() => onClick(color)}
@@ -26,6 +28,6 @@ const ColorItem: FC<ColorItemProps> = memo(({color, isSelected, onClick}: ColorI
       }}
     />
   );
-});
+};
 
-export default ColorItem;
+export default memo(ColorItem);
