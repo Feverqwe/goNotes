@@ -8,4 +8,4 @@ if [ -f "./${BINARY}" ]; then
     rm ./${BINARY}
 fi
 
-go build -trimpath -o ${BINARY}
+go build -trimpath -ldflags "-X main.Version=$VERSION" -o ${BINARY}

@@ -4,6 +4,8 @@ import (
 	"bytes"
 	"database/sql"
 	"encoding/json"
+	"flag"
+	"fmt"
 	"goNotes/assets"
 	"goNotes/internal"
 	"goNotes/internal/cfg"
@@ -22,7 +24,7 @@ import (
 	_ "modernc.org/sqlite"
 )
 
-var Version = "1.1.0"
+var Version = "1.0.0-dev"
 
 var DEBUG_UI = os.Getenv("DEBUG_UI") == "1"
 
@@ -32,6 +34,14 @@ var schemaSQL string
 var db *sql.DB
 
 func main() {
+	versionFlag := flag.Bool("version", false, "Show version information")
+	flag.Parse()
+
+	if *versionFlag {
+		fmt.Println("goNotes version", Version)
+		return
+	}
+
 	var err error
 
 	var config = cfg.LoadConfig()
