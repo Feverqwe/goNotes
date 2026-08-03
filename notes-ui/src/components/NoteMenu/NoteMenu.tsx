@@ -1,4 +1,4 @@
-import React, {FC, useCallback, useContext, useMemo} from 'react';
+import React, {FC, useCallback, useContext, useMemo, useState} from 'react';
 import {
   Box,
   Divider,
@@ -16,6 +16,7 @@ import {
   ContentCopy,
   Delete,
   Edit,
+  LocalOfferOutlined,
   Sort,
   Unarchive,
 } from '@mui/icons-material';
@@ -25,6 +26,10 @@ import {SnackCtx} from '../../ctx/SnackCtx';
 import {api} from '../../tools/api';
 import {NOTE_COLORS} from '../../constants';
 import ColorItem from './ColorItem';
+import {useTags} from '../../hooks/useTags';
+import {UpdateMessageRequest} from '../../tools/types';
+import {addTagToContent, removeTagFromContent} from './utils';
+import NoteTagDialog from './NoteTagDialog';
 
 // Выносим стили в функцию, чтобы иметь доступ к теме
 const getMenuSlotProps = (theme: Theme) => ({
@@ -88,6 +93,8 @@ const NoteMenu: FC<NoteMenuProps> = ({
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
   const theme = useTheme();
+  const {data: allTags = []} = useTags();
+  const [tagDialogNote, setTagDialogNote] = useState<Note | null>(null);
 
   const setColorMutation = useMutation({
     mutationFn: (color: string) => api.messages.setColor({id: selectedMsg!.id, color}),
@@ -107,6 +114,43 @@ const NoteMenu: FC<NoteMenuProps> = ({
       handleCloseMenu();
     }
   }, [selectedMsg, handleCloseMenu]);
+
+  const toggleTagMutation = useMutation({
+    mutationFn: (params: UpdateMessageRequest) => api.messages.update(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      queryClient.invalidateQueries({queryKey: ['tags']});
+      setTagDialogNote(null);
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка при изменении тегов', 'error');
+    },
+  });
+
+  const handleToggleTag = useCallback(
+    (tag: string) => {
+      if (!tagDialogNote) return;
+
+      const hasTag = tagDialogNote.tags?.some((item) => item.toLowerCase() === tag) ?? false;
+      const content = hasTag
+        ? removeTagFromContent(tagDialogNote.content, tag)
+        : addTagToContent(tagDialogNote.content, tag);
+      const formData = new FormData();
+      formData.append('id', String(tagDialogNote.id));
+      formData.append('content', content);
+      toggleTagMutation.mutate(formData);
+    },
+    [tagDialogNote, toggleTagMutation],
+  );
+
+  const handleOpenTagDialog = useCallback(() => {
+    if (!selectedMsg) return;
+    setTagDialogNote(selectedMsg);
+    handleCloseMenu();
+  }, [handleCloseMenu, selectedMsg]);
+
+  const handleCloseTagDialog = useCallback(() => setTagDialogNote(null), []);
 
   const onSelectClick = useCallback(() => {
     if (selectedMsg) enterSelectMode(selectedMsg);
@@ -129,6 +173,12 @@ const NoteMenu: FC<NoteMenuProps> = ({
       },
       {icon: <Edit />, text: 'Изменить', onClick: onEditClick, color: 'primary.main'},
       {
+        icon: <LocalOfferOutlined />,
+        text: 'Изменить тег',
+        onClick: handleOpenTagDialog,
+        color: 'text.secondary',
+      },
+      {
         icon: isArchived ? <Unarchive /> : <Archive />,
         text: isArchived ? 'Разархивировать' : 'В архив',
         onClick: onArchiveClick,
@@ -146,47 +196,57 @@ const NoteMenu: FC<NoteMenuProps> = ({
     onSelectClick,
     handleCopy,
     onEditClick,
+    handleOpenTagDialog,
     onArchiveClick,
     enterReorderMode,
   ]);
 
   return (
-    <Menu
-      anchorEl={anchorEl}
-      open={Boolean(anchorEl)}
-      onClose={handleCloseMenu}
-      transitionDuration={100}
-      slotProps={getMenuSlotProps(theme)} // Прокидываем тему через обертку или используем хук внутри slotProps
-      // В MUI 6+ и 2026 году предпочтительнее использовать хук прямо в компоненте:
-      PaperProps={{sx: getMenuSlotProps(theme).paper.sx}}
-    >
-      {menuActions.map((item, idx) => (
-        <MenuItem key={idx} onClick={item.onClick} sx={menuItemSx}>
-          <ListItemIcon sx={{minWidth: '32px !important', color: item.color}}>
-            {React.cloneElement(item.icon, {sx: commonIconSx})}
-          </ListItemIcon>
-          <ListItemText primary={item.text} slotProps={primaryTextSlotProps} />
-        </MenuItem>
-      ))}
-      <Divider sx={dividerSx} />
-      <Box sx={colorBoxSx}>
-        {NOTE_COLORS.map((col) => (
-          <ColorItem
-            key={col}
-            color={col}
-            isSelected={selectedMsg?.color === col}
-            onClick={(color) => setColorMutation.mutate(color)}
-          />
+    <>
+      <Menu
+        anchorEl={anchorEl}
+        open={Boolean(anchorEl)}
+        onClose={handleCloseMenu}
+        transitionDuration={100}
+        slotProps={getMenuSlotProps(theme)} // Прокидываем тему через обертку или используем хук внутри slotProps
+        // В MUI 6+ и 2026 году предпочтительнее использовать хук прямо в компоненте:
+        PaperProps={{sx: getMenuSlotProps(theme).paper.sx}}
+      >
+        {menuActions.map((item, idx) => (
+          <MenuItem key={idx} onClick={item.onClick} sx={menuItemSx}>
+            <ListItemIcon sx={{minWidth: '32px !important', color: item.color}}>
+              {React.cloneElement(item.icon, {sx: commonIconSx})}
+            </ListItemIcon>
+            <ListItemText primary={item.text} slotProps={primaryTextSlotProps} />
+          </MenuItem>
         ))}
-      </Box>
-      <Divider sx={dividerSx} />
-      <MenuItem onClick={onDeleteClick} sx={deleteMenuItemSx}>
-        <ListItemIcon sx={{minWidth: '32px !important'}}>
-          <Delete sx={{fontSize: 18, color: 'error.main'}} />
-        </ListItemIcon>
-        <ListItemText primary="Удалить" slotProps={deleteTextSlotProps} />
-      </MenuItem>
-    </Menu>
+        <Divider sx={dividerSx} />
+        <Box sx={colorBoxSx}>
+          {NOTE_COLORS.map((col) => (
+            <ColorItem
+              key={col}
+              color={col}
+              isSelected={selectedMsg?.color === col}
+              onClick={(color) => setColorMutation.mutate(color)}
+            />
+          ))}
+        </Box>
+        <Divider sx={dividerSx} />
+        <MenuItem onClick={onDeleteClick} sx={deleteMenuItemSx}>
+          <ListItemIcon sx={{minWidth: '32px !important'}}>
+            <Delete sx={{fontSize: 18, color: 'error.main'}} />
+          </ListItemIcon>
+          <ListItemText primary="Удалить" slotProps={deleteTextSlotProps} />
+        </MenuItem>
+      </Menu>
+      <NoteTagDialog
+        note={tagDialogNote}
+        tags={allTags}
+        loading={toggleTagMutation.isPending}
+        onClose={handleCloseTagDialog}
+        onSubmit={handleToggleTag}
+      />
+    </>
   );
 };
 
