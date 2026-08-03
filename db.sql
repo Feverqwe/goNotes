@@ -7,7 +7,9 @@ CREATE TABLE IF NOT EXISTS messages (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     is_archived INTEGER DEFAULT 0,
-    color TEXT DEFAULT ''
+    is_deleted INTEGER DEFAULT 0,
+    color TEXT DEFAULT '',
+    sort_order INTEGER DEFAULT 0
 );
 
 -- Таблица вложений (привязана к сообщению)
@@ -46,6 +48,9 @@ CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at DESC);
 
 -- И индекс для быстрой фильтрации
 CREATE INDEX IF NOT EXISTS idx_messages_is_archived ON messages(is_archived);
+
+-- Ускорение выборки корзины
+CREATE INDEX IF NOT EXISTS idx_messages_is_deleted ON messages(is_deleted);
 
 -- Индекс для быстрой выборки по порядку
 CREATE INDEX IF NOT EXISTS idx_messages_sort_order ON messages(sort_order DESC, id DESC);

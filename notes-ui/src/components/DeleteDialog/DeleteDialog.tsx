@@ -24,12 +24,14 @@ interface DeleteDialogProps {
   deleteDialogOpen: boolean;
   closeDeleteDialog: () => void;
   refMsgToDelete: React.RefObject<number | null>;
+  permanent: boolean;
 }
 
 const DeleteDialog: FC<DeleteDialogProps> = ({
   deleteDialogOpen,
   closeDeleteDialog,
   refMsgToDelete,
+  permanent,
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
@@ -56,18 +58,26 @@ const DeleteDialog: FC<DeleteDialogProps> = ({
 
   return (
     <Dialog open={deleteDialogOpen} onClose={closeDeleteDialog} transitionDuration={250}>
-      <DialogTitle>Удалить заметку?</DialogTitle>
+      <DialogTitle>
+        {permanent ? 'Удалить заметку навсегда?' : 'Переместить заметку в корзину?'}
+      </DialogTitle>
 
       <DialogContent>
         <DialogContentText>
-          Это действие нельзя отменить. <br />
-          Все вложения будут стерты.
+          {permanent ? (
+            <>
+              Это действие нельзя отменить. <br />
+              Все вложения будут стерты.
+            </>
+          ) : (
+            'Заметку можно будет восстановить из корзины.'
+          )}
         </DialogContentText>
       </DialogContent>
 
       <DialogActions>
         <Button onClick={confirmDelete} fullWidth variant="text" color="error" sx={btnSx}>
-          Удалить
+          {permanent ? 'Удалить навсегда' : 'В корзину'}
         </Button>
 
         <Button onClick={closeDeleteDialog} fullWidth variant="text" sx={btnSx}>

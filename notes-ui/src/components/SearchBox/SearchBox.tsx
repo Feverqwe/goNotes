@@ -54,6 +54,8 @@ interface SearchBoxProps {
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   showArchived: boolean;
   setShowArchived: (v: boolean) => void;
+  showTrash: boolean;
+  setShowTrash: (v: boolean) => void;
   setSelectedNoteId: (id: number | undefined) => void;
   hasActiveFilters: boolean;
   onMenuClick: () => void;
@@ -66,6 +68,8 @@ const SearchBox: FC<SearchBoxProps> = ({
   setCurrentTags,
   showArchived,
   setShowArchived,
+  showTrash,
+  setShowTrash,
   hasActiveFilters,
   setSelectedNoteId,
   onMenuClick,
@@ -77,12 +81,13 @@ const SearchBox: FC<SearchBoxProps> = ({
     setSearchQuery('');
     setCurrentTags([]);
     setShowArchived(false);
+    setShowTrash(false);
     setSelectedNoteId(undefined);
-  }, [setSearchQuery, setCurrentTags, setShowArchived, setSelectedNoteId]);
+  }, [setSearchQuery, setCurrentTags, setShowArchived, setShowTrash, setSelectedNoteId]);
 
   const activeFiltersCount = useMemo(
-    () => Boolean(currentTags.length + (showArchived ? 1 : 0)),
-    [currentTags.length, showArchived],
+    () => Boolean(currentTags.length + (showArchived || showTrash ? 1 : 0)),
+    [currentTags.length, showArchived, showTrash],
   );
 
   const handleChange = useCallback(
@@ -120,7 +125,9 @@ const SearchBox: FC<SearchBoxProps> = ({
         startAdornment: (
           <Badge
             variant="dot"
-            color={activeFiltersCount ? (showArchived ? 'warning' : 'primary') : 'default'}
+            color={
+              activeFiltersCount ? (showArchived || showTrash ? 'warning' : 'primary') : 'default'
+            }
             sx={badgeSx}
           >
             {isDesktop ? (
@@ -147,7 +154,15 @@ const SearchBox: FC<SearchBoxProps> = ({
         sx: textFieldInputSx,
       },
     }),
-    [activeFiltersCount, showArchived, isDesktop, onMenuClick, hasActiveFilters, handleClearAll],
+    [
+      activeFiltersCount,
+      showArchived,
+      showTrash,
+      isDesktop,
+      onMenuClick,
+      hasActiveFilters,
+      handleClearAll,
+    ],
   );
 
   return (

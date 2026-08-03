@@ -13,6 +13,7 @@ export interface Note {
   updated_at: string;
   tags?: string[];
   is_archived: number;
+  is_deleted: number;
   sort_order: number;
   color?: string;
 }

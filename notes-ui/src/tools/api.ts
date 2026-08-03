@@ -7,6 +7,8 @@ import {
   BatchArchiveResponse,
   BatchDeleteRequest,
   BatchDeleteResponse,
+  BatchRestoreRequest,
+  BatchRestoreResponse,
   DeleteMessageRequest,
   DeleteMessageResponse,
   ListMessagesRequest,
@@ -16,6 +18,8 @@ import {
   ReorderMessagesResponse,
   ReorderTagsRequest,
   ReorderTagsResponse,
+  RestoreMessageRequest,
+  RestoreMessageResponse,
   SendMessageRequest,
   SendMessageResponse,
   SetColorRequest,
@@ -102,6 +106,14 @@ export const api = {
     batchDelete: action<BatchDeleteRequest, BatchDeleteResponse>({
       method: 'POST',
       path: '/api/messages/batch-delete',
+    }),
+    restore: action<RestoreMessageRequest, RestoreMessageResponse>({
+      method: 'POST',
+      path: '/api/messages/restore',
+    }),
+    batchRestore: action<BatchRestoreRequest, BatchRestoreResponse>({
+      method: 'POST',
+      path: '/api/messages/batch-restore',
     }),
     archive: action<ArchiveMessageRequest, ArchiveMessageResponse>({
       method: 'POST',

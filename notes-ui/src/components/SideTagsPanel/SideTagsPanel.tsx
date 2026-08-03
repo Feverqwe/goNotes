@@ -10,7 +10,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import {Add as AddIcon, DarkMode, LightMode} from '@mui/icons-material';
+import {Add as AddIcon, DarkMode, DeleteOutline, LightMode} from '@mui/icons-material';
 import {HEADER_HEIGHT, SIDE_PANEL_WIDTH} from '../../constants';
 import {useAppTheme} from '../../ctx/ThemeCtx';
 
@@ -28,10 +28,20 @@ interface SideTagsPanelProps extends PropsWithChildren {
   open: boolean;
   onOpen: () => void;
   onClose: () => void;
+  showTrash: boolean;
+  onTrashClick: () => void;
 }
 
 const SideTagsPanel: FC<SideTagsPanelProps> = memo(
-  ({children, onCreateClick, open, onOpen, onClose}: SideTagsPanelProps) => {
+  ({
+    children,
+    onCreateClick,
+    open,
+    onOpen,
+    onClose,
+    showTrash,
+    onTrashClick,
+  }: SideTagsPanelProps) => {
     const theme = useTheme();
     const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
     const {mode, toggleTheme} = useAppTheme();
@@ -84,6 +94,14 @@ const SideTagsPanel: FC<SideTagsPanelProps> = memo(
         </Box>
         <Box sx={{mt: 'auto'}}>
           <Divider />
+          <ListItemButton selected={showTrash} onClick={onTrashClick}>
+            <ListItemIcon sx={{minWidth: 40}}>
+              <DeleteOutline
+                sx={{fontSize: 18, color: showTrash ? 'primary.main' : 'text.secondary'}}
+              />
+            </ListItemIcon>
+            <ListItemText primary="Корзина" slotProps={{primary: {fontSize: '0.85rem'}}} />
+          </ListItemButton>
           <ListItemButton onClick={toggleTheme}>
             <ListItemIcon sx={{minWidth: 40}}>
               {mode === 'dark' ? <DarkMode fontSize="small" /> : <LightMode fontSize="small" />}

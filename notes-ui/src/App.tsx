@@ -26,7 +26,7 @@ import EmptyState from './components/EmptyState/EmptyState';
 import ReorderMenu from './components/ReorderMenu/ReorderMenu';
 import {api} from './tools/api';
 import {useNotes} from './hooks/useNotes';
-import {ArchiveMessageRequest, ReorderMessagesRequest} from './tools/types';
+import {ArchiveMessageRequest, ReorderMessagesRequest, RestoreMessageRequest} from './tools/types';
 import SideTagsPanel from './components/SideTagsPanel/SideTagsPanel';
 import TagsManager from './components/TagsManager/TagsManager';
 import NoteForm from './components/NoteForm/NoteForm';
@@ -55,7 +55,11 @@ function App() {
   });
 
   const [showArchived, setShowArchived] = useState(() => {
-    return initUrlParams.get('archived') === '1';
+    return initUrlParams.get('archived') === '1' && initUrlParams.get('deleted') !== '1';
+  });
+
+  const [showTrash, setShowTrash] = useState(() => {
+    return initUrlParams.get('deleted') === '1';
   });
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
@@ -93,11 +97,13 @@ function App() {
       const tags = params.get('tags');
       const searchQuery = params.get('q');
       const archived = params.get('archived');
+      const deleted = params.get('deleted');
       const id = params.get('id');
       refGoBack.current = true;
       setCurrentTags(tags ? tags.split(',') : []);
       setSearchQuery(searchQuery ?? '');
-      setShowArchived(archived === '1');
+      setShowArchived(archived === '1' && deleted !== '1');
+      setShowTrash(deleted === '1');
       setSelectedNoteId(id ? Number(id) : undefined);
     };
     window.addEventListener('popstate', handlePopState);
@@ -135,6 +141,7 @@ function App() {
     q: searchQuery,
     tags: currentTags,
     archived: showArchived,
+    deleted: showTrash,
   });
   const refIsLoading = useRef(isLoading);
   refIsLoading.current = isLoading;
@@ -177,6 +184,29 @@ function App() {
     },
   });
 
+  const restoreMutation = useMutation({
+    mutationFn: (params: RestoreMessageRequest) => api.messages.restore(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      handleCloseMenu();
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка восстановления', 'error');
+      handleCloseMenu();
+    },
+  });
+
+  const handleSetShowArchived = useCallback((value: boolean) => {
+    setShowArchived(value);
+    if (value) setShowTrash(false);
+  }, []);
+
+  const handleSetShowTrash = useCallback((value: boolean) => {
+    setShowTrash(value);
+    if (value) setShowArchived(false);
+  }, []);
+
   useEffect(() => {
     if (refGoBack.current) {
       refGoBack.current = false;
@@ -190,6 +220,12 @@ function App() {
       url.searchParams.set('archived', '1');
     } else {
       url.searchParams.delete('archived');
+    }
+
+    if (showTrash) {
+      url.searchParams.set('deleted', '1');
+    } else {
+      url.searchParams.delete('deleted');
     }
 
     if (currentTags.length > 0) {
@@ -223,7 +259,7 @@ function App() {
     }, 400);
 
     return () => clearTimeout(delayDebounceFn);
-  }, [currentTags, queryClient, searchQuery, selectedNoteId, showArchived]);
+  }, [currentTags, queryClient, searchQuery, selectedNoteId, showArchived, showTrash]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -315,6 +351,12 @@ function App() {
     handleCloseMenu();
   }, [archiveMutation, handleCloseMenu, selectedMsg]);
 
+  const onRestoreClick = useCallback(() => {
+    if (!selectedMsg) return;
+    restoreMutation.mutate({id: selectedMsg.id});
+    handleCloseMenu();
+  }, [handleCloseMenu, restoreMutation, selectedMsg]);
+
   const handleOpenEditor = useCallback(() => setIsEditorDialogOpen(true), []);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
@@ -353,6 +395,11 @@ function App() {
   const handleOpenDrawer = useCallback(() => setIsDrawerOpen(true), []);
   const handleCloseDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
+  const handleTrashClick = useCallback(() => {
+    handleSetShowTrash(!showTrash);
+    handleCloseDrawer();
+  }, [handleCloseDrawer, handleSetShowTrash, showTrash]);
+
   const observer = useRef<IntersectionObserver | undefined>(undefined);
   const loadMoreTrigger = useCallback(
     (node: HTMLDivElement) => {
@@ -375,8 +422,9 @@ function App() {
       searchQuery.length > 0 ||
       currentTags.length > 0 ||
       showArchived ||
+      showTrash ||
       selectedNoteId !== undefined,
-    [currentTags.length, searchQuery.length, selectedNoteId, showArchived],
+    [currentTags.length, searchQuery.length, selectedNoteId, showArchived, showTrash],
   );
 
   const displayMessages = isReorderMode ? dndMessages : serverMessages;
@@ -406,7 +454,9 @@ function App() {
           currentTags={currentTags}
           setCurrentTags={setCurrentTags}
           showArchived={showArchived}
-          setShowArchived={setShowArchived}
+          setShowArchived={handleSetShowArchived}
+          showTrash={showTrash}
+          setShowTrash={handleSetShowTrash}
           hasActiveFilters={hasActiveFilters}
           setSelectedNoteId={setSelectedNoteId}
           onMenuClick={handleToggleDrawer}
@@ -418,12 +468,14 @@ function App() {
             onOpen={handleOpenDrawer}
             onClose={handleCloseDrawer}
             onCreateClick={handleCreateClick}
+            showTrash={showTrash}
+            onTrashClick={handleTrashClick}
           >
             <TagsManager
               currentTags={currentTags}
               setCurrentTags={setCurrentTags}
               showArchived={showArchived}
-              setShowArchived={setShowArchived}
+              setShowArchived={handleSetShowArchived}
               onActionFinished={handleCloseDrawer}
             />
           </SideTagsPanel>
@@ -488,6 +540,7 @@ function App() {
             selectedIds={selectedIds}
             askBatchDeleteConfirmation={askBatchDeleteConfirmation}
             showArchived={showArchived}
+            showTrash={showTrash}
           />
         )}
 
@@ -504,13 +557,16 @@ function App() {
         onEditClick={onEditClick}
         onDeleteClick={onDeleteClick}
         onArchiveClick={onArchiveClick}
+        onRestoreClick={onRestoreClick}
         enterReorderMode={enterReorderMode}
+        showTrash={showTrash}
       />
 
       <DeleteDialog
         deleteDialogOpen={deleteDialogOpen}
         closeDeleteDialog={closeDeleteDialog}
         refMsgToDelete={refMsgToDelete}
+        permanent={showTrash}
       />
 
       <BatchDeleteDialog
@@ -518,6 +574,7 @@ function App() {
         closeBatchDeleteDialog={closeBatchDeleteDialog}
         selectedIds={selectedIds}
         cancelSelectMode={cancelSelectMode}
+        permanent={showTrash}
       />
     </>
   );

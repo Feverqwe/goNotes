@@ -25,6 +25,7 @@ interface BatchDeleteDialogProps {
   closeBatchDeleteDialog: () => void;
   selectedIds: number[];
   cancelSelectMode: () => void;
+  permanent: boolean;
 }
 
 const BatchDeleteDialog: FC<BatchDeleteDialogProps> = ({
@@ -32,6 +33,7 @@ const BatchDeleteDialog: FC<BatchDeleteDialogProps> = ({
   closeBatchDeleteDialog,
   selectedIds,
   cancelSelectMode,
+  permanent,
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
@@ -56,18 +58,26 @@ const BatchDeleteDialog: FC<BatchDeleteDialogProps> = ({
 
   return (
     <Dialog open={deleteBatchDialogOpen} onClose={closeBatchDeleteDialog} transitionDuration={250}>
-      <DialogTitle>Удалить выбранные заметки?</DialogTitle>
+      <DialogTitle>
+        {permanent ? 'Удалить выбранные заметки навсегда?' : 'Переместить заметки в корзину?'}
+      </DialogTitle>
 
       <DialogContent>
         <DialogContentText>
-          Это действие нельзя отменить. <br />
-          Все вложения будут стерты.
+          {permanent ? (
+            <>
+              Это действие нельзя отменить. <br />
+              Все вложения будут стерты.
+            </>
+          ) : (
+            'Заметки можно будет восстановить из корзины.'
+          )}
         </DialogContentText>
       </DialogContent>
 
       <DialogActions>
         <Button onClick={confirmBatchDelete} fullWidth variant="text" color="error" sx={btnSx}>
-          Удалить
+          {permanent ? 'Удалить навсегда' : 'В корзину'}
         </Button>
 
         <Button onClick={closeBatchDeleteDialog} fullWidth variant="text" sx={btnSx}>

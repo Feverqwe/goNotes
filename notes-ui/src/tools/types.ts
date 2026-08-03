@@ -7,6 +7,7 @@ export interface ListMessagesRequest {
   tags?: string;
   q?: string;
   archived?: '1' | '0';
+  deleted?: '1' | '0';
 }
 
 export type ListMessagesResponse = Note[];
@@ -28,6 +29,16 @@ export interface BatchDeleteRequest {
   ids: number[];
 }
 export type BatchDeleteResponse = 'ok';
+
+export interface RestoreMessageRequest {
+  id: number;
+}
+export type RestoreMessageResponse = 'ok';
+
+export interface BatchRestoreRequest {
+  ids: number[];
+}
+export type BatchRestoreResponse = 'ok';
 
 export interface ArchiveMessageRequest {
   id: number;

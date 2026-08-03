@@ -28,6 +28,123 @@ type JsonSuccessResponse struct {
 
 var db *sql.DB
 
+type attachmentPaths struct {
+	filePath  string
+	thumbPath string
+}
+
+// trashOrDeleteMessages moves active messages to the trash and permanently
+// deletes messages that were already there.
+func trashOrDeleteMessages(ids []int64) (int, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+
+	tx, err := db.Begin()
+	if err != nil {
+		return 0, err
+	}
+	defer tx.Rollback()
+
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+
+	rows, err := tx.Query(
+		fmt.Sprintf("SELECT id, is_deleted FROM messages WHERE id IN (%s)", generatePlaceholders(len(ids))),
+		args...,
+	)
+	if err != nil {
+		return 0, err
+	}
+
+	var toTrash, toDelete []int64
+	for rows.Next() {
+		var id int64
+		var isDeleted int
+		if err := rows.Scan(&id, &isDeleted); err != nil {
+			rows.Close()
+			return 0, err
+		}
+		if isDeleted == 1 {
+			toDelete = append(toDelete, id)
+		} else {
+			toTrash = append(toTrash, id)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		rows.Close()
+		return 0, err
+	}
+	if err := rows.Close(); err != nil {
+		return 0, err
+	}
+
+	var files []attachmentPaths
+	if len(toDelete) > 0 {
+		deleteArgs := make([]any, len(toDelete))
+		for i, id := range toDelete {
+			deleteArgs[i] = id
+		}
+
+		attachmentRows, err := tx.Query(
+			fmt.Sprintf("SELECT file_path, thumbnail_path FROM attachments WHERE message_id IN (%s)", generatePlaceholders(len(toDelete))),
+			deleteArgs...,
+		)
+		if err != nil {
+			return 0, err
+		}
+		for attachmentRows.Next() {
+			var paths attachmentPaths
+			if err := attachmentRows.Scan(&paths.filePath, &paths.thumbPath); err != nil {
+				attachmentRows.Close()
+				return 0, err
+			}
+			files = append(files, paths)
+		}
+		if err := attachmentRows.Err(); err != nil {
+			attachmentRows.Close()
+			return 0, err
+		}
+		if err := attachmentRows.Close(); err != nil {
+			return 0, err
+		}
+
+		if _, err := tx.Exec(
+			fmt.Sprintf("DELETE FROM messages WHERE id IN (%s)", generatePlaceholders(len(toDelete))),
+			deleteArgs...,
+		); err != nil {
+			return 0, err
+		}
+	}
+
+	if len(toTrash) > 0 {
+		trashArgs := make([]any, len(toTrash))
+		for i, id := range toTrash {
+			trashArgs[i] = id
+		}
+		if _, err := tx.Exec(
+			fmt.Sprintf("UPDATE messages SET is_deleted = 1 WHERE id IN (%s)", generatePlaceholders(len(toTrash))),
+			trashArgs...,
+		); err != nil {
+			return 0, err
+		}
+	}
+
+	if err := tx.Commit(); err != nil {
+		return 0, err
+	}
+	for _, paths := range files {
+		deletePhysicalFile(paths.filePath)
+		if paths.thumbPath != "" {
+			deletePhysicalFile(paths.thumbPath)
+		}
+	}
+
+	return len(toTrash) + len(toDelete), nil
+}
+
 func HandleApi(router *Router, database *sql.DB, config *cfg.Config) {
 	db = database
 	apiRouter := NewRouter()
@@ -51,6 +168,7 @@ func handleAction(router *Router) {
 			tagsParam := r.URL.Query().Get("tags")
 			searchQuery := r.URL.Query().Get("q")
 			onlyArchived := r.URL.Query().Get("archived") == "1"
+			onlyDeleted := r.URL.Query().Get("deleted") == "1"
 			noteID, _ := strconv.Atoi(r.URL.Query().Get("id"))
 
 			if limit <= 0 {
@@ -59,6 +177,11 @@ func handleAction(router *Router) {
 
 			var clauses []string
 			var args []any
+			if onlyDeleted {
+				clauses = append(clauses, "is_deleted = 1")
+			} else {
+				clauses = append(clauses, "is_deleted = 0")
+			}
 
 			if noteID > 0 {
 				clauses = append(clauses, "id = ?")
@@ -99,7 +222,7 @@ func handleAction(router *Router) {
 					args = append(args, len(tagList))
 				}
 
-				if searchQuery != "" || tagsParam != "" {
+				if onlyDeleted || searchQuery != "" || tagsParam != "" {
 
 				} else if onlyArchived {
 
@@ -116,7 +239,7 @@ func handleAction(router *Router) {
 			}
 
 			query := fmt.Sprintf(`
-				SELECT id, content, created_at, updated_at, used_at, is_archived, sort_order, color
+				SELECT id, content, created_at, updated_at, used_at, is_archived, is_deleted, sort_order, color
 					FROM messages 
 					%s 
 					ORDER BY sort_order DESC
@@ -137,7 +260,7 @@ func handleAction(router *Router) {
 			for rows.Next() {
 				var m MessageDTO
 
-				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.UsedAt, &m.IsArchived, &m.SortOrder, &m.Color); err != nil {
+				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.UsedAt, &m.IsArchived, &m.IsDeleted, &m.SortOrder, &m.Color); err != nil {
 					log.Printf("Scan error: %v", err)
 					continue
 				}
@@ -351,39 +474,16 @@ func handleAction(router *Router) {
 
 	router.Delete("/api/messages/delete", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (string, error) {
-			id := r.URL.Query().Get("id")
+			id, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
+			if err != nil || id <= 0 {
+				return "", errors.New("Missing ID")
+			}
 
-			if id == "" {
-				err := errors.New("Missing ID")
+			processed, err := trashOrDeleteMessages([]int64{id})
+			if err != nil {
 				return "", err
 			}
-
-			rows, err := db.Query("SELECT file_path, thumbnail_path FROM attachments WHERE message_id = ?", id)
-			if err != nil {
-				log.Printf("Error fetching attachments: %v", err)
-			} else {
-				defer rows.Close()
-				for rows.Next() {
-					var filePath, thumbPath string
-					if err := rows.Scan(&filePath, &thumbPath); err == nil {
-
-						deletePhysicalFile(filePath)
-
-						if thumbPath != "" {
-							deletePhysicalFile(thumbPath)
-						}
-					}
-				}
-			}
-
-			result, err := db.Exec("DELETE FROM messages WHERE id = ?", id)
-			if err != nil {
-				log.Printf("Error deleting message %s: %v", id, err)
-				return "", err
-			}
-
-			rowsAffected, _ := result.RowsAffected()
-			if rowsAffected == 0 {
+			if processed == 0 {
 				return "", errors.New("Message not found")
 			}
 
@@ -405,40 +505,49 @@ func handleAction(router *Router) {
 				return "ok", nil
 			}
 
-			for _, id := range data.IDs {
-
-				rows, err := db.Query("SELECT file_path, thumbnail_path FROM attachments WHERE message_id = ?", id)
-				if err != nil {
-					log.Printf("Error fetching attachments: %v", err)
-				} else {
-					defer rows.Close()
-					for rows.Next() {
-						var filePath, thumbPath string
-						if err := rows.Scan(&filePath, &thumbPath); err == nil {
-
-							deletePhysicalFile(filePath)
-
-							if thumbPath != "" {
-								deletePhysicalFile(thumbPath)
-							}
-						}
-					}
-				}
-			}
-
-			query := fmt.Sprintf("DELETE FROM messages WHERE id IN (%s)", generatePlaceholders(len(data.IDs)))
-
-			args := make([]any, len(data.IDs))
-			for i, id := range data.IDs {
-				args[i] = id
-			}
-
-			_, err := db.Exec(query, args...)
+			_, err := trashOrDeleteMessages(data.IDs)
 			if err != nil {
 				return "", err
 			}
 
 			return "ok", nil
+		})
+	})
+
+	router.Post("/api/messages/restore", func(w http.ResponseWriter, r *http.Request) {
+		apiCall(w, func() (string, error) {
+			var data struct {
+				ID int64 `json:"id"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+				return "", err
+			}
+			_, err := db.Exec("UPDATE messages SET is_deleted = 0 WHERE id = ?", data.ID)
+			return "ok", err
+		})
+	})
+
+	router.Post("/api/messages/batch-restore", func(w http.ResponseWriter, r *http.Request) {
+		apiCall(w, func() (string, error) {
+			var data struct {
+				IDs []int64 `json:"ids"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+				return "", err
+			}
+			if len(data.IDs) == 0 {
+				return "ok", nil
+			}
+
+			args := make([]any, len(data.IDs))
+			for i, id := range data.IDs {
+				args[i] = id
+			}
+			_, err := db.Exec(
+				fmt.Sprintf("UPDATE messages SET is_deleted = 0 WHERE id IN (%s)", generatePlaceholders(len(data.IDs))),
+				args...,
+			)
+			return "ok", err
 		})
 	})
 

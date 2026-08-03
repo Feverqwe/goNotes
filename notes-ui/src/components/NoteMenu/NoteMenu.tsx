@@ -17,6 +17,7 @@ import {
   Delete,
   Edit,
   LocalOfferOutlined,
+  RestoreFromTrash,
   Sort,
   Unarchive,
 } from '@mui/icons-material';
@@ -77,7 +78,9 @@ interface NoteMenuProps {
   onEditClick: () => void;
   onDeleteClick: () => void;
   onArchiveClick: () => void;
+  onRestoreClick: () => void;
   enterReorderMode: () => void;
+  showTrash: boolean;
 }
 
 const NoteMenu: FC<NoteMenuProps> = ({
@@ -88,7 +91,9 @@ const NoteMenu: FC<NoteMenuProps> = ({
   onEditClick,
   onDeleteClick,
   onArchiveClick,
+  onRestoreClick,
   enterReorderMode,
+  showTrash,
 }) => {
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
@@ -178,18 +183,29 @@ const NoteMenu: FC<NoteMenuProps> = ({
         onClick: handleOpenTagDialog,
         color: 'text.secondary',
       },
-      {
-        icon: isArchived ? <Unarchive /> : <Archive />,
-        text: isArchived ? 'Разархивировать' : 'В архив',
-        onClick: onArchiveClick,
-        color: 'text.secondary',
-      },
-      {
-        icon: <Sort />,
-        text: 'Сортировать',
-        onClick: enterReorderMode,
-        color: 'text.secondary',
-      },
+      ...(showTrash
+        ? [
+            {
+              icon: <RestoreFromTrash />,
+              text: 'Восстановить',
+              onClick: onRestoreClick,
+              color: 'primary.main',
+            },
+          ]
+        : [
+            {
+              icon: isArchived ? <Unarchive /> : <Archive />,
+              text: isArchived ? 'Разархивировать' : 'В архив',
+              onClick: onArchiveClick,
+              color: 'text.secondary',
+            },
+            {
+              icon: <Sort />,
+              text: 'Сортировать',
+              onClick: enterReorderMode,
+              color: 'text.secondary',
+            },
+          ]),
     ];
   }, [
     selectedMsg?.is_archived,
@@ -198,7 +214,9 @@ const NoteMenu: FC<NoteMenuProps> = ({
     onEditClick,
     handleOpenTagDialog,
     onArchiveClick,
+    onRestoreClick,
     enterReorderMode,
+    showTrash,
   ]);
 
   return (
@@ -236,7 +254,10 @@ const NoteMenu: FC<NoteMenuProps> = ({
           <ListItemIcon sx={{minWidth: '32px !important'}}>
             <Delete sx={{fontSize: 18, color: 'error.main'}} />
           </ListItemIcon>
-          <ListItemText primary="Удалить" slotProps={deleteTextSlotProps} />
+          <ListItemText
+            primary={showTrash ? 'Удалить навсегда' : 'В корзину'}
+            slotProps={deleteTextSlotProps}
+          />
         </MenuItem>
       </Menu>
       <NoteTagDialog

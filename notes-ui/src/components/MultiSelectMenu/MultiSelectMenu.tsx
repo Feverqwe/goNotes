@@ -9,7 +9,7 @@ import {
   alpha,
   useTheme,
 } from '@mui/material';
-import {Archive, Close, Delete, Unarchive} from '@mui/icons-material';
+import {Archive, Close, Delete, RestoreFromTrash, Unarchive} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {api} from '../../tools/api';
 import {SnackCtx} from '../../ctx/SnackCtx';
@@ -47,6 +47,7 @@ interface SelectMenuProps {
   selectedIds: number[];
   askBatchDeleteConfirmation: () => void;
   showArchived: boolean;
+  showTrash: boolean;
 }
 
 const MultiSelectMenu: FC<SelectMenuProps> = ({
@@ -54,6 +55,7 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
   selectedIds,
   askBatchDeleteConfirmation,
   showArchived,
+  showTrash,
 }) => {
   const theme = useTheme();
   const showSnackbar = useContext(SnackCtx);
@@ -82,9 +84,25 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
     },
   });
 
+  const batchRestoreMutation = useMutation({
+    mutationFn: () => api.messages.batchRestore({ids: selectedIds}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      cancelSelectMode();
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка восстановления', 'error');
+    },
+  });
+
   const handleArchive = useCallback(() => {
-    batchArchiveMutation.mutate(showArchived ? 0 : 1);
-  }, [batchArchiveMutation, showArchived]);
+    if (showTrash) {
+      batchRestoreMutation.mutate();
+    } else {
+      batchArchiveMutation.mutate(showArchived ? 0 : 1);
+    }
+  }, [batchArchiveMutation, batchRestoreMutation, showArchived, showTrash]);
 
   const handleDelete = useCallback(() => {
     askBatchDeleteConfirmation();
@@ -123,11 +141,13 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
             size="medium"
             variant="text"
             disabled={isActionDisabled}
-            startIcon={showArchived ? <Unarchive /> : <Archive />}
+            startIcon={
+              showTrash ? <RestoreFromTrash /> : showArchived ? <Unarchive /> : <Archive />
+            }
             onClick={handleArchive}
             sx={{...btnSx, color: 'primary.main'}}
           >
-            {showArchived ? 'Восстановить' : 'В архив'}
+            {showTrash ? 'Восстановить' : showArchived ? 'Разархивировать' : 'В архив'}
           </Button>
           <Button
             size="medium"
@@ -138,7 +158,7 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
             sx={btnSx}
             onClick={handleDelete}
           >
-            Удалить
+            {showTrash ? 'Удалить навсегда' : 'В корзину'}
           </Button>
         </Box>
       </Container>

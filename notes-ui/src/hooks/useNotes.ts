@@ -8,6 +8,7 @@ export const useNotes = (filters: {
   q: string;
   tags: string[];
   archived: boolean;
+  deleted: boolean;
 }) => {
   return useInfiniteQuery({
     queryKey: ['notes', filters],
@@ -19,6 +20,7 @@ export const useNotes = (filters: {
         q: filters.q,
         tags: filters.tags.join(','),
         archived: filters.archived ? '1' : '0',
+        deleted: filters.deleted ? '1' : '0',
       });
     },
     initialPageParam: 0,

@@ -12,7 +12,7 @@ interface TagsManagerProps {
   currentTags: string[];
   setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   showArchived: boolean;
-  setShowArchived: React.Dispatch<React.SetStateAction<boolean>>;
+  setShowArchived: (value: boolean) => void;
   onActionFinished: () => void;
 }
 
@@ -44,9 +44,9 @@ const TagsManager: FC<TagsManagerProps> = memo(
     );
 
     const handleToggleArchive = useCallback(() => {
-      setShowArchived((v) => !v);
+      setShowArchived(!showArchived);
       onActionFinished();
-    }, [setShowArchived, onActionFinished]);
+    }, [setShowArchived, showArchived, onActionFinished]);
 
     const handleDragEnd = useCallback((event: DragEndEvent) => {
       const {active, over} = event;
