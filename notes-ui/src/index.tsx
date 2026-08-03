@@ -1,7 +1,9 @@
 import React from 'react';
-import ReactDOM from 'react-dom/client';
-import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+
 import {CssBaseline} from '@mui/material';
+import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import ReactDOM from 'react-dom/client';
+
 import App from './App';
 import SnackProvider from './components/SnackProvider/SnackProvider';
 import {AppThemeProvider} from './ctx/ThemeCtx';

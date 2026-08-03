@@ -1,6 +1,7 @@
 import React, {FC, memo} from 'react';
-import {Box, IconButton, Theme, Typography, alpha} from '@mui/material';
+
 import {Close, Edit} from '@mui/icons-material';
+import {Box, IconButton, Theme, Typography, alpha} from '@mui/material';
 
 const editHeaderSx = {
   px: 2,
@@ -20,7 +21,7 @@ interface EditHeaderProps {
   onCancel: () => void;
 }
 
-const EditHeader: FC<EditHeaderProps> = memo(({onCancel}: EditHeaderProps) => (
+const EditHeader: FC<EditHeaderProps> = ({onCancel}: EditHeaderProps) => (
   <Box sx={editHeaderSx}>
     <Edit sx={editIconSx} />
     <Typography variant="caption" sx={editTitleSx}>
@@ -31,6 +32,6 @@ const EditHeader: FC<EditHeaderProps> = memo(({onCancel}: EditHeaderProps) => (
       <Close sx={editCloseIconSx} />
     </IconButton>
   </Box>
-));
+);
 
-export default EditHeader;
+export default memo(EditHeader);

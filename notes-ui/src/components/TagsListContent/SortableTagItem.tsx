@@ -1,9 +1,11 @@
 import React, {FC, useCallback, useMemo} from 'react';
+
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {IconButton, ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
 import {AddCircleOutline, CheckCircle} from '@mui/icons-material';
 import TagIcon from '@mui/icons-material/Tag';
+import {IconButton, ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
+
 import TagOrder from './TagOrder';
 
 const iconSx = {fontSize: '18px'};

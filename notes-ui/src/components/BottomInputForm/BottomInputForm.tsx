@@ -8,6 +8,8 @@ import React, {
   useRef,
   useState,
 } from 'react';
+
+import {AttachFile, Check, Send} from '@mui/icons-material';
 import {
   Box,
   Chip,
@@ -19,14 +21,15 @@ import {
   alpha,
   useTheme,
 } from '@mui/material';
-import {AttachFile, Check, Send} from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
+
 import {SnackCtx} from '../../ctx/SnackCtx';
-import {Attachment, Note} from '../../types';
 import {api} from '../../tools/api';
 import {SendMessageRequest, UpdateMessageRequest} from '../../tools/types';
-import EditHeader from './EditHeader';
+import {Attachment, Note} from '../../types';
 import AttachmentsPanel from '../FullScreenNoteEditor/AttachmentsPanel';
+
+import EditHeader from './EditHeader';
 
 const tagsContainerSx = {px: 2, pt: 1.5, pb: 1, display: 'flex', gap: 1, flexWrap: 'wrap'};
 

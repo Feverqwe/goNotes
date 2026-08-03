@@ -4,7 +4,8 @@ set -e
 
 source "$(dirname $0)/_variables.sh"
 
+rm -r assets/www
+mkdir -p assets/www
+
 cd ./notes-ui
-source ~/.nvm/nvm.sh
-nvm use
 npm run release

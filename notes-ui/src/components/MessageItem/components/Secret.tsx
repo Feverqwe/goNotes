@@ -1,5 +1,7 @@
 import React, {FC, PropsWithChildren, useState} from 'react';
+
 import {Link, Typography, useTheme} from '@mui/material';
+
 import CodeCode from '../CodeCode';
 
 interface SecretProps extends PropsWithChildren {

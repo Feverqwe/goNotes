@@ -1,6 +1,8 @@
 import React, {FC, PropsWithChildren, useCallback, useState} from 'react';
-import {AlertColor} from '@mui/material/Alert/Alert';
+
 import {Alert, Snackbar} from '@mui/material';
+import {AlertColor} from '@mui/material/Alert/Alert';
+
 import {SnackCtx} from '../../ctx/SnackCtx';
 
 const snackAnchorOrigin: {vertical: 'top'; horizontal: 'center'} = {

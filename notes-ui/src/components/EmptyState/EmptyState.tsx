@@ -1,6 +1,7 @@
 import React, {FC} from 'react';
-import {Box, Typography} from '@mui/material';
+
 import {NoteAdd} from '@mui/icons-material';
+import {Box, Typography} from '@mui/material';
 
 const containerSx = {
   textAlign: 'center',

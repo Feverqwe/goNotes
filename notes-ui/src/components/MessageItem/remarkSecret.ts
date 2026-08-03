@@ -1,7 +1,7 @@
 /* eslint-disable import/no-extraneous-dependencies */
+import {Root, RootContent, Text} from 'mdast';
 import {Plugin} from 'unified';
 import {visit} from 'unist-util-visit';
-import {Root, RootContent, Text} from 'mdast';
 
 const remarkSecret: Plugin<[], Root> = () => {
   return (tree) => {

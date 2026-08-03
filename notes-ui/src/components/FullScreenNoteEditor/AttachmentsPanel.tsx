@@ -1,6 +1,8 @@
 import React, {FC, Fragment, memo, useMemo} from 'react';
-import {Box, IconButton} from '@mui/material';
+
 import {AttachFile} from '@mui/icons-material';
+import {Box, IconButton} from '@mui/material';
+
 import {Attachment} from '../../types';
 import ExistingAttachmentItem from '../BottomInputForm/ExistingAttachmentItem';
 import NewFileItem from '../BottomInputForm/NewFileItem';
@@ -39,7 +41,7 @@ const AttachmentsPanel: FC<AttachmentsPanelProps> = ({
   const hasAttachments = existingAttachments.length > 0 || files.length > 0;
 
   const sx = useMemo(() => {
-    const s = attachScrollBoxSx;
+    const s = {...attachScrollBoxSx};
     if (isEditorMode) {
       s.pt = 1;
       s.pb = 1;

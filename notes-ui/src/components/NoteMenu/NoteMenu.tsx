@@ -24,10 +24,12 @@ import {
   Unarchive,
 } from '@mui/icons-material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {Note} from '../../types';
+
+import {NOTE_COLORS} from '../../constants';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {api} from '../../tools/api';
-import {NOTE_COLORS} from '../../constants';
+import {Note} from '../../types';
+
 import ColorItem from './ColorItem';
 import {useTags} from '../../hooks/useTags';
 import {SetExpandedRequest, UpdateMessageRequest} from '../../tools/types';
