@@ -1,15 +1,5 @@
 import React, {FC, useCallback, useContext, useMemo, useState} from 'react';
-import {
-  Box,
-  Divider,
-  ListItemIcon,
-  ListItemText,
-  Menu,
-  MenuItem,
-  Theme,
-  alpha,
-  useTheme,
-} from '@mui/material';
+
 import {
   Archive,
   CheckCircleOutline,
@@ -23,18 +13,29 @@ import {
   Sort,
   Unarchive,
 } from '@mui/icons-material';
+import {
+  Box,
+  Divider,
+  ListItemIcon,
+  ListItemText,
+  Menu,
+  MenuItem,
+  Theme,
+  alpha,
+  useTheme,
+} from '@mui/material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {NOTE_COLORS} from '../../constants';
 import {SnackCtx} from '../../ctx/SnackCtx';
+import {useTags} from '../../hooks/useTags';
 import {api} from '../../tools/api';
+import {SetExpandedRequest, UpdateMessageRequest} from '../../tools/types';
 import {Note} from '../../types';
 
 import ColorItem from './ColorItem';
-import {useTags} from '../../hooks/useTags';
-import {SetExpandedRequest, UpdateMessageRequest} from '../../tools/types';
-import {addTagToContent, removeTagFromContent} from './utils';
 import NoteTagDialog from './NoteTagDialog';
+import {addTagToContent, removeTagFromContent} from './utils';
 
 // Выносим стили в функцию, чтобы иметь доступ к теме
 const getMenuSlotProps = (theme: Theme) => ({

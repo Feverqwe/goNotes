@@ -1,4 +1,6 @@
 import React, {FC, FormEvent, useEffect, useMemo, useState} from 'react';
+
+import {Check, Close, DeleteOutline, LocalOfferOutlined} from '@mui/icons-material';
 import {
   Autocomplete,
   Box,
@@ -11,7 +13,7 @@ import {
   Theme,
   Typography,
 } from '@mui/material';
-import {Check, Close, DeleteOutline, LocalOfferOutlined} from '@mui/icons-material';
+
 import {Note} from '../../types';
 
 const INVALID_TAG_PATTERN = new RegExp(String.raw`[\s$!@#%^&*()=+\[\]{}|\\;:'",.<>?/\x60]`, 'u');

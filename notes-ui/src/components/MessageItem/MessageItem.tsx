@@ -7,6 +7,10 @@ import React, {
   useRef,
   useState,
 } from 'react';
+
+import {useSortable} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
+import {ExpandMore, MoreVert, Restore} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -23,16 +27,13 @@ import {
   useTheme,
 } from '@mui/material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
-import {ExpandMore, MoreVert, Restore} from '@mui/icons-material';
-import {useSortable} from '@dnd-kit/sortable';
-import {CSS} from '@dnd-kit/utilities';
 import ReactMarkdown from 'react-markdown';
 import {Components} from 'react-markdown/lib';
 import remarkGfm from 'remark-gfm';
 
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {api} from '../../tools/api';
-import {UseMessageRequest} from '../../tools/types';
+import {SetExpandedRequest, UseMessageRequest} from '../../tools/types';
 import {Note} from '../../types';
 
 import CodeCode from './CodeCode';
@@ -44,10 +45,6 @@ import NoteOrder from './components/NoteOrder';
 import NoteTag from './components/NoteTag';
 import Secret from './components/Secret';
 import remarkSecret from './remarkSecret';
-import {api} from '../../tools/api';
-import {SnackCtx} from '../../ctx/SnackCtx';
-import {SetExpandedRequest, UseMessageRequest} from '../../tools/types';
-import {Components} from 'react-markdown/lib';
 import {formatFullDate, formatShortDate, getBgColor, getBorderColor} from './utils';
 
 const remarkPlugins = [remarkGfm, remarkSecret];

@@ -26,9 +26,9 @@ import SideTagsPanel from './components/SideTagsPanel/SideTagsPanel';
 import TagsManager from './components/TagsManager/TagsManager';
 import {SnackCtx} from './ctx/SnackCtx';
 import {useNotes} from './hooks/useNotes';
+import {api} from './tools/api';
 import {ArchiveMessageRequest, ReorderMessagesRequest, RestoreMessageRequest} from './tools/types';
 import {Note} from './types';
-import {api} from './tools/api';
 
 const wrapperSx = {minHeight: '100vh', display: 'flex', flexDirection: 'column'};
 function App() {

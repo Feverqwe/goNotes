@@ -1,4 +1,4 @@
-import React, {FC, memo, PropsWithChildren, useMemo} from 'react';
+import React, {FC, PropsWithChildren, memo, useMemo} from 'react';
 
 import {Add as AddIcon, DarkMode, DeleteOutline, LightMode} from '@mui/icons-material';
 import {
@@ -12,6 +12,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+
 import {HEADER_HEIGHT, SIDE_PANEL_WIDTH} from '../../constants';
 import {useAppTheme} from '../../ctx/ThemeCtx';
 
