@@ -239,7 +239,7 @@ func handleAction(router *Router) {
 			}
 
 			query := fmt.Sprintf(`
-				SELECT id, content, created_at, updated_at, used_at, is_archived, is_deleted, sort_order, color
+				SELECT id, content, created_at, updated_at, used_at, is_archived, is_deleted, is_expanded, sort_order, color
 					FROM messages 
 					%s 
 					ORDER BY sort_order DESC
@@ -260,7 +260,7 @@ func handleAction(router *Router) {
 			for rows.Next() {
 				var m MessageDTO
 
-				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.UsedAt, &m.IsArchived, &m.IsDeleted, &m.SortOrder, &m.Color); err != nil {
+				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.UsedAt, &m.IsArchived, &m.IsDeleted, &m.IsExpanded, &m.SortOrder, &m.Color); err != nil {
 					log.Printf("Scan error: %v", err)
 					continue
 				}
@@ -468,6 +468,20 @@ func handleAction(router *Router) {
 			}
 			// Обновляем только used_at, не трогая updated_at
 			_, err := db.Exec("UPDATE messages SET used_at = CURRENT_TIMESTAMP WHERE id = ?", data.Id)
+			return "ok", err
+		})
+	})
+
+	router.Post("/api/messages/set-expanded", func(w http.ResponseWriter, r *http.Request) {
+		apiCall(w, func() (string, error) {
+			var data struct {
+				ID       int64 `json:"id"`
+				Expanded int   `json:"expanded"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+				return "", err
+			}
+			_, err := db.Exec("UPDATE messages SET is_expanded = ? WHERE id = ?", data.Expanded, data.ID)
 			return "ok", err
 		})
 	})

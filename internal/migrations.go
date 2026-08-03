@@ -16,6 +16,7 @@ func MigrateDB(db *sql.DB) {
 		"ALTER TABLE messages ADD COLUMN color TEXT DEFAULT '';",
 		"ALTER TABLE messages ADD COLUMN used_at DATETIME DEFAULT 0;",
 		"ALTER TABLE messages ADD COLUMN is_deleted INTEGER DEFAULT 0; CREATE INDEX IF NOT EXISTS idx_messages_is_deleted ON messages(is_deleted);",
+		"ALTER TABLE messages ADD COLUMN is_expanded INTEGER DEFAULT 0;",
 	}
 	for _, migration := range migrations {
 		_, err = db.Query(migration)
@@ -43,15 +44,16 @@ func MigrateDB(db *sql.DB) {
 		used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
 		is_archived INTEGER DEFAULT 0,
 		is_deleted INTEGER DEFAULT 0,
+		is_expanded INTEGER DEFAULT 0,
 		color TEXT DEFAULT '',
 		sort_order INTEGER DEFAULT 0
 	);
 
 	-- Переносим данные, исправляя 0 на текущее время
-	INSERT INTO messages_new (id, content, content_lower, updated_at, created_at, used_at, is_archived, is_deleted, color, sort_order)
+	INSERT INTO messages_new (id, content, content_lower, updated_at, created_at, used_at, is_archived, is_deleted, is_expanded, color, sort_order)
 	SELECT id, content, content_lower, updated_at, created_at, 
 	       (CASE WHEN used_at = 0 OR used_at = '0' THEN CURRENT_TIMESTAMP ELSE used_at END), 
-	       is_archived, is_deleted, color, sort_order
+	       is_archived, is_deleted, is_expanded, color, sort_order
 	FROM messages;
 
 	DROP TABLE messages;

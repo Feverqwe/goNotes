@@ -9,6 +9,7 @@ type MessageDTO struct {
 	UsedAt      string          `json:"used_at"`
 	IsArchived  int             `json:"is_archived"`
 	IsDeleted   int             `json:"is_deleted"`
+	IsExpanded  int             `json:"is_expanded"`
 	Tags        []string        `json:"tags"`
 	Attachments []AttachmentDTO `json:"attachments"`
 	Color       string          `json:"color"`
