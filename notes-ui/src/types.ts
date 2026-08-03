@@ -14,6 +14,7 @@ export interface Note {
   tags?: string[];
   is_archived: number;
   is_deleted: number;
+  is_expanded: number;
   sort_order: number;
   color?: string;
 }

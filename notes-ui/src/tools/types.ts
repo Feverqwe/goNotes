@@ -74,3 +74,9 @@ export interface UseMessageRequest {
   id: number;
 }
 export type UseMessageResponse = 'ok';
+
+export interface SetExpandedRequest {
+  id: number;
+  expanded: number;
+}
+export type SetExpandedResponse = 'ok';

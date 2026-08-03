@@ -24,6 +24,8 @@ import {
   SendMessageResponse,
   SetColorRequest,
   SetColorResponse,
+  SetExpandedRequest,
+  SetExpandedResponse,
   UpdateMessageRequest,
   UpdateMessageResponse,
   UseMessageRequest,
@@ -98,6 +100,10 @@ export const api = {
     use: action<UseMessageRequest, UseMessageResponse>({
       method: 'POST',
       path: '/api/messages/use',
+    }),
+    setExpanded: action<SetExpandedRequest, SetExpandedResponse>({
+      method: 'POST',
+      path: '/api/messages/set-expanded',
     }),
     delete: action<DeleteMessageRequest, DeleteMessageResponse>({
       method: 'DELETE',

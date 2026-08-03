@@ -22,7 +22,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import {ExpandLess, ExpandMore, MoreVert, Restore} from '@mui/icons-material';
+import {ExpandMore, MoreVert, Restore} from '@mui/icons-material';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import ReactMarkdown from 'react-markdown';
@@ -41,7 +41,7 @@ import Secret from './components/Secret';
 import remarkSecret from './remarkSecret';
 import {api} from '../../tools/api';
 import {SnackCtx} from '../../ctx/SnackCtx';
-import {UseMessageRequest} from '../../tools/types';
+import {SetExpandedRequest, UseMessageRequest} from '../../tools/types';
 import {Components} from 'react-markdown/lib';
 
 const remarkPlugins = [remarkGfm, remarkSecret];
@@ -121,7 +121,7 @@ const MessageItem: FC<MessageItemProps> = ({
   const queryClient = useQueryClient();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const contentRef = useRef<HTMLDivElement>(null);
-  const [isContentExpanded, setIsContentExpanded] = useState(false);
+  const [isContentExpanded, setIsContentExpanded] = useState(Boolean(msg.is_expanded));
   const [isContentOverflowing, setIsContentOverflowing] = useState(false);
   const collapsedContentHeight = isMobile ? 180 : 240;
   const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({
@@ -158,6 +158,17 @@ const MessageItem: FC<MessageItemProps> = ({
     },
   });
 
+  const setExpandedMutation = useMutation({
+    mutationFn: (params: SetExpandedRequest) => api.messages.setExpanded(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка сохранения состояния сообщения', 'error');
+    },
+  });
+
   const handleUseClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -185,7 +196,7 @@ const MessageItem: FC<MessageItemProps> = ({
     const content = contentRef.current;
     if (!content) return;
 
-    setIsContentExpanded(false);
+    setIsContentExpanded(Boolean(msg.is_expanded));
 
     const updateOverflow = () => {
       setIsContentOverflowing(content.scrollHeight > collapsedContentHeight + 1);
@@ -196,12 +207,16 @@ const MessageItem: FC<MessageItemProps> = ({
     resizeObserver.observe(content);
 
     return () => resizeObserver.disconnect();
-  }, [collapsedContentHeight, msg.content]);
+  }, [collapsedContentHeight, msg.content, msg.is_expanded]);
 
-  const handleExpandClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
-    setIsContentExpanded((expanded) => !expanded);
-  }, []);
+  const handleExpandClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      setIsContentExpanded(true);
+      setExpandedMutation.mutate({id: msg.id, expanded: 1});
+    },
+    [msg.id, setExpandedMutation],
+  );
 
   const handleCardClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -344,17 +359,18 @@ const MessageItem: FC<MessageItemProps> = ({
               {msg.content}
             </ReactMarkdown>
           </Box>
-          {isContentOverflowing && (
+          {isContentOverflowing && !isContentExpanded && (
             <Box sx={expandButtonContainerSx}>
               <Button
                 size="small"
                 onClick={handleExpandClick}
-                endIcon={isContentExpanded ? <ExpandLess /> : <ExpandMore />}
-                aria-expanded={isContentExpanded}
+                disabled={setExpandedMutation.isPending}
+                endIcon={<ExpandMore />}
+                aria-expanded={false}
                 aria-controls={`note-content-${msg.id}`}
                 sx={expandButtonSx}
               >
-                {isContentExpanded ? 'Свернуть' : 'Показать полностью'}
+                Показать полностью
               </Button>
             </Box>
           )}
