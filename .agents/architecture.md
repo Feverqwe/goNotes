@@ -9,7 +9,8 @@ React UI (`notes-ui/src`)
         v
 custom Router (`internal/router.go`)
         |
-        +-- API и операции с файлами (`internal/api.go`, `internal/utils.go`)
+        +-- JSON/multipart API (`internal/api.go`)
+        +-- вложения и превью (`internal/utils.go`, `internal/utils/`)
         +-- SQLite (`db.sql`, `internal/migrations.go`)
 
 Production: notes-ui/dist -> assets/www -> go:embed -> один Go-бинарник
@@ -32,13 +33,49 @@ Development: DEBUG_UI=1 -> backend читает notes-ui/dist с диска
 - `internal/migrations.go` — последовательные обновления уже существующей БД.
 
 Приложение использует SQLite в WAL-режиме с включенными foreign keys. Файлы
-вложений находятся в каталоге профиля, обычно рядом с базой.
+вложений и их превью находятся в `<профиль>/uploads`; БД — в
+`<профиль>/notes.db`, конфигурация — в `<профиль>/config.json`. Профиль по
+умолчанию расположен в `~/Library/Application Support/com.rndnm.gonotes` на
+macOS, рядом с бинарником на Linux и в текущем рабочем каталоге на Windows.
+`PROFILE_PLACE` переопределяет этот выбор.
+
+Поле `UploadsDir` читается из конфигурации, но текущие обработчики загрузки,
+раздачи и удаления используют жестко заданный `<профиль>/uploads`. Считать
+настраиваемый каталог рабочим нельзя, пока все эти пути не переведены на
+`Config.GetUploadsPath()`.
+
+## Данные и поведение API
+
+- Все API-ответы оборачиваются в `{"result": ...}`; ошибки возвращаются как
+  `{"error": "..."}` с HTTP 500. Необработанный `/api/*` получает 404.
+- Создание и обновление заметок используют `multipart/form-data`: текст,
+  новые вложения и список удаляемых вложений обрабатываются одной транзакцией.
+  Остальные мутации используют JSON, а `GET`/`DELETE` — query parameters.
+- Хештеги извлекаются из текста заметки на backend, хранятся в `tags` и
+  `message_tags` и пересобираются при обновлении содержимого.
+- `content_lower` поддерживается вместе с `content` и используется для
+  регистронезависимого поиска по всем словам запроса.
+- Лента сортируется по убыванию `sort_order`; пагинация передает
+  `last_order`. Фильтр по нескольким тегам использует AND-семантику.
+- Архив (`is_archived`) и корзина (`is_deleted`) — разные состояния. Поиск и
+  фильтр по тегам не ограничиваются архивом; корзина выбирается отдельно.
+- Delete — двухэтапная операция: активная заметка сначала попадает в корзину,
+  а заметка, уже находящаяся в корзине, удаляется из БД вместе с физическими
+  файлами. Restore сбрасывает `is_deleted`.
+- `used_at` меняется при использовании/копировании заметки, `updated_at` — при
+  редактировании, `is_expanded` хранит пользовательское состояние раскрытия.
+
+Точки синхронизации контракта: обработчики в `internal/api.go`, backend DTO в
+`internal/types.go`, методы клиента в `notes-ui/src/tools/api.ts`, типы запросов
+в `notes-ui/src/tools/types.ts` и модель `Note` в `notes-ui/src/types.ts`.
 
 ## Frontend
 
 - `notes-ui/src/App.tsx` — корневой UI и композиция основных сценариев.
-- `notes-ui/src/hooks/` — загрузка и изменение заметок/тегов через React Query.
-- `notes-ui/src/tools/api.ts` и `apiRequest.ts` — контракт обращения к backend.
+- `notes-ui/src/hooks/` — загрузка заметок с infinite query и загрузка тегов
+  через TanStack Query.
+- `notes-ui/src/tools/api.ts` — используемый Axios-клиент API;
+  `apiRequest.ts` — оставшийся fetch-helper, который сейчас не импортируется.
 - `notes-ui/src/types.ts` и `src/tools/types.ts` — типы данных UI/API.
 - `notes-ui/src/components/` — функциональные компоненты интерфейса.
 - `notes-ui/src/ctx/` — контексты темы и уведомлений.
@@ -51,16 +88,26 @@ Development: DEBUG_UI=1 -> backend читает notes-ui/dist с диска
 общем `index.css`; существующие паттерны компонента предпочтительнее введения
 нового слоя абстракций.
 
+`App.tsx` синхронизирует фильтры `id`, `q`, `tags`, `archived` и `deleted` с
+query string и управляет режимами выбора и сортировки. Создание/редактирование
+имеет две UI-ветки: `BottomInputForm` на мобильных экранах и
+`FullScreenNoteEditor` внутри `NoteEditorDialog` на desktop. Общие изменения
+формы, вложений или горячих клавиш необходимо проверить в обеих ветках.
+
 ## Сборка и релиз
 
 - `npm run build` создает `notes-ui/dist`.
 - `npm run release` пересобирает UI и копирует его в `assets/www`.
 - `go build` встраивает `assets/www` через `assets/embed.go`.
-- `scripts/build.resources.sh` выбирает Node через локальный NVM и запускает
-  frontend release.
-- `scripts/build.sh` собирает бинарник `goNotes`.
-- `scripts/release.sh` содержит полный release-процесс; изучи его перед
-  изменением версий или упаковки.
+- `scripts/build.ui.sh` очищает `assets/www` и запускает frontend release.
+- `scripts/build.sh` собирает бинарник `goNotes` и передает версию из
+  `scripts/_variables.sh` через `-ldflags`.
+- `scripts/run.sh dev` включает `DEBUG_UI=1`, собирает backend и запускает его;
+  UI при этом нужно отдельно собирать/watch-ить командой `npm run dev`.
+- `scripts/run.sh` без аргумента сначала собирает встроенный UI, затем backend.
+- `scripts/release.sh` интерактивно повышает версию, создает commit, push, тег и
+  push тега. Это изменяющий удаленный репозиторий сценарий, а не локальная
+  проверка; не запускай его без явного запроса пользователя.
 
 `assets/www`, `notes-ui/dist`, бинарник, SQLite-файлы и `uploads/` являются
 локальными/generated-данными и исключены через `.gitignore`.
