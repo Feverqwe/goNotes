@@ -1,6 +1,15 @@
-import React, {FC, useCallback, useContext, useMemo} from 'react';
+import React, {
+  FC,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   Box,
+  Button,
   Card,
   CardContent,
   Checkbox,
@@ -13,7 +22,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
-import {MoreVert, Restore} from '@mui/icons-material';
+import {ExpandLess, ExpandMore, MoreVert, Restore} from '@mui/icons-material';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import ReactMarkdown from 'react-markdown';
@@ -68,6 +77,8 @@ const selectCheckboxSx = {
 
 const cardContentSx = {'&:last-child': {pb: 1.5}, p: 1.5};
 const attachmentsStackSx = {mt: 1, pr: 0};
+const expandButtonContainerSx = {display: 'flex', justifyContent: 'center', mt: 0.5};
+const expandButtonSx = {textTransform: 'none'};
 const dateSx = {
   color: 'text.secondary',
   fontSize: '0.7rem',
@@ -109,6 +120,10 @@ const MessageItem: FC<MessageItemProps> = ({
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [isContentExpanded, setIsContentExpanded] = useState(false);
+  const [isContentOverflowing, setIsContentOverflowing] = useState(false);
+  const collapsedContentHeight = isMobile ? 180 : 240;
   const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({
     id: msg.id,
     disabled: !isReorderMode,
@@ -166,6 +181,28 @@ const MessageItem: FC<MessageItemProps> = ({
     [startEditing, msg, askDeleteConfirmation],
   );
 
+  useLayoutEffect(() => {
+    const content = contentRef.current;
+    if (!content) return;
+
+    setIsContentExpanded(false);
+
+    const updateOverflow = () => {
+      setIsContentOverflowing(content.scrollHeight > collapsedContentHeight + 1);
+    };
+
+    updateOverflow();
+    const resizeObserver = new ResizeObserver(updateOverflow);
+    resizeObserver.observe(content);
+
+    return () => resizeObserver.disconnect();
+  }, [collapsedContentHeight, msg.content]);
+
+  const handleExpandClick = useCallback((event: React.MouseEvent<HTMLButtonElement>) => {
+    event.stopPropagation();
+    setIsContentExpanded((expanded) => !expanded);
+  }, []);
+
   const handleCardClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
       e.stopPropagation();
@@ -206,6 +243,17 @@ const MessageItem: FC<MessageItemProps> = ({
   const contentBoxSx = useMemo(
     () => ({
       color: msg.is_archived ? 'text.secondary' : 'text.primary',
+      maxHeight:
+        isContentOverflowing && !isContentExpanded ? `${collapsedContentHeight}px` : 'none',
+      overflow: 'hidden',
+      WebkitMaskImage:
+        isContentOverflowing && !isContentExpanded
+          ? 'linear-gradient(to bottom, black calc(100% - 48px), transparent 100%)'
+          : 'none',
+      maskImage:
+        isContentOverflowing && !isContentExpanded
+          ? 'linear-gradient(to bottom, black calc(100% - 48px), transparent 100%)'
+          : 'none',
       '& p': {
         m: 0,
         whiteSpace: 'pre-wrap',
@@ -218,7 +266,7 @@ const MessageItem: FC<MessageItemProps> = ({
       },
       '& ul, & ol': {pl: 2, my: 1},
     }),
-    [msg.is_archived],
+    [collapsedContentHeight, isContentExpanded, isContentOverflowing, msg.is_archived],
   );
 
   const menuBtnSx = useMemo(
@@ -291,11 +339,25 @@ const MessageItem: FC<MessageItemProps> = ({
               <MoreVert fontSize="inherit" />
             </IconButton>
           )}
-          <Box sx={contentBoxSx}>
+          <Box id={`note-content-${msg.id}`} ref={contentRef} sx={contentBoxSx}>
             <ReactMarkdown remarkPlugins={remarkPlugins} components={remarkComponents}>
               {msg.content}
             </ReactMarkdown>
           </Box>
+          {isContentOverflowing && (
+            <Box sx={expandButtonContainerSx}>
+              <Button
+                size="small"
+                onClick={handleExpandClick}
+                endIcon={isContentExpanded ? <ExpandLess /> : <ExpandMore />}
+                aria-expanded={isContentExpanded}
+                aria-controls={`note-content-${msg.id}`}
+                sx={expandButtonSx}
+              >
+                {isContentExpanded ? 'Свернуть' : 'Показать полностью'}
+              </Button>
+            </Box>
+          )}
           {msg.attachments && msg.attachments.length > 0 && (
             <Stack spacing={1} sx={attachmentsStackSx}>
               {msg.attachments?.map((att) => (
