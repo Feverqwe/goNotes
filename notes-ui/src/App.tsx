@@ -262,8 +262,12 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target;
       const isInput =
-        e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement;
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        (target instanceof HTMLElement &&
+          (target.isContentEditable || Boolean(target.closest('.monaco-editor'))));
 
       if ((e.key.toLowerCase() === 'n' || e.key.toLowerCase() === 'т') && !isInput) {
         e.preventDefault();
