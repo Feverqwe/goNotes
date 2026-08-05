@@ -1,10 +1,6 @@
-import { defineConfig } from '@rspack/cli';
+import {defineConfig} from '@rspack/cli';
 import * as rspack from '@rspack/core';
 import * as Path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = Path.dirname(__filename);
 
 export default defineConfig({
   entry: {
@@ -82,9 +78,9 @@ export default defineConfig({
     }),
     new rspack.CopyRspackPlugin({
       patterns: [
-        { from: './src/assets/icons', to: 'icons' },
-        { from: './src/assets/manifest.json', to: 'manifest.json' },
-        { from: './src/sw.js', to: 'sw.js' },
+        {from: './src/assets/icons', to: 'icons'},
+        {from: './src/assets/manifest.json', to: 'manifest.json'},
+        {from: './src/sw.js', to: 'sw.js'},
       ],
     }),
   ],

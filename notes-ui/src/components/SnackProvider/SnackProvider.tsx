@@ -1,7 +1,6 @@
 import React, {FC, PropsWithChildren, useCallback, useState} from 'react';
 
-import {Alert, Snackbar} from '@mui/material';
-import {AlertColor} from '@mui/material/Alert/Alert';
+import {Alert, type AlertColor, Snackbar} from '@mui/material';
 
 import {SnackCtx} from '../../ctx/SnackCtx';
 

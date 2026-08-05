@@ -44,9 +44,9 @@ const TagsManager: FC<TagsManagerProps> = ({
   );
 
   const handleToggleArchive = useCallback(() => {
-    setShowArchived((v) => !v);
+    setShowArchived(!showArchived);
     onActionFinished();
-  }, [setShowArchived, onActionFinished]);
+  }, [showArchived, setShowArchived, onActionFinished]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const {active, over} = event;

@@ -11,10 +11,9 @@
     "target": "ES6",
     "module": "ES2020",
     "jsx": "react",
-    "moduleResolution": "Node",
+    "moduleResolution": "Bundler",
     "skipLibCheck": true,
     "outDir": "./dist/",
-    "allowSyntheticDefaultImports": true,
-    "ignoreDeprecations": "6.0"
+    "allowSyntheticDefaultImports": true
   }
 }

@@ -27,8 +27,7 @@ import {
   useTheme,
 } from '@mui/material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
-import ReactMarkdown from 'react-markdown';
-import {Components} from 'react-markdown/lib';
+import ReactMarkdown, {type Components} from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 
 import {SnackCtx} from '../../ctx/SnackCtx';

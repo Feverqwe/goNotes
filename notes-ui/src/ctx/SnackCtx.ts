@@ -1,6 +1,6 @@
 import React from 'react';
 
-import {AlertColor} from '@mui/material/Alert/Alert';
+import {type AlertColor} from '@mui/material';
 
 export const SnackCtx = React.createContext<(message: string, severity?: AlertColor) => void>(
   () => {},
