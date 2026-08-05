@@ -23,7 +23,14 @@ export interface FullScreenNoteEditorProps {
   setExistingAttachments: React.Dispatch<React.SetStateAction<Attachment[]>>;
 }
 
-const boxSx = {display: 'flex', justifyContent: 'center', alignItems: 'center', height: '200px'};
+const boxSx = {display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%'};
+
+const dialogContentSx = {
+  p: 0,
+  display: 'flex',
+  flexDirection: 'column',
+  overflow: 'hidden',
+};
 
 const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
   open,
@@ -81,8 +88,13 @@ const FullScreenNoteEditor: FC<FullScreenNoteEditorProps> = ({
       scroll="paper"
       disableRestoreFocus={true}
       disableEnforceFocus={true}
+      slotProps={{
+        paper: {
+          sx: {height: isFullscreen ? '100%' : 'calc(100% - 64px)'},
+        },
+      }}
     >
-      <DialogContent sx={{p: 0}}>
+      <DialogContent sx={dialogContentSx}>
         {currentNoteId && isLoading ? (
           <Box sx={boxSx}>
             <CircularProgress />

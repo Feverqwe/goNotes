@@ -28,6 +28,7 @@ const MonacoEditor = lazy(() => import('@monaco-editor/react'));
 
 const HEADER_SX = {
   display: 'flex',
+  flexShrink: 0,
   alignItems: 'center',
   justifyContent: 'space-between',
   px: 2,
@@ -48,15 +49,23 @@ const CLOSE_SX = {
   },
 };
 
-const EDITOR_CONTAINER_SX = {
-  height: 'calc(100vh - 248px)',
-  minHeight: '400px',
-  borderColor: 'divider',
-  overflow: 'hidden',
+const ROOT_SX = {
+  height: '100%',
+  minHeight: 0,
+  display: 'flex',
+  flexDirection: 'column',
 };
 
-const EDITOR_CONTAINER_FULLSCREEN_SX = {
-  height: 'calc(100vh - 106px)',
+const BODY_SX = {
+  flex: 1,
+  minHeight: 0,
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+const EDITOR_CONTAINER_SX = {
+  flex: 1,
+  minHeight: 0,
   borderColor: 'divider',
   overflow: 'hidden',
 };
@@ -344,7 +353,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
   );
 
   return (
-    <Box>
+    <Box sx={ROOT_SX}>
       {/* Header moved to body as part of the content */}
       <Box sx={HEADER_SX}>
         <Box sx={HEADER_BOX_SX}>
@@ -381,7 +390,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
         </Box>
       </Box>
 
-      <Box>
+      <Box sx={BODY_SX}>
         {hasRemoteChanges && (
           <Alert
             severity="info"
@@ -401,7 +410,7 @@ const FullScreenNoteEditorContent: FC<FullScreenNoteEditorContentProps> = ({
           </Alert>
         )}
 
-        <Box sx={isFullscreen ? EDITOR_CONTAINER_FULLSCREEN_SX : EDITOR_CONTAINER_SX}>
+        <Box sx={EDITOR_CONTAINER_SX}>
           <Suspense
             fallback={
               <Box sx={suspenseBoxSx}>
