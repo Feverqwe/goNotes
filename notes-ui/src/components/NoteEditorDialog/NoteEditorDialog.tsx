@@ -1,33 +1,16 @@
 import React, {FC, useCallback, useEffect, useMemo, useState} from 'react';
 
-import {AddCircleOutline, Close, Edit, Fullscreen} from '@mui/icons-material';
-import {
-  Box,
-  Dialog,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  IconButton,
-  Theme,
-  Typography,
-} from '@mui/material';
+import {Close, Fullscreen} from '@mui/icons-material';
+import {Dialog, DialogContent, IconButton, Theme} from '@mui/material';
 
 import BottomInputForm, {BottomInputFormProps} from '../BottomInputForm/BottomInputForm';
 
-const dialogTitleSx = {
+const dialogContentSx = {
+  p: 0,
   display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  py: 2,
+  flexDirection: 'column',
+  overflow: 'hidden',
 };
-
-const iconSx = {color: 'primary.main', fontSize: 22}; // Заменено с #90caf9
-const dialogTitleBoxSx = {display: 'flex', alignItems: 'center', gap: 1.5};
-const titleSx = {color: 'text.primary', fontSize: '1.2rem'}; // Заменено с #fff
-
-const dividerSx = {borderColor: 'divider'}; // Заменено с rgba(255,255,255,0.1)
-
-const dialogContentSx = {p: 0, display: 'flex', flexDirection: 'column'};
 
 const closeSx = {
   color: 'text.secondary', // Заменено с #8e8e93
@@ -35,6 +18,8 @@ const closeSx = {
     boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
   },
 };
+
+const headerIconSx = {fontSize: 24};
 
 export interface NoteEditorDialogProps extends Omit<BottomInputFormProps, 'isDialogMode'> {
   open: boolean;
@@ -79,10 +64,29 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, onFullscreen, ...pro
     };
   }, [hasChanges]);
 
+  const editorActions = (
+    <>
+      {onFullscreen && (
+        <IconButton
+          onClick={onFullscreen}
+          size="small"
+          sx={closeSx}
+          aria-label="Открыть полноэкранный редактор"
+        >
+          <Fullscreen sx={headerIconSx} />
+        </IconButton>
+      )}
+      <IconButton onClick={handleClose} size="small" sx={closeSx} aria-label="Закрыть редактор">
+        <Close sx={headerIconSx} />
+      </IconButton>
+    </>
+  );
+
   return (
     <Dialog
       open={open}
       onClose={handleClose}
+      aria-label={editingNote ? 'Редактирование заметки' : 'Новая заметка'}
       disableEscapeKeyDown={hasChanges}
       maxWidth="sm"
       fullWidth
@@ -90,27 +94,8 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, onFullscreen, ...pro
       transitionDuration={100}
       disableRestoreFocus={true}
     >
-      <DialogTitle sx={dialogTitleSx}>
-        <Box sx={dialogTitleBoxSx}>
-          {editingNote ? <Edit sx={iconSx} /> : <AddCircleOutline sx={iconSx} />}
-          <Typography variant="h6" sx={titleSx}>
-            {editingNote ? 'Редактировать заметку' : 'Новая заметка'}
-          </Typography>
-        </Box>
-        <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
-          {onFullscreen && (
-            <IconButton onClick={onFullscreen} size="small" sx={closeSx}>
-              <Fullscreen />
-            </IconButton>
-          )}
-          <IconButton onClick={handleClose} size="small" sx={closeSx}>
-            <Close />
-          </IconButton>
-        </Box>
-      </DialogTitle>
-      <Divider sx={dividerSx} />
       <DialogContent sx={dialogContentSx}>
-        <BottomInputForm {...props} isDialogMode={true} />
+        <BottomInputForm {...props} isDialogMode={true} editorActions={editorActions} />
       </DialogContent>
     </Dialog>
   );

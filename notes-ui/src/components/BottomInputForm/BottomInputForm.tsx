@@ -74,6 +74,37 @@ const attachInputProps = {hidden: true, multiple: true, type: 'file'} as const;
 const attachIconRotationSx = {transform: 'rotate(45deg)'};
 const sendIconSx = {fontSize: 26};
 
+const editorActionsSx = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 0.25,
+};
+
+const dialogAttachBtnSx = {
+  ...attachBtnSx,
+  mb: 0,
+};
+
+const dialogSendBtnSx = {
+  ...sendBtnSx,
+  mb: 0,
+};
+
+const dialogScrollableContentSx = {
+  flex: 1,
+  minHeight: 0,
+  overflowY: 'auto',
+};
+
+const dialogBottomActionsSx = {
+  flexShrink: 0,
+  height: 48,
+  display: 'flex',
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  px: 0.5,
+};
+
 export interface BottomInputFormProps {
   editingNote: Note | null;
   endEditing: () => void;
@@ -89,6 +120,7 @@ export interface BottomInputFormProps {
   setDeletedAttachIds: React.Dispatch<React.SetStateAction<number[]>>;
   onFinish: () => void;
   innerRef?: React.RefObject<{focus: () => void} | null>;
+  editorActions?: React.ReactNode;
 }
 
 const BottomInputForm: FC<BottomInputFormProps> = (props) => {
@@ -107,6 +139,7 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
     setDeletedAttachIds,
     onFinish,
     innerRef,
+    editorActions,
   } = props;
 
   const showSnackbar = useContext(SnackCtx);
@@ -261,6 +294,7 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
       height: isDialogMode ? '100%' : 'auto',
       display: 'flex',
       flexDirection: 'column',
+      minHeight: 0,
     }),
     [isDialogMode],
   );
@@ -271,15 +305,27 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
       bottom: 0,
       left: 0,
       right: 0,
+      height: isDialogMode ? '100%' : 'auto',
+      minHeight: 0,
+      display: 'flex',
+      flexDirection: 'column',
       bgcolor: isDragging
         ? alpha(theme.palette.primary.main, 0.05)
-        : alpha(theme.palette.background.paper, 0.8),
+        : isDialogMode
+          ? 'background.paper'
+          : alpha(theme.palette.background.paper, 0.8),
       backdropFilter: isDialogMode ? 'none' : 'blur(20px) saturate(180%)',
-      backgroundImage: 'none',
-      borderTop: isDialogMode ? 'none' : '1px solid',
-      borderColor: editingNote ? alpha(theme.palette.primary.main, 0.5) : 'divider',
+      ...(isDialogMode ? {} : {backgroundImage: 'none'}),
+      border: isDialogMode ? '1px solid' : 'none',
+      borderTop: '1px solid',
+      borderColor: isDialogMode
+        ? 'divider'
+        : editingNote
+          ? alpha(theme.palette.primary.main, 0.5)
+          : 'divider',
       zIndex: 1000,
       boxShadow: 'none',
+      overflow: 'hidden',
       transition: theme.transitions.create(['background-color', 'border-color']),
     }),
     [isDragging, editingNote, isDialogMode, theme],
@@ -289,16 +335,22 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
     () => ({
       input: {
         disableUnderline: true,
-        sx: {color: 'text.primary', py: 1.5, px: 1, fontSize: '0.95rem'},
+        sx: {
+          color: 'text.primary',
+          pt: 1.5,
+          pb: isDialogMode ? 0 : 1.5,
+          px: isDialogMode ? 1.5 : 1,
+          fontSize: '0.95rem',
+        },
         inputProps: {tabIndex: 3, ref: inputRef},
       },
     }),
-    [],
+    [isDialogMode],
   );
 
   return (
     <Paper
-      square
+      square={!isDialogMode}
       onDragEnter={handleDrag}
       onDragOver={handleDrag}
       onDragLeave={handleDrag}
@@ -308,56 +360,92 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
       <Container maxWidth="sm" disableGutters sx={containerSx}>
         {!isDialogMode && editingNote && <EditHeader onCancel={cancelEditing} />}
 
-        <AttachmentsPanel
-          existingAttachments={existingAttachments}
-          deletedAttachIds={deletedAttachIds}
-          files={files}
-          onToggleDeleteAttachment={toggleDeleteExisting}
-          onRemoveFile={removeNewFile}
-        />
-
-        {currentTags.length > 0 && !editingNote && (
-          <Box sx={tagsContainerSx}>
-            {currentTags.map((tag) => (
-              <Chip
-                key={tag}
-                label={tag}
-                onDelete={() => setCurrentTags((prev) => prev.filter((t) => t !== tag))}
-                sx={tagChipSx}
-              />
-            ))}
-          </Box>
-        )}
-
-        <Box sx={{display: 'flex', alignItems: 'flex-end', px: 0.5, pb: 0.5, pt: 0}}>
-          <IconButton component="label" tabIndex={3} sx={attachBtnSx}>
-            <AttachFile sx={attachIconRotationSx} />
-            <input {...attachInputProps} onChange={handleFileChange} />
-          </IconButton>
-
-          <TextField
-            fullWidth
-            multiline
-            minRows={isDialogMode ? 10 : 1}
-            maxRows={isDialogMode ? 20 : 10}
-            variant="standard"
-            placeholder={isDragging ? 'Сбросьте файлы...' : 'Заметка...'}
-            value={inputText}
-            onChange={(e) => setInputText(e.target.value)}
-            onKeyDown={handleKeyDown}
-            slotProps={textFieldSlotProps}
+        <Box sx={isDialogMode ? dialogScrollableContentSx : undefined}>
+          <AttachmentsPanel
+            existingAttachments={existingAttachments}
+            deletedAttachIds={deletedAttachIds}
+            files={files}
+            onToggleDeleteAttachment={toggleDeleteExisting}
+            onRemoveFile={removeNewFile}
           />
 
-          <IconButton
-            tabIndex={3}
-            loading={isSending}
-            onClick={handleSend}
-            disabled={!canSend}
-            sx={sendBtnSx}
+          {currentTags.length > 0 && !editingNote && (
+            <Box sx={tagsContainerSx}>
+              {currentTags.map((tag) => (
+                <Chip
+                  key={tag}
+                  label={tag}
+                  onDelete={() => setCurrentTags((prev) => prev.filter((t) => t !== tag))}
+                  sx={tagChipSx}
+                />
+              ))}
+            </Box>
+          )}
+
+          <Box
+            sx={{
+              position: 'relative',
+              display: 'flex',
+              alignItems: 'flex-end',
+              px: isDialogMode ? 0 : 0.5,
+              pb: isDialogMode ? 0 : 0.5,
+              pt: 0,
+            }}
           >
-            {editingNote ? <Check sx={checkIconSx} /> : <Send sx={sendIconSx} />}
-          </IconButton>
+            {!isDialogMode && (
+              <IconButton component="label" tabIndex={3} sx={attachBtnSx}>
+                <AttachFile sx={attachIconRotationSx} />
+                <input {...attachInputProps} onChange={handleFileChange} />
+              </IconButton>
+            )}
+
+            <TextField
+              fullWidth
+              multiline
+              minRows={isDialogMode ? 10 : 1}
+              maxRows={isDialogMode ? undefined : 10}
+              variant="standard"
+              placeholder={isDragging ? 'Сбросьте файлы...' : 'Заметка...'}
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleKeyDown}
+              slotProps={textFieldSlotProps}
+            />
+
+            {!isDialogMode && (
+              <IconButton
+                tabIndex={3}
+                loading={isSending}
+                onClick={handleSend}
+                disabled={!canSend}
+                sx={sendBtnSx}
+              >
+                {editingNote ? <Check sx={checkIconSx} /> : <Send sx={sendIconSx} />}
+              </IconButton>
+            )}
+          </Box>
         </Box>
+
+        {isDialogMode && (
+          <Box sx={dialogBottomActionsSx}>
+            <IconButton component="label" tabIndex={3} sx={dialogAttachBtnSx}>
+              <AttachFile sx={attachIconRotationSx} />
+              <input {...attachInputProps} onChange={handleFileChange} />
+            </IconButton>
+            <Box sx={editorActionsSx}>
+              {editorActions}
+              <IconButton
+                tabIndex={3}
+                loading={isSending}
+                onClick={handleSend}
+                disabled={!canSend}
+                sx={dialogSendBtnSx}
+              >
+                {editingNote ? <Check sx={checkIconSx} /> : <Send sx={sendIconSx} />}
+              </IconButton>
+            </Box>
+          </Box>
+        )}
       </Container>
     </Paper>
   );
