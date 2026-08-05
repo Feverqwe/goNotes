@@ -23,6 +23,9 @@ export default defineConfig({
       },
     },
   },
+  performance: {
+    hints: false,
+  },
   module: {
     rules: [
       {

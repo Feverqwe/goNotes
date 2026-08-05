@@ -150,14 +150,21 @@ const NoteMenu: FC<NoteMenuProps> = ({
     },
   });
 
-  const handleToggleTag = useCallback(
-    (tag: string) => {
+  const handleUpdateTags = useCallback(
+    (tags: string[]) => {
       if (!tagDialogNote) return;
 
-      const hasTag = tagDialogNote.tags?.some((item) => item.toLowerCase() === tag) ?? false;
-      const content = hasTag
-        ? removeTagFromContent(tagDialogNote.content, tag)
-        : addTagToContent(tagDialogNote.content, tag);
+      const selectedTags = new Set(tags.map((tag) => tag.toLowerCase()));
+      const currentTags = new Set((tagDialogNote.tags ?? []).map((tag) => tag.toLowerCase()));
+      const contentWithoutRemovedTags = (tagDialogNote.tags ?? []).reduce(
+        (content, tag) =>
+          selectedTags.has(tag.toLowerCase()) ? content : removeTagFromContent(content, tag),
+        tagDialogNote.content,
+      );
+      const content = tags.reduce(
+        (value, tag) => (currentTags.has(tag.toLowerCase()) ? value : addTagToContent(value, tag)),
+        contentWithoutRemovedTags,
+      );
       const formData = new FormData();
       formData.append('id', String(tagDialogNote.id));
       formData.append('content', content);
@@ -298,7 +305,7 @@ const NoteMenu: FC<NoteMenuProps> = ({
         tags={allTags}
         loading={toggleTagMutation.isPending}
         onClose={handleCloseTagDialog}
-        onSubmit={handleToggleTag}
+        onSubmit={handleUpdateTags}
       />
     </>
   );
