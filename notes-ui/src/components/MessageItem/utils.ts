@@ -20,7 +20,10 @@ export const formatFullDate = (dateStr: string) => {
   });
 };
 
-export function getBgColor(color: string) {
+export function getBgColor(color: string, backgroundColor?: string) {
+  if (backgroundColor) {
+    return `color-mix(in srgb, ${color} 26.6667%, ${backgroundColor})`;
+  }
   return `${color}44`;
 }
 

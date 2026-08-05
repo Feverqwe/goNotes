@@ -28,6 +28,7 @@ import {api} from '../../tools/api';
 import {SendMessageRequest, UpdateMessageRequest} from '../../tools/types';
 import {Attachment, Note} from '../../types';
 import AttachmentsPanel from '../FullScreenNoteEditor/AttachmentsPanel';
+import {getBgColor, getBorderColor} from '../MessageItem/utils';
 
 import EditHeader from './EditHeader';
 
@@ -311,18 +312,22 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
       flexDirection: 'column',
       bgcolor: isDragging
         ? alpha(theme.palette.primary.main, 0.05)
-        : isDialogMode
-          ? 'background.paper'
-          : alpha(theme.palette.background.paper, 0.8),
+        : editingNote?.color
+          ? getBgColor(editingNote.color, theme.palette.background.default)
+          : isDialogMode
+            ? 'background.paper'
+            : alpha(theme.palette.background.paper, 0.8),
       backdropFilter: isDialogMode ? 'none' : 'blur(20px) saturate(180%)',
-      ...(isDialogMode ? {} : {backgroundImage: 'none'}),
+      ...(!isDialogMode && !editingNote?.color ? {backgroundImage: 'none'} : {}),
       border: isDialogMode ? '1px solid' : 'none',
       borderTop: '1px solid',
-      borderColor: isDialogMode
-        ? 'divider'
-        : editingNote
-          ? alpha(theme.palette.primary.main, 0.5)
-          : 'divider',
+      borderColor: editingNote?.color
+        ? getBorderColor(editingNote.color)
+        : isDialogMode
+          ? 'divider'
+          : editingNote
+            ? alpha(theme.palette.primary.main, 0.5)
+            : 'divider',
       zIndex: 1000,
       boxShadow: 'none',
       overflow: 'hidden',
