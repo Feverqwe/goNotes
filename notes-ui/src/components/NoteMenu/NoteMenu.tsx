@@ -6,8 +6,6 @@ import {
   ContentCopy,
   Delete,
   Edit,
-  ExpandLess,
-  ExpandMore,
   LocalOfferOutlined,
   RestoreFromTrash,
   Sort,
@@ -30,7 +28,7 @@ import {NOTE_COLORS} from '../../constants';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {useTags} from '../../hooks/useTags';
 import {api} from '../../tools/api';
-import {SetExpandedRequest, UpdateMessageRequest} from '../../tools/types';
+import {UpdateMessageRequest} from '../../tools/types';
 import {Note} from '../../types';
 
 import ColorItem from './ColorItem';
@@ -118,18 +116,6 @@ const NoteMenu: FC<NoteMenuProps> = ({
     },
   });
 
-  const setExpandedMutation = useMutation({
-    mutationFn: (params: SetExpandedRequest) => api.messages.setExpanded(params),
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ['notes']});
-      handleCloseMenu();
-    },
-    onError: (err) => {
-      console.error(err);
-      showSnackbar('Ошибка сохранения состояния сообщения', 'error');
-    },
-  });
-
   const handleCopy = useCallback(() => {
     if (selectedMsg) {
       navigator.clipboard.writeText(selectedMsg.content);
@@ -181,14 +167,6 @@ const NoteMenu: FC<NoteMenuProps> = ({
 
   const handleCloseTagDialog = useCallback(() => setTagDialogNote(null), []);
 
-  const handleToggleExpanded = useCallback(() => {
-    if (!selectedMsg) return;
-    setExpandedMutation.mutate({
-      id: selectedMsg.id,
-      expanded: selectedMsg.is_expanded ? 0 : 1,
-    });
-  }, [selectedMsg, setExpandedMutation]);
-
   const onSelectClick = useCallback(() => {
     if (selectedMsg) enterSelectMode(selectedMsg);
   }, [selectedMsg, enterSelectMode]);
@@ -213,12 +191,6 @@ const NoteMenu: FC<NoteMenuProps> = ({
         icon: <LocalOfferOutlined />,
         text: 'Изменить тег',
         onClick: handleOpenTagDialog,
-        color: 'text.secondary',
-      },
-      {
-        icon: selectedMsg?.is_expanded ? <ExpandLess /> : <ExpandMore />,
-        text: selectedMsg?.is_expanded ? 'Свернуть' : 'Развернуть',
-        onClick: handleToggleExpanded,
         color: 'text.secondary',
       },
       ...(showTrash
@@ -247,12 +219,10 @@ const NoteMenu: FC<NoteMenuProps> = ({
     ];
   }, [
     selectedMsg?.is_archived,
-    selectedMsg?.is_expanded,
     onSelectClick,
     handleCopy,
     onEditClick,
     handleOpenTagDialog,
-    handleToggleExpanded,
     onArchiveClick,
     onRestoreClick,
     enterReorderMode,

@@ -10,10 +10,9 @@ import React, {
 
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {ExpandMore, MoreVert, Restore} from '@mui/icons-material';
+import {ExpandLess, ExpandMore, MoreVert, Restore} from '@mui/icons-material';
 import {
   Box,
-  Button,
   Card,
   CardContent,
   Checkbox,
@@ -79,8 +78,17 @@ const selectCheckboxSx = {
 
 const cardContentSx = {'&:last-child': {pb: 1.5}, p: 1.5};
 const attachmentsStackSx = {mt: 1, pr: 0};
-const expandButtonContainerSx = {display: 'flex', justifyContent: 'center', mt: 0.5};
-const expandButtonSx = {textTransform: 'none'};
+const contentContainerSx = {position: 'relative'};
+const expandOverlayButtonSx = {
+  position: 'absolute',
+  left: '50%',
+  bottom: 2,
+  transform: 'translateX(-50%)',
+  color: 'text.secondary',
+  bgcolor: 'background.paper',
+  boxShadow: 1,
+  '&:hover': {color: 'primary.main', bgcolor: 'background.paper'},
+};
 const dateSx = {
   color: 'text.secondary',
   fontSize: '0.7rem',
@@ -167,6 +175,7 @@ const MessageItem: FC<MessageItemProps> = ({
     },
     onError: (err) => {
       console.error(err);
+      setIsContentExpanded(Boolean(msg.is_expanded));
       showSnackbar('Ошибка сохранения состояния сообщения', 'error');
     },
   });
@@ -211,13 +220,14 @@ const MessageItem: FC<MessageItemProps> = ({
     return () => resizeObserver.disconnect();
   }, [collapsedContentHeight, msg.content, msg.is_expanded]);
 
-  const handleExpandClick = useCallback(
+  const handleToggleExpanded = useCallback(
     (event: React.MouseEvent<HTMLButtonElement>) => {
       event.stopPropagation();
-      setIsContentExpanded(true);
-      setExpandedMutation.mutate({id: msg.id, expanded: 1});
+      const expanded = isContentExpanded ? 0 : 1;
+      setIsContentExpanded(Boolean(expanded));
+      setExpandedMutation.mutate({id: msg.id, expanded});
     },
-    [msg.id, setExpandedMutation],
+    [isContentExpanded, msg.id, setExpandedMutation],
   );
 
   const handleCardClick = useCallback(
@@ -240,7 +250,7 @@ const MessageItem: FC<MessageItemProps> = ({
 
     return {
       position: 'relative',
-      '&:hover .message-action, &:hover .action-use': {opacity: 1},
+      '&:hover .message-action, &:hover .note-context-action': {opacity: 1},
       bgcolor: msg.color ? getBgColor(msg.color) : msg.is_archived ? 'action.hover' : null,
       backgroundImage: msg.is_archived
         ? `repeating-linear-gradient(45deg, rgba(255,255,255,${isDark ? '0.01' : '0.2'}) 0px, rgba(255,255,255,${isDark ? '0.01' : '0.2'}) 2px, transparent 2px, transparent 10px)`
@@ -304,7 +314,7 @@ const MessageItem: FC<MessageItemProps> = ({
     [isMobile],
   );
 
-  const useBtnSx = useMemo(
+  const contextActionBtnSx = useMemo(
     () => ({
       color: 'text.disabled',
       '&:hover': {color: 'primary.main'},
@@ -356,26 +366,28 @@ const MessageItem: FC<MessageItemProps> = ({
               <MoreVert fontSize="inherit" />
             </IconButton>
           )}
-          <Box id={`note-content-${msg.id}`} ref={contentRef} sx={contentBoxSx}>
-            <ReactMarkdown remarkPlugins={remarkPlugins} components={remarkComponents}>
-              {msg.content}
-            </ReactMarkdown>
-          </Box>
-          {isContentOverflowing && !isContentExpanded && (
-            <Box sx={expandButtonContainerSx}>
-              <Button
-                size="small"
-                onClick={handleExpandClick}
-                disabled={setExpandedMutation.isPending}
-                endIcon={<ExpandMore />}
-                aria-expanded={false}
-                aria-controls={`note-content-${msg.id}`}
-                sx={expandButtonSx}
-              >
-                Показать полностью
-              </Button>
+          <Box sx={contentContainerSx}>
+            <Box id={`note-content-${msg.id}`} ref={contentRef} sx={contentBoxSx}>
+              <ReactMarkdown remarkPlugins={remarkPlugins} components={remarkComponents}>
+                {msg.content}
+              </ReactMarkdown>
             </Box>
-          )}
+            {isContentOverflowing && !isContentExpanded && (
+              <Tooltip title="Развернуть" arrow>
+                <IconButton
+                  size="small"
+                  onClick={handleToggleExpanded}
+                  disabled={setExpandedMutation.isPending}
+                  aria-label="Развернуть заметку"
+                  aria-expanded={false}
+                  aria-controls={`note-content-${msg.id}`}
+                  sx={expandOverlayButtonSx}
+                >
+                  <ExpandMore sx={{fontSize: 18}} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
           {msg.attachments && msg.attachments.length > 0 && (
             <Stack spacing={1} sx={attachmentsStackSx}>
               {msg.attachments?.map((att) => (
@@ -392,17 +404,35 @@ const MessageItem: FC<MessageItemProps> = ({
 
             <Box sx={{display: 'flex', alignItems: 'center', gap: 0.5}}>
               {!isSelectMode && !isReorderMode && (
-                <Tooltip title="Отметить использование" arrow>
-                  <IconButton
-                    size="small"
-                    className="action-use"
-                    onClick={handleUseClick}
-                    loading={useItMutation.isPending}
-                    sx={useBtnSx}
-                  >
-                    <Restore sx={{fontSize: 16}} />
-                  </IconButton>
-                </Tooltip>
+                <>
+                  {isContentOverflowing && isContentExpanded && (
+                    <Tooltip title="Свернуть" arrow>
+                      <IconButton
+                        size="small"
+                        className="note-context-action"
+                        onClick={handleToggleExpanded}
+                        disabled={setExpandedMutation.isPending}
+                        aria-label="Свернуть заметку"
+                        aria-expanded={true}
+                        aria-controls={`note-content-${msg.id}`}
+                        sx={contextActionBtnSx}
+                      >
+                        <ExpandLess sx={{fontSize: 18}} />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                  <Tooltip title="Отметить использование" arrow>
+                    <IconButton
+                      size="small"
+                      className="note-context-action"
+                      onClick={handleUseClick}
+                      loading={useItMutation.isPending}
+                      sx={contextActionBtnSx}
+                    >
+                      <Restore sx={{fontSize: 16}} />
+                    </IconButton>
+                  </Tooltip>
+                </>
               )}
 
               <Tooltip title={fullDate} arrow>
