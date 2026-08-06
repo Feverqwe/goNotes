@@ -465,7 +465,7 @@ function App() {
           onMenuClick={handleToggleDrawer}
         />
 
-        <Box display="flex">
+        <Box sx={{display: 'flex'}}>
           <SideTagsPanel
             open={isDrawerOpen}
             onOpen={handleOpenDrawer}
@@ -518,7 +518,7 @@ function App() {
                   ))}
 
                   {hasNextPage && (
-                    <Box ref={loadMoreTrigger} display="flex" justifyContent="center">
+                    <Box ref={loadMoreTrigger} sx={{display: 'flex', justifyContent: 'center'}}>
                       <CircularProgress />
                     </Box>
                   )}

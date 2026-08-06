@@ -1,6 +1,6 @@
 import React, {FC, PropsWithChildren, memo, useMemo} from 'react';
 
-import {Add as AddIcon, DarkMode, DeleteOutline, LightMode} from '@mui/icons-material';
+import {Add as AddIcon, DarkMode, DeleteOutlined, LightMode} from '@mui/icons-material';
 import {
   Box,
   Divider,
@@ -85,7 +85,10 @@ const SideTagsPanel: FC<SideTagsPanelProps> = ({
             <ListItemIcon>
               <AddIcon sx={{fontSize: 18}} />
             </ListItemIcon>
-            <ListItemText primary="Добавить заметку" slotProps={{primary: {fontSize: '0.85rem'}}} />
+            <ListItemText
+              primary="Добавить заметку"
+              slotProps={{primary: {sx: {fontSize: '0.85rem'}}}}
+            />
           </ListItemButton>
         )}
         {children}
@@ -94,11 +97,11 @@ const SideTagsPanel: FC<SideTagsPanelProps> = ({
         <Divider />
         <ListItemButton selected={showTrash} onClick={onTrashClick}>
           <ListItemIcon sx={{minWidth: 40}}>
-            <DeleteOutline
+            <DeleteOutlined
               sx={{fontSize: 18, color: showTrash ? 'primary.main' : 'text.secondary'}}
             />
           </ListItemIcon>
-          <ListItemText primary="Корзина" slotProps={{primary: {fontSize: '0.85rem'}}} />
+          <ListItemText primary="Корзина" slotProps={{primary: {sx: {fontSize: '0.85rem'}}}} />
         </ListItemButton>
         <ListItemButton onClick={toggleTheme}>
           <ListItemIcon sx={{minWidth: 40}}>
@@ -106,7 +109,7 @@ const SideTagsPanel: FC<SideTagsPanelProps> = ({
           </ListItemIcon>
           <ListItemText
             primary={mode === 'dark' ? 'Темная тема' : 'Светлая тема'}
-            slotProps={{primary: {fontSize: '0.85rem'}}}
+            slotProps={{primary: {sx: {fontSize: '0.85rem'}}}}
           />
           <Switch edge="end" checked={mode === 'dark'} size="small" />
         </ListItemButton>

@@ -47,6 +47,15 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, onFullscreen, ...pro
     }
   }, [hasChanges, onFinish]);
 
+  const handleDialogClose = useCallback(
+    (_event: object, reason: 'backdropClick' | 'escapeKeyDown') => {
+      if (reason !== 'escapeKeyDown' || !hasChanges) {
+        handleClose();
+      }
+    },
+    [handleClose, hasChanges],
+  );
+
   // Block browser tab close when there are unsaved changes
   useEffect(() => {
     if (!hasChanges) return;
@@ -85,9 +94,8 @@ const NoteEditorDialog: FC<NoteEditorDialogProps> = ({open, onFullscreen, ...pro
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
+      onClose={handleDialogClose}
       aria-label={editingNote ? 'Редактирование заметки' : 'Новая заметка'}
-      disableEscapeKeyDown={hasChanges}
       maxWidth="sm"
       fullWidth
       scroll="paper"

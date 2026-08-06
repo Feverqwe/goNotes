@@ -46,7 +46,7 @@ const TagsListContent: FC<TagsListContentProps> = (props: TagsListContentProps) 
           primary="Архив"
           slotProps={{
             primary: {
-              fontSize: '0.85rem',
+              sx: {fontSize: '0.85rem'},
             },
           }}
         />
@@ -89,7 +89,7 @@ const TagsListContent: FC<TagsListContentProps> = (props: TagsListContentProps) 
             primary={isReorderMode ? 'Сохранить порядок' : 'Изменить порядок'}
             slotProps={{
               primary: {
-                fontSize: '0.85rem',
+                sx: {fontSize: '0.85rem'},
               },
             }}
           />

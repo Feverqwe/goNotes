@@ -2,7 +2,7 @@ import React, {FC, useCallback, useContext, useMemo, useState} from 'react';
 
 import {
   Archive,
-  CheckCircleOutline,
+  CheckCircleOutlined,
   ContentCopy,
   Delete,
   Edit,
@@ -70,8 +70,8 @@ const deleteMenuItemSx = {
 const colorBoxSx = {px: 2, py: 1, display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 1};
 const commonIconSx = {fontSize: 18};
 const dividerSx = {my: 0.5, borderColor: 'divider'};
-const primaryTextSlotProps = {primary: {fontSize: '0.85rem', color: 'text.primary'}};
-const deleteTextSlotProps = {primary: {fontSize: '0.85rem', color: 'error.main'}};
+const primaryTextSlotProps = {primary: {sx: {fontSize: '0.85rem', color: 'text.primary'}}};
+const deleteTextSlotProps = {primary: {sx: {fontSize: '0.85rem', color: 'error.main'}}};
 
 interface NoteMenuProps {
   anchorEl: Element | null;
@@ -175,7 +175,7 @@ const NoteMenu: FC<NoteMenuProps> = ({
     const isArchived = selectedMsg?.is_archived;
     return [
       {
-        icon: <CheckCircleOutline />,
+        icon: <CheckCircleOutlined />,
         text: 'Выбрать',
         onClick: onSelectClick,
         color: 'text.secondary',
@@ -236,9 +236,7 @@ const NoteMenu: FC<NoteMenuProps> = ({
         open={Boolean(anchorEl)}
         onClose={handleCloseMenu}
         transitionDuration={100}
-        slotProps={getMenuSlotProps(theme)} // Прокидываем тему через обертку или используем хук внутри slotProps
-        // В MUI 6+ и 2026 году предпочтительнее использовать хук прямо в компоненте:
-        PaperProps={{sx: getMenuSlotProps(theme).paper.sx}}
+        slotProps={getMenuSlotProps(theme)}
       >
         {menuActions.map((item, idx) => (
           <MenuItem key={idx} onClick={item.onClick} sx={menuItemSx}>

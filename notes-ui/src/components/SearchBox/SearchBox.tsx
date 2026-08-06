@@ -169,7 +169,7 @@ const SearchBox: FC<SearchBoxProps> = ({
 
   return (
     <AppBar variant="outlined" position="sticky" sx={appBarSx}>
-      {isDesktop && <Box width={SIDE_PANEL_WIDTH} />}
+      {isDesktop && <Box sx={{width: SIDE_PANEL_WIDTH}} />}
       <Box sx={textFieldWrapperSx}>
         <TextField
           fullWidth

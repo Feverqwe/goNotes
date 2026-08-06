@@ -395,7 +395,7 @@ const MessageItem: FC<MessageItemProps> = ({
               ))}
             </Stack>
           )}
-          <Box sx={bottomSx} display="flex" alignItems="center">
+          <Box sx={[bottomSx, {display: 'flex', alignItems: 'center'}]}>
             <Box sx={tagsCtrSx}>
               {msg.tags?.map((t) => (
                 <NoteTag key={t} tag={t} onClick={onTagClick} />

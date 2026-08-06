@@ -2,7 +2,7 @@ import React, {FC, useCallback, useMemo} from 'react';
 
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {AddCircleOutline, CheckCircle} from '@mui/icons-material';
+import {AddCircleOutlined, CheckCircle} from '@mui/icons-material';
 import TagIcon from '@mui/icons-material/Tag';
 import {IconButton, ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
 
@@ -81,9 +81,11 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
   const listItemTextSlotProps = useMemo(
     () => ({
       primary: {
-        fontSize: '0.85rem',
-        color: isActive ? 'primary.main' : 'text.primary',
-        fontWeight: isActive ? 600 : 400,
+        sx: {
+          fontSize: '0.85rem',
+          color: isActive ? 'primary.main' : 'text.primary',
+          fontWeight: isActive ? 600 : 400,
+        },
       },
     }),
     [isActive],
@@ -129,7 +131,7 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
       )}
       <ListItemText primary={tag} slotProps={listItemTextSlotProps} />
       <IconButton className="add-tag-btn" size="small" onClick={handleToggleClick} sx={iconBtnSx}>
-        {isActive ? <CheckCircle sx={iconSx} /> : <AddCircleOutline sx={iconSx} />}
+        {isActive ? <CheckCircle sx={iconSx} /> : <AddCircleOutlined sx={iconSx} />}
       </IconButton>
     </ListItemButton>
   );
