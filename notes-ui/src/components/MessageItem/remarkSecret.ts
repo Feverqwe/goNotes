@@ -51,7 +51,7 @@ const remarkSecret: Plugin<[], Root> = () => {
               value: content,
               data: {
                 hName: 'span',
-                hProperties: {className: 'secret-spoiler', 'data-secret': content},
+                hProperties: {className: ['secret-spoiler'], 'data-secret': content},
               },
             });
 
