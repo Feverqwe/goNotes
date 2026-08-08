@@ -3,8 +3,8 @@ import axios, {AxiosRequestConfig, AxiosResponse} from 'axios';
 import {API_BASE} from '../constants';
 
 import {
-  ArchiveMessageRequest,
-  ArchiveMessageResponse,
+  ArchiveNoteRequest,
+  ArchiveNoteResponse,
   BatchArchiveRequest,
   BatchArchiveResponse,
   BatchDeleteRequest,
@@ -13,27 +13,27 @@ import {
   BatchRestoreResponse,
   BatchTagsRequest,
   BatchTagsResponse,
-  DeleteMessageRequest,
-  DeleteMessageResponse,
-  ListMessagesRequest,
-  ListMessagesResponse,
+  CreateNoteRequest,
+  CreateNoteResponse,
+  DeleteNoteRequest,
+  DeleteNoteResponse,
+  ListNotesRequest,
+  ListNotesResponse,
   ListTagsResponse,
-  ReorderMessagesRequest,
-  ReorderMessagesResponse,
+  MarkNoteUsedRequest,
+  MarkNoteUsedResponse,
+  ReorderNotesRequest,
+  ReorderNotesResponse,
   ReorderTagsRequest,
   ReorderTagsResponse,
-  RestoreMessageRequest,
-  RestoreMessageResponse,
-  SendMessageRequest,
-  SendMessageResponse,
+  RestoreNoteRequest,
+  RestoreNoteResponse,
   SetColorRequest,
   SetColorResponse,
   SetExpandedRequest,
   SetExpandedResponse,
-  UpdateMessageRequest,
-  UpdateMessageResponse,
-  UseMessageRequest,
-  UseMessageResponse,
+  UpdateNoteRequest,
+  UpdateNoteResponse,
 } from './types';
 
 const client = axios.create({
@@ -89,19 +89,19 @@ function action<RequestParams = unknown, ResponseData = unknown>({
 }
 
 export const api = {
-  messages: {
-    list: action<ListMessagesRequest, ListMessagesResponse>({
+  notes: {
+    list: action<ListNotesRequest, ListNotesResponse>({
       path: '/api/messages/list',
     }),
-    send: action<SendMessageRequest, SendMessageResponse>({
+    create: action<CreateNoteRequest, CreateNoteResponse>({
       method: 'POST',
       path: '/api/messages/send',
     }),
-    update: action<UpdateMessageRequest, UpdateMessageResponse>({
+    update: action<UpdateNoteRequest, UpdateNoteResponse>({
       method: 'POST',
       path: '/api/messages/update',
     }),
-    use: action<UseMessageRequest, UseMessageResponse>({
+    markUsed: action<MarkNoteUsedRequest, MarkNoteUsedResponse>({
       method: 'POST',
       path: '/api/messages/use',
     }),
@@ -109,7 +109,7 @@ export const api = {
       method: 'POST',
       path: '/api/messages/set-expanded',
     }),
-    delete: action<DeleteMessageRequest, DeleteMessageResponse>({
+    delete: action<DeleteNoteRequest, DeleteNoteResponse>({
       method: 'DELETE',
       path: '/api/messages/delete',
     }),
@@ -117,7 +117,7 @@ export const api = {
       method: 'POST',
       path: '/api/messages/batch-delete',
     }),
-    restore: action<RestoreMessageRequest, RestoreMessageResponse>({
+    restore: action<RestoreNoteRequest, RestoreNoteResponse>({
       method: 'POST',
       path: '/api/messages/restore',
     }),
@@ -125,7 +125,7 @@ export const api = {
       method: 'POST',
       path: '/api/messages/batch-restore',
     }),
-    archive: action<ArchiveMessageRequest, ArchiveMessageResponse>({
+    archive: action<ArchiveNoteRequest, ArchiveNoteResponse>({
       method: 'POST',
       path: '/api/messages/archive',
     }),
@@ -141,7 +141,7 @@ export const api = {
       method: 'POST',
       path: '/api/messages/batch-tags',
     }),
-    reorder: action<ReorderMessagesRequest, ReorderMessagesResponse>({
+    reorder: action<ReorderNotesRequest, ReorderNotesResponse>({
       method: 'POST',
       path: '/api/messages/reorder',
     }),

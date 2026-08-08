@@ -2,10 +2,10 @@ import {useInfiniteQuery} from '@tanstack/react-query';
 
 import {POST_LIMIT} from '../constants';
 import {api} from '../tools/api';
-import {ListMessagesRequest} from '../tools/types';
+import {ListNotesRequest} from '../tools/types';
 
 export const useNotes = (filters: {
-  id: ListMessagesRequest['id'];
+  id: ListNotesRequest['id'];
   q: string;
   tags: string[];
   archived: boolean;
@@ -14,7 +14,7 @@ export const useNotes = (filters: {
   return useInfiniteQuery({
     queryKey: ['notes', filters],
     queryFn: async ({pageParam = 0}) => {
-      return api.messages.list({
+      return api.notes.list({
         id: filters.id,
         limit: POST_LIMIT,
         last_order: pageParam,

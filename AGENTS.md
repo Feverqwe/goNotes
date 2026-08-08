@@ -21,9 +21,10 @@ goNotes — self-hosted приложение для заметок. Backend на
   `notes-ui/src/tools/types.ts`; модель заметки: `notes-ui/src/types.ts`.
 - Загрузка и кеш заметок/тегов: `notes-ui/src/hooks/`; экран, URL-фильтры и
   верхнеуровневое состояние: `notes-ui/src/App.tsx`.
-- Создание и редактирование заметок существует в двух вариантах: мобильная
-  нижняя форма (`BottomInputForm`) и полноэкранный desktop-редактор
-  (`FullScreenNoteEditor`). Изменения сценария редактирования проверь в обоих.
+- Создание и редактирование заметок координирует `NoteEditor`: на мобильных
+  экранах он показывает `CompactNoteEditor`, на desktop —
+  `CompactNoteEditorDialog` с переходом в `AdvancedNoteEditor`. Изменения
+  сценария редактирования проверь в обеих ветках.
 
 ## Основные команды
 

@@ -28,22 +28,21 @@ import {NOTE_COLORS} from '../../constants';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {useTags} from '../../hooks/useTags';
 import {api} from '../../tools/api';
-import {UpdateMessageRequest} from '../../tools/types';
+import {UpdateNoteRequest} from '../../tools/types';
 import {Note} from '../../types';
+import {addTagToNoteContent, removeTagFromNoteContent} from '../../utils/noteTags';
+import TagSelectionDialog from '../TagSelectionDialog/TagSelectionDialog';
 
 import ColorItem from './ColorItem';
-import NoteTagDialog from './NoteTagDialog';
-import {addTagToContent, removeTagFromContent} from './utils';
 
-// Выносим стили в функцию, чтобы иметь доступ к теме
 const getMenuSlotProps = (theme: Theme) => ({
   list: {sx: {py: 0.5}},
   paper: {
     sx: {
-      bgcolor: alpha(theme.palette.background.paper, 0.85), // Заменено с жесткого #18181a
+      bgcolor: alpha(theme.palette.background.paper, 0.85),
       backdropFilter: 'blur(15px) saturate(140%)',
       minWidth: 200,
-      borderRadius: '8px', // Немного увеличили для современного вида
+      borderRadius: '8px',
       border: '1px solid',
       borderColor: 'divider',
       boxShadow: theme.shadows[8],
@@ -74,28 +73,28 @@ const primaryTextSlotProps = {primary: {sx: {fontSize: '0.85rem', color: 'text.p
 const deleteTextSlotProps = {primary: {sx: {fontSize: '0.85rem', color: 'error.main'}}};
 
 interface NoteMenuProps {
-  anchorEl: Element | null;
-  handleCloseMenu: () => void;
-  selectedMsg: Note | null;
-  enterSelectMode: (msg: Note) => void;
-  onEditClick: () => void;
-  onDeleteClick: () => void;
-  onArchiveClick: () => void;
-  onRestoreClick: () => void;
-  enterReorderMode: () => void;
+  anchorElement: Element | null;
+  onClose: () => void;
+  note: Note | null;
+  onEnterSelectionMode: (note: Note) => void;
+  onEdit: () => void;
+  onDelete: () => void;
+  onToggleArchive: () => void;
+  onRestore: () => void;
+  onEnterReorderMode: () => void;
   showTrash: boolean;
 }
 
 const NoteMenu: FC<NoteMenuProps> = ({
-  anchorEl,
-  handleCloseMenu,
-  selectedMsg,
-  enterSelectMode,
-  onEditClick,
-  onDeleteClick,
-  onArchiveClick,
-  onRestoreClick,
-  enterReorderMode,
+  anchorElement,
+  onClose,
+  note,
+  onEnterSelectionMode,
+  onEdit,
+  onDelete,
+  onToggleArchive,
+  onRestore,
+  onEnterReorderMode,
   showTrash,
 }) => {
   const showSnackbar = useContext(SnackCtx);
@@ -105,10 +104,10 @@ const NoteMenu: FC<NoteMenuProps> = ({
   const [tagDialogNote, setTagDialogNote] = useState<Note | null>(null);
 
   const setColorMutation = useMutation({
-    mutationFn: (color: string) => api.messages.setColor({id: selectedMsg!.id, color}),
+    mutationFn: (color: string) => api.notes.setColor({id: note!.id, color}),
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
-      handleCloseMenu();
+      onClose();
     },
     onError: (err) => {
       console.error(err);
@@ -117,14 +116,14 @@ const NoteMenu: FC<NoteMenuProps> = ({
   });
 
   const handleCopy = useCallback(() => {
-    if (selectedMsg) {
-      navigator.clipboard.writeText(selectedMsg.content);
-      handleCloseMenu();
+    if (note) {
+      navigator.clipboard.writeText(note.content);
+      onClose();
     }
-  }, [selectedMsg, handleCloseMenu]);
+  }, [note, onClose]);
 
   const toggleTagMutation = useMutation({
-    mutationFn: (params: UpdateMessageRequest) => api.messages.update(params),
+    mutationFn: (params: UpdateNoteRequest) => api.notes.update(params),
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
       queryClient.invalidateQueries({queryKey: ['tags']});
@@ -144,11 +143,12 @@ const NoteMenu: FC<NoteMenuProps> = ({
       const currentTags = new Set((tagDialogNote.tags ?? []).map((tag) => tag.toLowerCase()));
       const contentWithoutRemovedTags = (tagDialogNote.tags ?? []).reduce(
         (content, tag) =>
-          selectedTags.has(tag.toLowerCase()) ? content : removeTagFromContent(content, tag),
+          selectedTags.has(tag.toLowerCase()) ? content : removeTagFromNoteContent(content, tag),
         tagDialogNote.content,
       );
       const content = tags.reduce(
-        (value, tag) => (currentTags.has(tag.toLowerCase()) ? value : addTagToContent(value, tag)),
+        (value, tag) =>
+          currentTags.has(tag.toLowerCase()) ? value : addTagToNoteContent(value, tag),
         contentWithoutRemovedTags,
       );
       const formData = new FormData();
@@ -160,24 +160,24 @@ const NoteMenu: FC<NoteMenuProps> = ({
   );
 
   const handleOpenTagDialog = useCallback(() => {
-    if (!selectedMsg) return;
-    setTagDialogNote(selectedMsg);
-    handleCloseMenu();
-  }, [handleCloseMenu, selectedMsg]);
+    if (!note) return;
+    setTagDialogNote(note);
+    onClose();
+  }, [onClose, note]);
 
   const handleCloseTagDialog = useCallback(() => setTagDialogNote(null), []);
 
-  const onSelectClick = useCallback(() => {
-    if (selectedMsg) enterSelectMode(selectedMsg);
-  }, [selectedMsg, enterSelectMode]);
+  const handleSelect = useCallback(() => {
+    if (note) onEnterSelectionMode(note);
+  }, [note, onEnterSelectionMode]);
 
   const menuActions = useMemo(() => {
-    const isArchived = selectedMsg?.is_archived;
+    const isArchived = note?.is_archived;
     return [
       {
         icon: <CheckCircleOutlined />,
         text: 'Выбрать',
-        onClick: onSelectClick,
+        onClick: handleSelect,
         color: 'text.secondary',
       },
       {
@@ -186,7 +186,7 @@ const NoteMenu: FC<NoteMenuProps> = ({
         onClick: handleCopy,
         color: 'text.secondary',
       },
-      {icon: <Edit />, text: 'Изменить', onClick: onEditClick, color: 'primary.main'},
+      {icon: <Edit />, text: 'Изменить', onClick: onEdit, color: 'primary.main'},
       {
         icon: <LocalOfferOutlined />,
         text: 'Изменить тег',
@@ -198,7 +198,7 @@ const NoteMenu: FC<NoteMenuProps> = ({
             {
               icon: <RestoreFromTrash />,
               text: 'Восстановить',
-              onClick: onRestoreClick,
+              onClick: onRestore,
               color: 'primary.main',
             },
           ]
@@ -206,35 +206,35 @@ const NoteMenu: FC<NoteMenuProps> = ({
             {
               icon: isArchived ? <Unarchive /> : <Archive />,
               text: isArchived ? 'Разархивировать' : 'В архив',
-              onClick: onArchiveClick,
+              onClick: onToggleArchive,
               color: 'text.secondary',
             },
             {
               icon: <Sort />,
               text: 'Сортировать',
-              onClick: enterReorderMode,
+              onClick: onEnterReorderMode,
               color: 'text.secondary',
             },
           ]),
     ];
   }, [
-    selectedMsg?.is_archived,
-    onSelectClick,
+    note?.is_archived,
+    handleSelect,
     handleCopy,
-    onEditClick,
+    onEdit,
     handleOpenTagDialog,
-    onArchiveClick,
-    onRestoreClick,
-    enterReorderMode,
+    onToggleArchive,
+    onRestore,
+    onEnterReorderMode,
     showTrash,
   ]);
 
   return (
     <>
       <Menu
-        anchorEl={anchorEl}
-        open={Boolean(anchorEl)}
-        onClose={handleCloseMenu}
+        anchorEl={anchorElement}
+        open={Boolean(anchorElement)}
+        onClose={onClose}
         transitionDuration={100}
         slotProps={getMenuSlotProps(theme)}
       >
@@ -252,13 +252,13 @@ const NoteMenu: FC<NoteMenuProps> = ({
             <ColorItem
               key={col}
               color={col}
-              isSelected={selectedMsg?.color === col}
+              isSelected={note?.color === col}
               onClick={(color) => setColorMutation.mutate(color)}
             />
           ))}
         </Box>
         <Divider sx={dividerSx} />
-        <MenuItem onClick={onDeleteClick} sx={deleteMenuItemSx}>
+        <MenuItem onClick={onDelete} sx={deleteMenuItemSx}>
           <ListItemIcon sx={{minWidth: '32px !important'}}>
             <Delete sx={{fontSize: 18, color: 'error.main'}} />
           </ListItemIcon>
@@ -268,10 +268,15 @@ const NoteMenu: FC<NoteMenuProps> = ({
           />
         </MenuItem>
       </Menu>
-      <NoteTagDialog
-        note={tagDialogNote}
+      <TagSelectionDialog
+        open={Boolean(tagDialogNote)}
+        title="Изменить теги"
+        description="Выберите теги для заметки:"
         tags={allTags}
+        initialSelectedTags={tagDialogNote?.tags}
         loading={toggleTagMutation.isPending}
+        requireChanges
+        submitLabel="Сохранить теги"
         onClose={handleCloseTagDialog}
         onSubmit={handleUpdateTags}
       />

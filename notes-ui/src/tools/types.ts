@@ -1,6 +1,6 @@
 import {Note} from '../types';
 
-export interface ListMessagesRequest {
+export interface ListNotesRequest {
   id?: number;
   limit?: number;
   last_order?: number;
@@ -10,46 +10,46 @@ export interface ListMessagesRequest {
   deleted?: '1' | '0';
 }
 
-export type ListMessagesResponse = Note[];
+export type ListNotesResponse = Note[];
 
-export type SendMessageRequest = FormData;
-export interface SendMessageResponse {
+export type CreateNoteRequest = FormData;
+export interface CreateNoteResponse {
   id: number;
 }
 
-export type UpdateMessageRequest = FormData;
-export type UpdateMessageResponse = 'ok';
+export type UpdateNoteRequest = FormData;
+export type UpdateNoteResponse = 'ok';
 
-export interface DeleteMessageRequest {
+export interface DeleteNoteRequest {
   id: number;
 }
-export type DeleteMessageResponse = 'ok';
+export type DeleteNoteResponse = 'ok';
 
 export interface BatchDeleteRequest {
   ids: number[];
 }
 export type BatchDeleteResponse = 'ok';
 
-export interface RestoreMessageRequest {
+export interface RestoreNoteRequest {
   id: number;
 }
-export type RestoreMessageResponse = 'ok';
+export type RestoreNoteResponse = 'ok';
 
 export interface BatchRestoreRequest {
   ids: number[];
 }
 export type BatchRestoreResponse = 'ok';
 
-export interface ArchiveMessageRequest {
+export interface ArchiveNoteRequest {
   id: number;
   archive: number;
 }
-export type ArchiveMessageResponse = 'ok';
+export type ArchiveNoteResponse = 'ok';
 
-export interface ReorderMessagesRequest {
+export interface ReorderNotesRequest {
   ids: number[];
 }
-export type ReorderMessagesResponse = 'ok';
+export type ReorderNotesResponse = 'ok';
 
 export type ListTagsResponse = string[];
 
@@ -76,10 +76,10 @@ export interface SetColorRequest {
 }
 export type SetColorResponse = 'ok';
 
-export interface UseMessageRequest {
+export interface MarkNoteUsedRequest {
   id: number;
 }
-export type UseMessageResponse = 'ok';
+export type MarkNoteUsedResponse = 'ok';
 
 export interface SetExpandedRequest {
   id: number;

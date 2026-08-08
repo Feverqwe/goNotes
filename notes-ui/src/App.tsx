@@ -1,60 +1,28 @@
 import React, {useCallback, useContext, useEffect, useMemo, useRef, useState} from 'react';
 
-import {DndContext, DragEndEvent, closestCenter} from '@dnd-kit/core';
-import {SortableContext, arrayMove, verticalListSortingStrategy} from '@dnd-kit/sortable';
-import {
-  Alert,
-  Box,
-  CircularProgress,
-  Container,
-  Stack,
-  useMediaQuery,
-  useTheme,
-} from '@mui/material';
+import {DragEndEvent} from '@dnd-kit/core';
+import {arrayMove} from '@dnd-kit/sortable';
+import {Box, Container, useMediaQuery, useTheme} from '@mui/material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
-import BatchDeleteDialog from './components/BatchDeleteDialog/BatchDeleteDialog';
-import DeleteDialog from './components/DeleteDialog/DeleteDialog';
-import EmptyState from './components/EmptyState/EmptyState';
-import MessageItem from './components/MessageItem/MessageItem';
-import MultiSelectMenu from './components/MultiSelectMenu/MultiSelectMenu';
-import NoteForm from './components/NoteForm/NoteForm';
+import DeleteNoteDialog from './components/DeleteNoteDialog/DeleteNoteDialog';
+import DeleteNotesDialog from './components/DeleteNotesDialog/DeleteNotesDialog';
+import NavigationDrawer from './components/NavigationDrawer/NavigationDrawer';
+import NoteBulkActionsBar from './components/NoteBulkActionsBar/NoteBulkActionsBar';
+import NoteEditor from './components/NoteEditor/NoteEditor';
 import NoteMenu from './components/NoteMenu/NoteMenu';
-import ReorderMenu from './components/ReorderMenu/ReorderMenu';
-import SearchBox from './components/SearchBox/SearchBox';
-import SideTagsPanel from './components/SideTagsPanel/SideTagsPanel';
-import TagsManager from './components/TagsManager/TagsManager';
+import NoteReorderBar from './components/NoteReorderBar/NoteReorderBar';
+import NotesFeed from './components/NotesFeed/NotesFeed';
+import NotesHeader from './components/NotesHeader/NotesHeader';
+import TagsNavigation from './components/TagsNavigation/TagsNavigation';
 import {SnackCtx} from './ctx/SnackCtx';
 import {useNotes} from './hooks/useNotes';
 import {api} from './tools/api';
-import {ArchiveMessageRequest, ReorderMessagesRequest, RestoreMessageRequest} from './tools/types';
+import {ArchiveNoteRequest, ReorderNotesRequest, RestoreNoteRequest} from './tools/types';
 import {Note} from './types';
+import {NotesView, getNotesView, getTagsFromUrl, hasSearchQuery} from './utils/noteFilters';
 
 const wrapperSx = {minHeight: '100vh', display: 'flex', flexDirection: 'column'};
-
-type NotesView = 'notes' | 'archive' | 'trash' | 'tag';
-
-const hasSearchQuery = (value: string | null | undefined) => Boolean(value?.trim());
-
-const getNotesView = (
-  currentTags: string[],
-  showArchived: boolean,
-  showTrash: boolean,
-): NotesView | undefined => {
-  if (showTrash && !showArchived && currentTags.length === 0) return 'trash';
-  if (showArchived && !showTrash && currentTags.length === 0) return 'archive';
-  if (!showArchived && !showTrash && currentTags.length === 1) return 'tag';
-  if (!showArchived && !showTrash && currentTags.length === 0) return 'notes';
-  return undefined;
-};
-
-const getCurrentTags = (params: URLSearchParams) => {
-  if (hasSearchQuery(params.get('q')) || params.get('deleted') === '1') {
-    return [];
-  }
-  const tag = params.get('tags')?.split(',')[0];
-  return tag ? [tag] : [];
-};
 
 function App() {
   const theme = useTheme();
@@ -73,7 +41,7 @@ function App() {
     return tagsStr ?? '';
   });
 
-  const [currentTags, setCurrentTags] = useState(() => getCurrentTags(initUrlParams));
+  const [currentTags, setCurrentTags] = useState(() => getTagsFromUrl(initUrlParams));
 
   const [showArchived, setShowArchived] = useState(() => {
     return (
@@ -89,31 +57,31 @@ function App() {
 
   const [isDrawerOpen, setIsDrawerOpen] = useState(false);
   const [editingNote, setEditingNote] = useState<Note | null>(null);
-  const [anchorEl, setAnchorEl] = useState<Element | null>(null);
-  const [selectedMsg, setSelectedMsg] = useState<Note | null>(null);
+  const [noteMenuAnchor, setNoteMenuAnchor] = useState<Element | null>(null);
+  const [selectedNote, setSelectedNote] = useState<Note | null>(null);
 
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [msgToDelete, setMsgToDelete] = useState<number | null>(null);
-  const refMsgToDelete = useRef(msgToDelete);
-  refMsgToDelete.current = msgToDelete;
+  const [isDeleteNoteDialogOpen, setIsDeleteNoteDialogOpen] = useState(false);
+  const [noteIdToDelete, setNoteIdToDelete] = useState<number | null>(null);
+  const noteIdToDeleteRef = useRef(noteIdToDelete);
+  noteIdToDeleteRef.current = noteIdToDelete;
 
   const historyUpdateRef = useRef<'push' | 'replace'>('replace');
-  const bottomInputRef = useRef<HTMLInputElement>(null);
+  const compactEditorRef = useRef<HTMLInputElement>(null);
 
-  const [deleteBatchDialogOpen, setBatchDeleteDialogOpen] = useState(false);
+  const [isDeleteNotesDialogOpen, setIsDeleteNotesDialogOpen] = useState(false);
 
   const [selectedIds, setSelectedIds] = useState<number[]>([]);
   const [isSelectMode, setIsSelectMode] = useState(false);
 
   const [isReorderMode, setIsReorderMode] = useState(false);
 
-  const [dndMessages, setDndMessages] = useState<Note[]>([]);
-  const refDndMessages = useRef(dndMessages);
-  refDndMessages.current = dndMessages;
+  const [orderedNotes, setOrderedNotes] = useState<Note[]>([]);
+  const orderedNotesRef = useRef(orderedNotes);
+  orderedNotesRef.current = orderedNotes;
 
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  const refIsMobile = useRef(isMobile);
-  refIsMobile.current = isMobile;
+  const isMobileRef = useRef(isMobile);
+  isMobileRef.current = isMobile;
 
   const [isEditorDialogOpen, setIsEditorDialogOpen] = useState(false);
   useEffect(() => {
@@ -123,7 +91,7 @@ function App() {
       const archived = params.get('archived');
       const deleted = params.get('deleted');
       const id = params.get('id');
-      setCurrentTags(getCurrentTags(params));
+      setCurrentTags(getTagsFromUrl(params));
       setSearchQuery(searchQuery ?? '');
       setShowArchived(!hasSearchQuery(searchQuery) && archived === '1' && deleted !== '1');
       setShowTrash(deleted === '1');
@@ -133,22 +101,22 @@ function App() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  const askDeleteConfirmation = useCallback((id: number) => {
-    setMsgToDelete(id);
-    setDeleteDialogOpen(true);
+  const requestNoteDeletion = useCallback((id: number) => {
+    setNoteIdToDelete(id);
+    setIsDeleteNoteDialogOpen(true);
   }, []);
 
-  const closeDeleteDialog = useCallback(() => {
-    setDeleteDialogOpen(false);
-    setMsgToDelete(null);
+  const closeDeleteNoteDialog = useCallback(() => {
+    setIsDeleteNoteDialogOpen(false);
+    setNoteIdToDelete(null);
   }, []);
 
-  const askBatchDeleteConfirmation = useCallback(() => {
-    setBatchDeleteDialogOpen(true);
+  const requestSelectedNotesDeletion = useCallback(() => {
+    setIsDeleteNotesDialogOpen(true);
   }, []);
 
-  const closeBatchDeleteDialog = useCallback(() => {
-    setBatchDeleteDialogOpen(false);
+  const closeDeleteNotesDialog = useCallback(() => {
+    setIsDeleteNotesDialogOpen(false);
   }, []);
 
   const {
@@ -166,26 +134,21 @@ function App() {
     archived: showArchived,
     deleted: showTrash,
   });
-  const refIsLoading = useRef(isLoading);
-  refIsLoading.current = isLoading;
-  const refIsFetchingNextPage = useRef(isFetchingNextPage);
-  refIsFetchingNextPage.current = isFetchingNextPage;
+  const isFetchingNextPageRef = useRef(isFetchingNextPage);
+  isFetchingNextPageRef.current = isFetchingNextPage;
 
-  const serverMessages = useMemo(() => data?.pages.flatMap((page) => page) ?? [], [data]);
-  const refServerMessages = useRef(serverMessages);
-  refServerMessages.current = serverMessages;
-
-  const refHasNextPage = useRef(hasNextPage);
-  refHasNextPage.current = hasNextPage;
+  const serverNotes = useMemo(() => data?.pages.flatMap((page) => page) ?? [], [data]);
+  const serverNotesRef = useRef(serverNotes);
+  serverNotesRef.current = serverNotes;
 
   const reorderMutation = useMutation({
-    mutationFn: (params: ReorderMessagesRequest) => api.messages.reorder(params),
+    mutationFn: (params: ReorderNotesRequest) => api.notes.reorder(params),
     onSuccess: async () => {
       try {
         await queryClient.invalidateQueries({queryKey: ['notes']});
       } finally {
         setIsReorderMode(false);
-        setDndMessages([]);
+        setOrderedNotes([]);
       }
     },
     onError: (err) => {
@@ -195,28 +158,28 @@ function App() {
   });
 
   const archiveMutation = useMutation({
-    mutationFn: (params: ArchiveMessageRequest) => api.messages.archive(params),
-    onSuccess: (_, {archive}) => {
+    mutationFn: (params: ArchiveNoteRequest) => api.notes.archive(params),
+    onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
-      handleCloseMenu();
+      closeNoteMenu();
     },
     onError: (err) => {
       console.error(err);
       showSnackbar('Ошибка архивации', 'error');
-      handleCloseMenu();
+      closeNoteMenu();
     },
   });
 
   const restoreMutation = useMutation({
-    mutationFn: (params: RestoreMessageRequest) => api.messages.restore(params),
+    mutationFn: (params: RestoreNoteRequest) => api.notes.restore(params),
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
-      handleCloseMenu();
+      closeNoteMenu();
     },
     onError: (err) => {
       console.error(err);
       showSnackbar('Ошибка восстановления', 'error');
-      handleCloseMenu();
+      closeNoteMenu();
     },
   });
 
@@ -311,8 +274,8 @@ function App() {
 
       if ((e.key.toLowerCase() === 'n' || e.key.toLowerCase() === 'т') && !isInput) {
         e.preventDefault();
-        if (refIsMobile.current) {
-          bottomInputRef.current?.focus();
+        if (isMobileRef.current) {
+          compactEditorRef.current?.focus();
         } else {
           setIsEditorDialogOpen(true);
         }
@@ -323,48 +286,48 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [setIsEditorDialogOpen]);
 
-  const startEditing = useCallback((msg: Note) => {
-    setEditingNote(msg);
+  const startEditingNote = useCallback((note: Note) => {
+    setEditingNote(note);
     setIsEditorDialogOpen(true);
   }, []);
 
-  const endEditing = useCallback(() => {
+  const closeNoteEditor = useCallback(() => {
     setEditingNote(null);
     setIsEditorDialogOpen(false);
   }, []);
-  const handleOpenMenu = useCallback((event: React.MouseEvent, msg: Note) => {
-    setAnchorEl(event.currentTarget);
-    setSelectedMsg(msg);
+  const openNoteMenu = useCallback((event: React.MouseEvent, note: Note) => {
+    setNoteMenuAnchor(event.currentTarget);
+    setSelectedNote(note);
   }, []);
 
-  const handleCloseMenu = useCallback(() => {
-    setAnchorEl(null);
-    setSelectedMsg(null);
+  const closeNoteMenu = useCallback(() => {
+    setNoteMenuAnchor(null);
+    setSelectedNote(null);
   }, []);
 
-  const onEditClick = useCallback(() => {
-    if (!selectedMsg) return;
-    startEditing(selectedMsg);
-    handleCloseMenu();
-  }, [selectedMsg, handleCloseMenu, startEditing]);
+  const handleEditNote = useCallback(() => {
+    if (!selectedNote) return;
+    startEditingNote(selectedNote);
+    closeNoteMenu();
+  }, [selectedNote, closeNoteMenu, startEditingNote]);
 
-  const onDeleteClick = useCallback(() => {
-    if (!selectedMsg) return;
-    askDeleteConfirmation(selectedMsg.id);
-    handleCloseMenu();
-  }, [selectedMsg, handleCloseMenu, askDeleteConfirmation]);
+  const handleDeleteNote = useCallback(() => {
+    if (!selectedNote) return;
+    requestNoteDeletion(selectedNote.id);
+    closeNoteMenu();
+  }, [selectedNote, closeNoteMenu, requestNoteDeletion]);
 
   const toggleSelect = useCallback((id: number) => {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]));
   }, []);
 
   const enterSelectMode = useCallback(
-    (msg: Note) => {
+    (note: Note) => {
       setIsSelectMode(true);
-      setSelectedIds([msg.id]);
-      handleCloseMenu();
+      setSelectedIds([note.id]);
+      closeNoteMenu();
     },
-    [handleCloseMenu],
+    [closeNoteMenu],
   );
 
   const cancelSelectMode = useCallback(() => {
@@ -374,38 +337,38 @@ function App() {
 
   const enterReorderMode = useCallback(() => {
     setIsReorderMode(true);
-    setDndMessages(refServerMessages.current);
-    handleCloseMenu();
-  }, [handleCloseMenu]);
+    setOrderedNotes(serverNotesRef.current);
+    closeNoteMenu();
+  }, [closeNoteMenu]);
 
   const cancelReorderMode = useCallback(() => {
     setIsReorderMode(false);
-    setDndMessages([]);
+    setOrderedNotes([]);
   }, []);
 
-  const onArchiveClick = useCallback(() => {
-    if (!selectedMsg) return;
+  const handleArchiveNote = useCallback(() => {
+    if (!selectedNote) return;
 
     archiveMutation.mutate({
-      id: selectedMsg.id,
-      archive: selectedMsg.is_archived ? 0 : 1,
+      id: selectedNote.id,
+      archive: selectedNote.is_archived ? 0 : 1,
     });
 
-    handleCloseMenu();
-  }, [archiveMutation, handleCloseMenu, selectedMsg]);
+    closeNoteMenu();
+  }, [archiveMutation, closeNoteMenu, selectedNote]);
 
-  const onRestoreClick = useCallback(() => {
-    if (!selectedMsg) return;
-    restoreMutation.mutate({id: selectedMsg.id});
-    handleCloseMenu();
-  }, [handleCloseMenu, restoreMutation, selectedMsg]);
+  const handleRestoreNote = useCallback(() => {
+    if (!selectedNote) return;
+    restoreMutation.mutate({id: selectedNote.id});
+    closeNoteMenu();
+  }, [closeNoteMenu, restoreMutation, selectedNote]);
 
   const handleOpenEditor = useCallback(() => setIsEditorDialogOpen(true), []);
 
-  const handleDragEnd = useCallback((event: DragEndEvent) => {
+  const handleNoteDragEnd = useCallback((event: DragEndEvent) => {
     const {active, over} = event;
     if (over && active.id !== over.id) {
-      setDndMessages((items) => {
+      setOrderedNotes((items) => {
         const oldIndex = items.findIndex((i) => i.id === active.id);
         const newIndex = items.findIndex((i) => i.id === over.id);
         return arrayMove(items, oldIndex, newIndex);
@@ -413,15 +376,15 @@ function App() {
     }
   }, []);
 
-  const saveOrder = useCallback(() => {
-    const dndMessages = refDndMessages.current;
-    const ids = dndMessages.map((m) => m.id);
+  const saveNoteOrder = useCallback(() => {
+    const orderedNotes = orderedNotesRef.current;
+    const ids = orderedNotes.map((note) => note.id);
     reorderMutation.mutate({ids});
   }, [reorderMutation]);
 
-  const moveStep = useCallback((id: number, direction: 'up' | 'down') => {
-    setDndMessages((prev) => {
-      const idx = prev.findIndex((m) => m.id === id);
+  const moveNote = useCallback((id: number, direction: 'up' | 'down') => {
+    setOrderedNotes((prev) => {
+      const idx = prev.findIndex((note) => note.id === id);
       if (idx === -1) return prev;
 
       const newIdx = direction === 'up' ? idx - 1 : idx + 1;
@@ -469,7 +432,7 @@ function App() {
     [currentTags.length, showArchived],
   );
 
-  const handleMessageTagClick = useCallback(
+  const handleNoteTagClick = useCallback(
     (tags: string[]) => {
       if (tags[0]) handleTagClick(tags[0]);
     },
@@ -482,7 +445,7 @@ function App() {
       if (observer.current) observer.current.disconnect();
 
       observer.current = new IntersectionObserver((entries) => {
-        const isFetching = refIsFetchingNextPage.current;
+        const isFetching = isFetchingNextPageRef.current;
         if (entries[0].isIntersecting && !isFetching) {
           fetchNextPage();
         }
@@ -519,9 +482,7 @@ function App() {
     return 'Заметки';
   }, [currentTags, searchQuery, showArchived, showTrash]);
 
-  const displayMessages = isReorderMode ? dndMessages : serverMessages;
-
-  const displayMessageIds = useMemo(() => displayMessages.map((m) => m.id), [displayMessages]);
+  const displayedNotes = isReorderMode ? orderedNotes : serverNotes;
 
   const bodyCtrSx = useMemo(
     () => ({
@@ -540,7 +501,7 @@ function App() {
   return (
     <>
       <Box sx={wrapperSx}>
-        <SearchBox
+        <NotesHeader
           searchQuery={searchQuery}
           onSearchQueryChange={handleSearchQueryChange}
           currentTags={currentTags}
@@ -554,7 +515,7 @@ function App() {
         />
 
         <Box sx={{display: 'flex'}}>
-          <SideTagsPanel
+          <NavigationDrawer
             open={isDrawerOpen}
             onOpen={handleOpenDrawer}
             onClose={handleCloseDrawer}
@@ -562,7 +523,7 @@ function App() {
             showTrash={showTrash}
             onTrashClick={handleTrashClick}
           >
-            <TagsManager
+            <TagsNavigation
               currentTags={currentTags}
               showArchived={showArchived}
               showTrash={showTrash}
@@ -572,100 +533,76 @@ function App() {
               onTagClick={handleTagClick}
               onActionFinished={handleCloseDrawer}
             />
-          </SideTagsPanel>
+          </NavigationDrawer>
 
           <Container maxWidth="sm" sx={bodyCtrSx}>
-            {displayMessages.length === 0 && !isLoading && !isError && (
-              <EmptyState hasFilters={hasActiveFilters} />
-            )}
-
-            <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-              <SortableContext items={displayMessageIds} strategy={verticalListSortingStrategy}>
-                <Stack spacing={1.5}>
-                  {isError && (
-                    <Alert severity="error">
-                      {useNoteError instanceof Error
-                        ? useNoteError.message
-                        : 'Ошибка при загрузке заметок'}
-                    </Alert>
-                  )}
-
-                  {displayMessages.map((msg, index) => (
-                    <MessageItem
-                      key={msg.id}
-                      msg={msg}
-                      onTagClick={handleMessageTagClick}
-                      handleOpenMenu={handleOpenMenu}
-                      isSelectMode={isSelectMode}
-                      isSelected={selectedIds.includes(msg.id)}
-                      toggleSelect={toggleSelect}
-                      startEditing={startEditing}
-                      isReorderMode={isReorderMode}
-                      index={index}
-                      totalCount={displayMessages.length}
-                      moveStep={moveStep}
-                      askDeleteConfirmation={askDeleteConfirmation}
-                    />
-                  ))}
-
-                  {hasNextPage && (
-                    <Box ref={loadMoreTrigger} sx={{display: 'flex', justifyContent: 'center'}}>
-                      <CircularProgress />
-                    </Box>
-                  )}
-                </Stack>
-              </SortableContext>
-            </DndContext>
+            <NotesFeed
+              notes={displayedNotes}
+              isLoading={isLoading}
+              isError={isError}
+              error={useNoteError}
+              hasActiveFilters={hasActiveFilters}
+              hasNextPage={Boolean(hasNextPage)}
+              loadMoreRef={loadMoreTrigger}
+              onDragEnd={handleNoteDragEnd}
+              onTagClick={handleNoteTagClick}
+              onOpenMenu={openNoteMenu}
+              isSelectMode={isSelectMode}
+              selectedIds={selectedIds}
+              onToggleSelection={toggleSelect}
+              onEdit={startEditingNote}
+              isReorderMode={isReorderMode}
+              onMove={moveNote}
+              onRequestDelete={requestNoteDeletion}
+            />
           </Container>
         </Box>
 
-        <NoteForm
+        <NoteEditor
           open={isEditorDialogOpen}
-          setIsEditorDialogOpen={setIsEditorDialogOpen}
+          setOpen={setIsEditorDialogOpen}
           editingNote={editingNote}
-          endEditing={endEditing}
+          onClose={closeNoteEditor}
           currentTags={currentTags}
           onRemoveCurrentTag={resetFilters}
-          innerRef={bottomInputRef}
+          innerRef={compactEditorRef}
         />
         {isSelectMode && (
-          <MultiSelectMenu
-            cancelSelectMode={cancelSelectMode}
+          <NoteBulkActionsBar
+            onCancel={cancelSelectMode}
             selectedIds={selectedIds}
-            askBatchDeleteConfirmation={askBatchDeleteConfirmation}
+            onRequestDelete={requestSelectedNotesDeletion}
             showArchived={showArchived}
             showTrash={showTrash}
           />
         )}
 
-        {isReorderMode && (
-          <ReorderMenu cancelReorderMode={cancelReorderMode} saveOrder={saveOrder} />
-        )}
+        {isReorderMode && <NoteReorderBar onCancel={cancelReorderMode} onSave={saveNoteOrder} />}
       </Box>
 
       <NoteMenu
-        anchorEl={anchorEl}
-        handleCloseMenu={handleCloseMenu}
-        selectedMsg={selectedMsg}
-        enterSelectMode={enterSelectMode}
-        onEditClick={onEditClick}
-        onDeleteClick={onDeleteClick}
-        onArchiveClick={onArchiveClick}
-        onRestoreClick={onRestoreClick}
-        enterReorderMode={enterReorderMode}
+        anchorElement={noteMenuAnchor}
+        onClose={closeNoteMenu}
+        note={selectedNote}
+        onEnterSelectionMode={enterSelectMode}
+        onEdit={handleEditNote}
+        onDelete={handleDeleteNote}
+        onToggleArchive={handleArchiveNote}
+        onRestore={handleRestoreNote}
+        onEnterReorderMode={enterReorderMode}
         showTrash={showTrash}
       />
 
-      <DeleteDialog
-        deleteDialogOpen={deleteDialogOpen}
-        closeDeleteDialog={closeDeleteDialog}
-        refMsgToDelete={refMsgToDelete}
+      <DeleteNoteDialog
+        open={isDeleteNoteDialogOpen}
+        onClose={closeDeleteNoteDialog}
+        noteIdRef={noteIdToDeleteRef}
         permanent={showTrash}
       />
 
-      <BatchDeleteDialog
-        deleteBatchDialogOpen={deleteBatchDialogOpen}
-        closeBatchDeleteDialog={closeBatchDeleteDialog}
+      <DeleteNotesDialog
+        open={isDeleteNotesDialogOpen}
+        onClose={closeDeleteNotesDialog}
         selectedIds={selectedIds}
         cancelSelectMode={cancelSelectMode}
         permanent={showTrash}

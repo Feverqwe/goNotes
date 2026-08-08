@@ -1,0 +1,447 @@
+import React, {
+  FC,
+  Suspense,
+  lazy,
+  memo,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+
+import {Close, Fullscreen, FullscreenExit, Save} from '@mui/icons-material';
+import {Alert, Box, CircularProgress, FormControlLabel, IconButton, Switch} from '@mui/material';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {editor} from 'monaco-editor';
+
+import {SnackCtx} from '../../ctx/SnackCtx';
+import {useAppTheme} from '../../ctx/ThemeCtx';
+import {api} from '../../tools/api';
+import {CreateNoteRequest, CreateNoteResponse, UpdateNoteRequest} from '../../tools/types';
+import {Attachment, Note} from '../../types';
+import EditorAttachments from '../EditorAttachments/EditorAttachments';
+
+const MonacoEditor = lazy(() => import('@monaco-editor/react'));
+
+const HEADER_SX = {
+  display: 'flex',
+  flexShrink: 0,
+  alignItems: 'center',
+  justifyContent: 'space-between',
+  px: 2,
+  py: 1,
+  pr: 1,
+  minHeight: '48px',
+  borderBottom: '1px solid',
+  borderColor: 'divider',
+};
+
+const HEADER_BOX_SX = {display: 'flex', alignItems: 'center', gap: 1};
+
+const CLOSE_SX = {
+  color: 'text.secondary',
+  '&:focus-visible': {
+    boxShadow: (theme: {palette: {primary: {main: string}}}) =>
+      `0 0 0 2px ${theme.palette.primary.main}`,
+  },
+};
+
+const ROOT_SX = {
+  height: '100%',
+  minHeight: 0,
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+const BODY_SX = {
+  flex: 1,
+  minHeight: 0,
+  display: 'flex',
+  flexDirection: 'column',
+};
+
+const EDITOR_CONTAINER_SX = {
+  flex: 1,
+  minHeight: 0,
+  borderColor: 'divider',
+  overflow: 'hidden',
+};
+
+const MONACO_EDITOR_OPTIONS: editor.IStandaloneEditorConstructionOptions = {
+  minimap: {enabled: false},
+  fontSize: 13,
+  lineNumbers: 'on',
+  scrollBeyondLastLine: false,
+  wordWrap: 'on',
+  automaticLayout: true,
+};
+const formControlLabelSx = {mr: 0, '& .MuiFormControlLabel-label': {fontSize: '0.75rem'}};
+const iconButtonBoxSx = {display: 'flex', alignItems: 'center', gap: 0.5};
+const saveIconButtonSx = {p: 0.5};
+const suspenseBoxSx = {
+  display: 'flex',
+  justifyContent: 'center',
+  alignItems: 'center',
+  height: '100%',
+};
+export interface AdvancedNoteEditorProps {
+  editingNote?: Note;
+  onClose: () => void;
+  onNoteCreated: (noteId: number) => void;
+  files: File[];
+  setFiles: React.Dispatch<React.SetStateAction<File[]>>;
+  inputTextRef: React.RefObject<string>;
+  existingAttachments: Attachment[];
+  deletedAttachIds: number[];
+  setDeletedAttachIds: React.Dispatch<React.SetStateAction<number[]>>;
+  setInputText: React.Dispatch<React.SetStateAction<string>>;
+  isFullscreen: boolean;
+  autoSaveEnabled: boolean;
+  onToggleAutoSave: () => void;
+  onToggleFullscreen: () => void;
+}
+
+const AdvancedNoteEditor: FC<AdvancedNoteEditorProps> = ({
+  editingNote,
+  onClose,
+  onNoteCreated,
+  files,
+  setFiles,
+  setInputText,
+  inputTextRef: inputTextRef,
+  existingAttachments,
+  deletedAttachIds,
+  setDeletedAttachIds,
+  isFullscreen,
+  autoSaveEnabled,
+  onToggleAutoSave: handleToggleAutoSave,
+  onToggleFullscreen: handleToggleFullscreen,
+}) => {
+  const showSnackbar = useContext(SnackCtx);
+  const {mode} = useAppTheme();
+  const queryClient = useQueryClient();
+
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [hasRemoteChanges, setHasRemoteChanges] = useState(false);
+  const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const changesTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const lastSavedContentRef = useRef<null | string>(editingNote?.content ?? '');
+
+  const editorRef = useRef<editor.IStandaloneCodeEditor>(null);
+
+  const filesRef = useRef(files);
+  filesRef.current = files;
+
+  const deletedAttachmentIdsRef = useRef(deletedAttachIds);
+  deletedAttachmentIdsRef.current = deletedAttachIds;
+
+  const editingNoteRef = useRef(editingNote);
+  editingNoteRef.current = editingNote;
+
+  const monacoTheme = useMemo(() => (mode === 'dark' ? 'vs-dark' : 'vs'), [mode]);
+
+  const getHasChanges = useCallback(() => {
+    return (
+      inputTextRef.current !== lastSavedContentRef.current ||
+      filesRef.current.length > 0 ||
+      deletedAttachmentIdsRef.current.length > 0
+    );
+  }, [inputTextRef]);
+
+  useEffect(() => {
+    if (!editingNote) return;
+    const content = editingNote.content;
+
+    const hasLocalContentChanges = inputTextRef.current !== lastSavedContentRef.current;
+
+    if (content !== lastSavedContentRef.current) {
+      if (hasLocalContentChanges) {
+        setHasRemoteChanges(true);
+      } else {
+        inputTextRef.current = content;
+        editorRef.current?.setValue(content);
+        setHasRemoteChanges(false);
+      }
+    } else {
+      setHasRemoteChanges(false);
+    }
+
+    setHasUnsavedChanges(getHasChanges());
+  }, [editingNote, getHasChanges, inputTextRef]);
+
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      return '';
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
+
+  useEffect(() => {
+    setHasUnsavedChanges(getHasChanges());
+  }, [files.length, deletedAttachIds.length, getHasChanges]);
+
+  const createNoteMutation = useMutation({
+    mutationFn: (params: CreateNoteRequest) => api.notes.create(params),
+    onSuccess: (response: CreateNoteResponse) => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      queryClient.invalidateQueries({queryKey: ['tags']});
+      lastSavedContentRef.current = inputTextRef.current;
+      setFiles([]);
+      setDeletedAttachIds([]);
+      setHasUnsavedChanges(false);
+
+      onNoteCreated(response.id);
+    },
+    onError: () => {
+      showSnackbar('Ошибка при создании заметки', 'error');
+    },
+  });
+
+  const updateNoteMutation = useMutation({
+    mutationFn: (params: UpdateNoteRequest) => api.notes.update(params),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      queryClient.invalidateQueries({queryKey: ['tags']});
+      if (editingNote) {
+        queryClient.invalidateQueries({queryKey: ['note', editingNote.id]});
+      }
+      lastSavedContentRef.current = inputTextRef.current;
+      setFiles([]);
+      setDeletedAttachIds([]);
+      setHasUnsavedChanges(false);
+    },
+    onError: () => {
+      showSnackbar('Ошибка при сохранении заметки', 'error');
+    },
+  });
+
+  const saveNote = useCallback(() => {
+    if (!getHasChanges()) return;
+
+    const formData = new FormData();
+    formData.append('content', inputTextRef.current);
+
+    files.forEach((file) => formData.append('attachments', file));
+
+    const editingNote = editingNoteRef.current;
+    if (editingNote) {
+      formData.append('id', String(editingNote.id));
+
+      if (deletedAttachIds.length > 0) {
+        formData.append('delete_attachments', deletedAttachIds.join(','));
+      }
+
+      updateNoteMutation.mutate(formData);
+    } else {
+      createNoteMutation.mutate(formData);
+    }
+  }, [
+    deletedAttachIds,
+    files,
+    getHasChanges,
+    inputTextRef,
+    createNoteMutation,
+    updateNoteMutation,
+  ]);
+
+  useEffect(() => {
+    if (!autoSaveEnabled) return;
+
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(() => {
+      saveNote();
+    }, 3000);
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [autoSaveEnabled, saveNote]);
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key === 's') {
+        event.preventDefault();
+        saveNote();
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [saveNote]);
+
+  const handleContentChange = useCallback(
+    (value: string | undefined) => {
+      inputTextRef.current = value || '';
+
+      if (changesTimerRef.current) {
+        clearTimeout(changesTimerRef.current);
+      }
+
+      changesTimerRef.current = setTimeout(() => {
+        setInputText(inputTextRef.current);
+        setHasUnsavedChanges(getHasChanges());
+      }, 300);
+    },
+    [inputTextRef, setInputText, getHasChanges],
+  );
+
+  const handleUpdateFromRemote = useCallback(() => {
+    const editingNote = editingNoteRef.current;
+    if (!editingNote) return;
+    const content = editingNote.content;
+
+    inputTextRef.current = content;
+    lastSavedContentRef.current = content;
+    editorRef.current?.setValue(content);
+    setHasRemoteChanges(false);
+    setHasUnsavedChanges(getHasChanges());
+  }, [inputTextRef, getHasChanges]);
+
+  const handleClose = useCallback(() => {
+    if (hasUnsavedChanges) {
+      if (window.confirm('У вас есть несохраненные изменения. Закрыть без сохранения?')) {
+        onClose();
+      }
+    } else {
+      onClose();
+    }
+  }, [hasUnsavedChanges, onClose]);
+
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const newFiles = Array.from(e.target.files ?? []);
+      if (newFiles.length > 0) {
+        setFiles((prev) => [...prev, ...newFiles]);
+      }
+      e.target.value = '';
+    },
+    [setFiles],
+  );
+
+  const removeFile = useCallback(
+    (index: number) => {
+      setFiles((prev) => prev.filter((_, i) => i !== index));
+    },
+    [setFiles],
+  );
+
+  const toggleDeleteAttachment = useCallback(
+    (id: number) => {
+      setDeletedAttachIds((prev) => {
+        return prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id];
+      });
+    },
+    [setDeletedAttachIds],
+  );
+
+  return (
+    <Box sx={ROOT_SX}>
+      <Box sx={HEADER_SX}>
+        <Box sx={HEADER_BOX_SX}>
+          <FormControlLabel
+            control={
+              <Switch
+                checked={autoSaveEnabled}
+                onChange={handleToggleAutoSave}
+                size="small"
+                color="primary"
+              />
+            }
+            label="Автосохранение"
+            sx={formControlLabelSx}
+          />
+        </Box>
+        <Box sx={iconButtonBoxSx}>
+          <IconButton
+            onClick={saveNote}
+            disabled={!hasUnsavedChanges}
+            loading={updateNoteMutation.isPending || createNoteMutation.isPending}
+            size="small"
+            color="primary"
+            sx={saveIconButtonSx}
+          >
+            <Save fontSize="small" />
+          </IconButton>
+          <IconButton onClick={handleToggleFullscreen} size="small" sx={saveIconButtonSx}>
+            {isFullscreen ? <FullscreenExit fontSize="small" /> : <Fullscreen fontSize="small" />}
+          </IconButton>
+          <IconButton onClick={handleClose} size="small" sx={{...CLOSE_SX, ...saveIconButtonSx}}>
+            <Close fontSize="small" />
+          </IconButton>
+        </Box>
+      </Box>
+
+      <Box sx={BODY_SX}>
+        {hasRemoteChanges && (
+          <Alert
+            severity="info"
+            action={
+              <IconButton color="inherit" size="small" onClick={handleUpdateFromRemote}>
+                <Save fontSize="small" />
+              </IconButton>
+            }
+          >
+            Заметка была изменена на другом устройстве. Нажмите значок сохранения, чтобы обновить
+            содержимое.
+          </Alert>
+        )}
+        {(updateNoteMutation.isError || createNoteMutation.isError) && (
+          <Alert severity="error">
+            {editingNote ? 'Ошибка при сохранении заметки' : 'Ошибка при создании заметки'}
+          </Alert>
+        )}
+
+        <Box sx={EDITOR_CONTAINER_SX}>
+          <Suspense
+            fallback={
+              <Box sx={suspenseBoxSx}>
+                <CircularProgress />
+              </Box>
+            }
+          >
+            <MonacoEditor
+              height="100%"
+              defaultLanguage="markdown"
+              defaultValue={inputTextRef.current}
+              onChange={handleContentChange}
+              theme={monacoTheme}
+              options={MONACO_EDITOR_OPTIONS}
+              onMount={(editor) => {
+                editorRef.current = editor;
+              }}
+            />
+          </Suspense>
+        </Box>
+
+        <EditorAttachments
+          existingAttachments={existingAttachments}
+          deletedAttachIds={deletedAttachIds}
+          files={files}
+          onToggleDeleteAttachment={toggleDeleteAttachment}
+          onRemoveFile={removeFile}
+          onFileChange={handleFileChange}
+          isEditorMode={true}
+        />
+      </Box>
+    </Box>
+  );
+};
+
+export default memo(AdvancedNoteEditor);

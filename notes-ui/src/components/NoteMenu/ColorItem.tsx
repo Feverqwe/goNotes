@@ -2,7 +2,7 @@ import React, {FC, memo} from 'react';
 
 import {Box} from '@mui/material';
 
-import {getBgColor, getBorderColor} from '../MessageItem/utils';
+import {getNoteBackgroundColor, getNoteBorderColor} from '../../utils/noteColors';
 
 interface ColorItemProps {
   color: string;
@@ -18,9 +18,9 @@ const ColorItem: FC<ColorItemProps> = ({color, isSelected, onClick}: ColorItemPr
         width: 24,
         height: 24,
         borderRadius: '50%',
-        bgcolor: color ? getBgColor(color) : 'transparent',
+        bgcolor: color ? getNoteBackgroundColor(color) : 'transparent',
         border: '1px solid',
-        borderColor: color ? getBorderColor(color) : '#8e8e93',
+        borderColor: color ? getNoteBorderColor(color) : '#8e8e93',
         cursor: 'pointer',
         '&:hover': {scale: '1.1'},
         outline: isSelected ? '2px solid #90caf9' : 'none',

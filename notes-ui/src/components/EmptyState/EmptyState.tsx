@@ -7,29 +7,25 @@ const containerSx = {
   textAlign: 'center',
   mt: 8,
   p: 3,
-  // Используем системный цвет для едва заметного фона
   bgcolor: 'action.hover',
   borderRadius: 4,
-  // Используем системный divider для пунктирной границы
   border: '1px dashed',
   borderColor: 'divider',
 };
 
 const iconSx = {
   fontSize: 64,
-  // Вместо #8e8e93
+
   color: 'text.disabled',
   mb: 2,
 };
 
 const titleSx = {
-  // Вместо #fff
   color: 'text.primary',
   mb: 1,
 };
 
 const descriptionSx = {
-  // Вместо #8e8e93
   color: 'text.secondary',
   mb: 3,
 };

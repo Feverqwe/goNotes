@@ -11,7 +11,6 @@ const snackAnchorOrigin: {vertical: 'top'; horizontal: 'center'} = {
 
 const alertSx = {
   width: '100%',
-  // Цвет фона берется из темы, но объект sx статичен
   bgcolor: 'background.paper',
 };
 

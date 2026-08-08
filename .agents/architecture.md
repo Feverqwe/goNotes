@@ -75,8 +75,7 @@ macOS, рядом с бинарником на Linux и в текущем раб
 - `notes-ui/src/App.tsx` — корневой UI и композиция основных сценариев.
 - `notes-ui/src/hooks/` — загрузка заметок с infinite query и загрузка тегов
   через TanStack Query.
-- `notes-ui/src/tools/api.ts` — используемый Axios-клиент API;
-  `apiRequest.ts` — оставшийся fetch-helper, который сейчас не импортируется.
+- `notes-ui/src/tools/api.ts` — Axios-клиент API.
 - `notes-ui/src/types.ts` и `src/tools/types.ts` — типы данных UI/API.
 - `notes-ui/src/components/` — функциональные компоненты интерфейса.
 - `notes-ui/src/ctx/` — контексты темы и уведомлений.
@@ -91,9 +90,10 @@ macOS, рядом с бинарником на Linux и в текущем раб
 
 `App.tsx` синхронизирует фильтры `id`, `q`, `tags`, `archived` и `deleted` с
 query string и управляет режимами выбора и сортировки. Создание/редактирование
-имеет две UI-ветки: `BottomInputForm` на мобильных экранах и
-`FullScreenNoteEditor` внутри `NoteEditorDialog` на desktop. Общие изменения
-формы, вложений или горячих клавиш необходимо проверить в обеих ветках.
+координирует `NoteEditor`: на мобильных экранах он показывает
+`CompactNoteEditor`, на desktop — `CompactNoteEditorDialog` с переходом в
+`AdvancedNoteEditor`. Общие изменения формы, вложений или горячих клавиш
+необходимо проверить в обеих ветках.
 
 ## Сборка и релиз
 
