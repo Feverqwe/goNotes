@@ -91,7 +91,7 @@ interface NotesHeaderProps {
   hasActiveFilters: boolean;
   pageTitle: string;
   onResetFilters: () => void;
-  onCategoryArchiveChange: (archived: boolean) => void;
+  onArchiveViewChange: (archived: boolean) => void;
   onMenuClick: () => void;
 }
 
@@ -104,7 +104,7 @@ const NotesHeader: FC<NotesHeaderProps> = ({
   hasActiveFilters,
   pageTitle,
   onResetFilters,
-  onCategoryArchiveChange,
+  onArchiveViewChange,
   onMenuClick,
 }) => {
   const theme = useTheme();
@@ -115,10 +115,15 @@ const NotesHeader: FC<NotesHeaderProps> = ({
     [onSearchQueryChange],
   );
 
-  const handleCategoryArchiveClick = useCallback(
-    () => onCategoryArchiveChange(!showArchived),
-    [onCategoryArchiveChange, showArchived],
+  const handleArchiveViewClick = useCallback(
+    () => onArchiveViewChange(!showArchived),
+    [onArchiveViewChange, showArchived],
   );
+  const archiveToggleLabel = showArchived
+    ? 'Показать текущие заметки'
+    : currentTags.length === 1
+      ? 'Показать архив категории'
+      : 'Показать архив';
 
   const appBarSx = useMemo(
     () =>
@@ -172,26 +177,6 @@ const NotesHeader: FC<NotesHeaderProps> = ({
         ),
         endAdornment: (
           <Box sx={actionsSx}>
-            {currentTags.length === 1 && !showTrash && (
-              <Tooltip
-                title={showArchived ? 'Показать текущие заметки' : 'Показать архив категории'}
-              >
-                <IconButton
-                  size="medium"
-                  onClick={handleCategoryArchiveClick}
-                  color={showArchived ? 'primary' : 'default'}
-                  aria-label={
-                    showArchived ? 'Показать текущие заметки' : 'Показать архив категории'
-                  }
-                >
-                  {showArchived ? (
-                    <Unarchive sx={{fontSize: 20}} />
-                  ) : (
-                    <ArchiveOutlined sx={{fontSize: 20}} />
-                  )}
-                </IconButton>
-              </Tooltip>
-            )}
             {hasActiveFilters && (
               <Tooltip title="Сбросить все фильтры">
                 <IconButton
@@ -204,19 +189,37 @@ const NotesHeader: FC<NotesHeaderProps> = ({
                 </IconButton>
               </Tooltip>
             )}
+            {currentTags.length <= 1 && !showTrash && searchQuery.trim() === '' && (
+              <Tooltip title={archiveToggleLabel}>
+                <IconButton
+                  size="medium"
+                  onClick={handleArchiveViewClick}
+                  color={showArchived ? 'primary' : 'default'}
+                  aria-label={archiveToggleLabel}
+                >
+                  {showArchived ? (
+                    <Unarchive sx={{fontSize: 20}} />
+                  ) : (
+                    <ArchiveOutlined sx={{fontSize: 20}} />
+                  )}
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
         ),
         sx: textFieldInputSx,
       },
     }),
     [
+      archiveToggleLabel,
       currentTags.length,
+      searchQuery,
       showArchived,
       showTrash,
       isDesktop,
       onMenuClick,
       hasActiveFilters,
-      handleCategoryArchiveClick,
+      handleArchiveViewClick,
       onResetFilters,
     ],
   );
@@ -232,7 +235,7 @@ const NotesHeader: FC<NotesHeaderProps> = ({
         <TextField
           fullWidth
           variant="standard"
-          placeholder={showTrash ? 'Поиск в корзине...' : 'Глобальный поиск...'}
+          placeholder={showTrash ? 'Поиск в корзине...' : 'Поиск...'}
           value={searchQuery}
           onChange={handleChange}
           slotProps={slotProps}

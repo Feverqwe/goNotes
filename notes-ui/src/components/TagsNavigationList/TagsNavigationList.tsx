@@ -2,7 +2,7 @@ import React, {FC, memo} from 'react';
 
 import {DndContext, DragEndEvent} from '@dnd-kit/core';
 import {SortableContext} from '@dnd-kit/sortable';
-import {Archive, Check, LightbulbOutlined, Sort} from '@mui/icons-material';
+import {Check, LightbulbOutlined, Sort} from '@mui/icons-material';
 import {
   Box,
   Divider,
@@ -19,12 +19,10 @@ const commonIconSx = {fontSize: 18};
 interface TagsNavigationListProps {
   tags: string[];
   currentTags: string[];
-  showArchived: boolean;
   showTrash: boolean;
   isGlobalSearch: boolean;
   isReorderMode: boolean;
   onResetFilters: () => void;
-  onArchiveClick: () => void;
   onToggleReorder: () => void;
   onDragEnd: (event: DragEndEvent) => void;
   onMove: (tag: string, direction: 'up' | 'down') => void;
@@ -35,12 +33,10 @@ const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationLi
   const {
     tags,
     currentTags,
-    showArchived,
     showTrash,
     isGlobalSearch,
     isReorderMode,
     onResetFilters,
-    onArchiveClick,
     onToggleReorder,
     onDragEnd,
     onMove,
@@ -50,7 +46,7 @@ const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationLi
   return (
     <Box>
       <ListItemButton
-        selected={!isGlobalSearch && !showArchived && !showTrash && currentTags.length === 0}
+        selected={!isGlobalSearch && !showTrash && currentTags.length === 0}
         onClick={onResetFilters}
       >
         <ListItemIcon>
@@ -58,32 +54,13 @@ const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationLi
             sx={{
               fontSize: 18,
               color:
-                !isGlobalSearch && !showArchived && !showTrash && currentTags.length === 0
+                !isGlobalSearch && !showTrash && currentTags.length === 0
                   ? 'primary.main'
                   : 'text.secondary',
             }}
           />
         </ListItemIcon>
         <ListItemText primary="Заметки" slotProps={{primary: {sx: {fontSize: '0.85rem'}}}} />
-      </ListItemButton>
-
-      <ListItemButton selected={showArchived && currentTags.length === 0} onClick={onArchiveClick}>
-        <ListItemIcon>
-          <Archive
-            sx={{
-              fontSize: 18,
-              color: showArchived && currentTags.length === 0 ? 'primary.main' : 'text.secondary',
-            }}
-          />
-        </ListItemIcon>
-        <ListItemText
-          primary="Архив"
-          slotProps={{
-            primary: {
-              sx: {fontSize: '0.85rem'},
-            },
-          }}
-        />
       </ListItemButton>
 
       {tags.length > 0 && <Divider />}

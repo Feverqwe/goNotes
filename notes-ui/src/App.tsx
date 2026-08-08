@@ -406,11 +406,6 @@ function App() {
     handleCloseDrawer();
   }, [handleCloseDrawer, navigateToView]);
 
-  const handleArchiveClick = useCallback(() => {
-    navigateToView('archive');
-    handleCloseDrawer();
-  }, [handleCloseDrawer, navigateToView]);
-
   const handleTagClick = useCallback(
     (tag: string) => {
       navigateToView('tag', tag);
@@ -419,9 +414,9 @@ function App() {
     [handleCloseDrawer, navigateToView],
   );
 
-  const handleCategoryArchiveChange = useCallback(
+  const handleArchiveViewChange = useCallback(
     (archived: boolean) => {
-      if (currentTags.length !== 1 || showArchived === archived) return;
+      if (currentTags.length > 1 || showArchived === archived || showTrash) return;
 
       historyUpdateRef.current = 'push';
       setSearchQuery('');
@@ -429,7 +424,7 @@ function App() {
       setShowTrash(false);
       setSelectedNoteId(undefined);
     },
-    [currentTags.length, showArchived],
+    [currentTags.length, showArchived, showTrash],
   );
 
   const handleNoteTagClick = useCallback(
@@ -510,7 +505,7 @@ function App() {
           hasActiveFilters={hasActiveFilters}
           pageTitle={pageTitle}
           onResetFilters={resetFilters}
-          onCategoryArchiveChange={handleCategoryArchiveChange}
+          onArchiveViewChange={handleArchiveViewChange}
           onMenuClick={handleToggleDrawer}
         />
 
@@ -525,11 +520,9 @@ function App() {
           >
             <TagsNavigation
               currentTags={currentTags}
-              showArchived={showArchived}
               showTrash={showTrash}
               isGlobalSearch={isGlobalSearch}
               onResetFilters={resetFilters}
-              onArchiveClick={handleArchiveClick}
               onTagClick={handleTagClick}
               onActionFinished={handleCloseDrawer}
             />
