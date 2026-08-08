@@ -70,7 +70,7 @@ const SortableTagNavigationItem: FC<SortableTagNavigationItemProps> = ({
         sx: {
           fontSize: '0.85rem',
           color: isActive ? 'primary.main' : 'text.primary',
-          fontWeight: isActive ? 600 : 400,
+          fontWeight: 400,
         },
       },
     }),
