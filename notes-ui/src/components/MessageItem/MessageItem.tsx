@@ -99,7 +99,7 @@ const dateSx = {
 
 interface MessageItemProps {
   msg: Note;
-  onTagClick: React.Dispatch<React.SetStateAction<string[]>>;
+  onTagClick: (tags: string[]) => void;
   handleOpenMenu: (event: React.MouseEvent, msg: Note) => void;
   isSelectMode: boolean;
   toggleSelect: (id: number) => void;

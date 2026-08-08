@@ -73,8 +73,8 @@ func addTagsToContent(content string, tags []string) string {
 	return content
 }
 
-// trashOrDeleteMessages moves active messages to the trash and permanently
-// deletes messages that were already there.
+// trashOrDeleteMessages moves non-deleted messages to the trash without
+// changing their archive state and permanently deletes messages already there.
 func trashOrDeleteMessages(ids []int64) (int, error) {
 	if len(ids) == 0 {
 		return 0, nil
@@ -262,14 +262,14 @@ func handleAction(router *Router) {
 					args = append(args, len(tagList))
 				}
 
-				if onlyDeleted || searchQuery != "" || tagsParam != "" {
-
-				} else if onlyArchived {
-
-					clauses = append(clauses, "is_archived = 1")
-				} else {
-
-					clauses = append(clauses, "is_archived = 0")
+				// Search is global across archived and non-archived messages.
+				// The trash is separate and can contain both states as well.
+				if !onlyDeleted && searchQuery == "" {
+					if onlyArchived {
+						clauses = append(clauses, "is_archived = 1")
+					} else {
+						clauses = append(clauses, "is_archived = 0")
+					}
 				}
 			}
 

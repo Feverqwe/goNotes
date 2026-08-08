@@ -9,7 +9,7 @@ import NoteEditorDialog, {NoteEditorDialogProps} from '../NoteEditorDialog/NoteE
 
 interface NoteFormProps extends Pick<
   NoteEditorDialogProps,
-  'editingNote' | 'endEditing' | 'currentTags' | 'setCurrentTags' | 'open' | 'innerRef'
+  'editingNote' | 'endEditing' | 'currentTags' | 'onRemoveCurrentTag' | 'open' | 'innerRef'
 > {
   setIsEditorDialogOpen: React.Dispatch<React.SetStateAction<boolean>>;
   onFullscreen?: () => void;

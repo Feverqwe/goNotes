@@ -1,6 +1,12 @@
 import React, {FC, useCallback, useMemo} from 'react';
 
-import {Clear, Menu as MenuIcon, Search as SearchIcon} from '@mui/icons-material';
+import {
+  ArchiveOutlined,
+  FilterAltOff,
+  Menu as MenuIcon,
+  Search as SearchIcon,
+  Unarchive,
+} from '@mui/icons-material';
 import {
   AppBar,
   Badge,
@@ -8,6 +14,8 @@ import {
   IconButton,
   TextField,
   Theme,
+  Tooltip,
+  Typography,
   alpha,
   useMediaQuery,
   useTheme,
@@ -19,6 +27,29 @@ const textFieldWrapperSx = {
   width: '100%',
   maxWidth: 'sm',
   mx: 'auto',
+};
+
+const brandSlotSx = {
+  width: SIDE_PANEL_WIDTH,
+  flexShrink: 0,
+  display: 'flex',
+  alignItems: 'center',
+};
+
+const brandIconSx = {
+  width: 30,
+  height: 30,
+};
+
+const pageTitleSx = {
+  minWidth: 0,
+  ml: 0.5,
+  color: 'text.primary',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  fontSize: '0.9rem',
+  fontWeight: 600,
 };
 
 const badgeSx = {
@@ -36,6 +67,8 @@ const clearBtnSx = {
   },
 };
 
+const actionsSx = {display: 'flex', alignItems: 'center'};
+
 const textFieldInputSx = {
   px: 1,
   borderRadius: '8px',
@@ -51,50 +84,40 @@ const inputBaseProps = {tabIndex: 1};
 
 interface SearchBoxProps {
   searchQuery: string;
-  setSearchQuery: React.Dispatch<React.SetStateAction<string>>;
+  onSearchQueryChange: (value: string) => void;
   currentTags: string[];
-  setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   showArchived: boolean;
-  setShowArchived: (v: boolean) => void;
   showTrash: boolean;
-  setShowTrash: (v: boolean) => void;
-  setSelectedNoteId: (id: number | undefined) => void;
   hasActiveFilters: boolean;
+  pageTitle: string;
+  onResetFilters: () => void;
+  onCategoryArchiveChange: (archived: boolean) => void;
   onMenuClick: () => void;
 }
 
 const SearchBox: FC<SearchBoxProps> = ({
   searchQuery,
-  setSearchQuery,
+  onSearchQueryChange,
   currentTags,
-  setCurrentTags,
   showArchived,
-  setShowArchived,
   showTrash,
-  setShowTrash,
   hasActiveFilters,
-  setSelectedNoteId,
+  pageTitle,
+  onResetFilters,
+  onCategoryArchiveChange,
   onMenuClick,
 }) => {
   const theme = useTheme();
   const isDesktop = useMediaQuery(theme.breakpoints.up('md'));
 
-  const handleClearAll = useCallback(() => {
-    setSearchQuery('');
-    setCurrentTags([]);
-    setShowArchived(false);
-    setShowTrash(false);
-    setSelectedNoteId(undefined);
-  }, [setSearchQuery, setCurrentTags, setShowArchived, setShowTrash, setSelectedNoteId]);
-
-  const activeFiltersCount = useMemo(
-    () => Boolean(currentTags.length + (showArchived || showTrash ? 1 : 0)),
-    [currentTags.length, showArchived, showTrash],
+  const handleChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => onSearchQueryChange(e.target.value),
+    [onSearchQueryChange],
   );
 
-  const handleChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value),
-    [setSearchQuery],
+  const handleCategoryArchiveClick = useCallback(
+    () => onCategoryArchiveChange(!showArchived),
+    [onCategoryArchiveChange, showArchived],
   );
 
   const appBarSx = useMemo(
@@ -127,9 +150,8 @@ const SearchBox: FC<SearchBoxProps> = ({
         startAdornment: (
           <Badge
             variant="dot"
-            color={
-              activeFiltersCount ? (showArchived || showTrash ? 'warning' : 'primary') : 'default'
-            }
+            color={showArchived || showTrash ? 'warning' : 'primary'}
+            invisible={!hasActiveFilters}
             sx={badgeSx}
           >
             {isDesktop ? (
@@ -148,33 +170,69 @@ const SearchBox: FC<SearchBoxProps> = ({
             )}
           </Badge>
         ),
-        endAdornment: hasActiveFilters && (
-          <IconButton size="medium" onClick={handleClearAll} sx={clearBtnSx}>
-            <Clear sx={{fontSize: 20}} />
-          </IconButton>
+        endAdornment: (
+          <Box sx={actionsSx}>
+            {currentTags.length === 1 && !showTrash && (
+              <Tooltip
+                title={showArchived ? 'Показать текущие заметки' : 'Показать архив категории'}
+              >
+                <IconButton
+                  size="medium"
+                  onClick={handleCategoryArchiveClick}
+                  color={showArchived ? 'primary' : 'default'}
+                  aria-label={
+                    showArchived ? 'Показать текущие заметки' : 'Показать архив категории'
+                  }
+                >
+                  {showArchived ? (
+                    <Unarchive sx={{fontSize: 20}} />
+                  ) : (
+                    <ArchiveOutlined sx={{fontSize: 20}} />
+                  )}
+                </IconButton>
+              </Tooltip>
+            )}
+            {hasActiveFilters && (
+              <Tooltip title="Сбросить все фильтры">
+                <IconButton
+                  size="medium"
+                  onClick={onResetFilters}
+                  sx={clearBtnSx}
+                  aria-label="Сбросить все фильтры"
+                >
+                  <FilterAltOff sx={{fontSize: 20}} />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
         ),
         sx: textFieldInputSx,
       },
     }),
     [
-      activeFiltersCount,
+      currentTags.length,
       showArchived,
       showTrash,
       isDesktop,
       onMenuClick,
       hasActiveFilters,
-      handleClearAll,
+      handleCategoryArchiveClick,
+      onResetFilters,
     ],
   );
 
   return (
     <AppBar variant="outlined" position="sticky" sx={appBarSx}>
-      {isDesktop && <Box sx={{width: SIDE_PANEL_WIDTH}} />}
+      {isDesktop && (
+        <Box sx={brandSlotSx}>
+          <Typography sx={pageTitleSx}>{pageTitle}</Typography>
+        </Box>
+      )}
       <Box sx={textFieldWrapperSx}>
         <TextField
           fullWidth
           variant="standard"
-          placeholder="Поиск..."
+          placeholder={showTrash ? 'Поиск в корзине...' : 'Глобальный поиск...'}
           value={searchQuery}
           onChange={handleChange}
           slotProps={slotProps}

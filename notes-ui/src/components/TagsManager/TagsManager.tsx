@@ -11,17 +11,23 @@ import TagsListContent from '../TagsListContent/TagsListContent';
 
 interface TagsManagerProps {
   currentTags: string[];
-  setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
   showArchived: boolean;
-  setShowArchived: (value: boolean) => void;
+  showTrash: boolean;
+  isGlobalSearch: boolean;
+  onResetFilters: () => void;
+  onArchiveClick: () => void;
+  onTagClick: (tag: string) => void;
   onActionFinished: () => void;
 }
 
 const TagsManager: FC<TagsManagerProps> = ({
   currentTags,
-  setCurrentTags,
   showArchived,
-  setShowArchived,
+  showTrash,
+  isGlobalSearch,
+  onResetFilters,
+  onArchiveClick,
+  onTagClick,
   onActionFinished,
 }: TagsManagerProps) => {
   const queryClient = useQueryClient();
@@ -33,20 +39,10 @@ const TagsManager: FC<TagsManagerProps> = ({
 
   const {data: allTags = []} = useTags();
 
-  const toggleTag = useCallback(
-    (tag: string) => {
-      setCurrentTags((prev) =>
-        prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag],
-      );
-      onActionFinished();
-    },
-    [setCurrentTags, onActionFinished],
-  );
-
-  const handleToggleArchive = useCallback(() => {
-    setShowArchived(!showArchived);
+  const handleResetFilters = useCallback(() => {
+    onResetFilters();
     onActionFinished();
-  }, [showArchived, setShowArchived, onActionFinished]);
+  }, [onActionFinished, onResetFilters]);
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const {active, over} = event;
@@ -90,12 +86,12 @@ const TagsManager: FC<TagsManagerProps> = ({
     }
   }, [allTags, isReorderMode, reorderMutation]);
 
-  const setExclusiveTag = useCallback(
+  const handleNavigateToTag = useCallback(
     (tag: string) => {
-      setCurrentTags((prev) => (prev.length === 1 && prev[0] === tag ? [] : [tag]));
+      onTagClick(tag);
       onActionFinished();
     },
-    [setCurrentTags, onActionFinished],
+    [onActionFinished, onTagClick],
   );
 
   const displayTags = useMemo(
@@ -108,13 +104,15 @@ const TagsManager: FC<TagsManagerProps> = ({
       displayTags={displayTags}
       currentTags={currentTags}
       showArchived={showArchived}
+      showTrash={showTrash}
+      isGlobalSearch={isGlobalSearch}
       isReorderMode={isReorderMode}
-      handleToggleArchive={handleToggleArchive}
+      handleResetFilters={handleResetFilters}
+      onArchiveClick={onArchiveClick}
       handleToggleOrder={handleToggleOrder}
       handleDragEnd={handleDragEnd}
       moveStep={moveStep}
-      toggleTag={toggleTag}
-      setExclusiveTag={setExclusiveTag}
+      onTagClick={handleNavigateToTag}
     />
   );
 };

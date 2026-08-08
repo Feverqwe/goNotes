@@ -2,8 +2,15 @@ import React, {FC, memo} from 'react';
 
 import {DndContext, DragEndEvent} from '@dnd-kit/core';
 import {SortableContext} from '@dnd-kit/sortable';
-import {Archive, Check, Sort} from '@mui/icons-material';
-import {Box, Divider, ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
+import {Archive, Check, LightbulbOutlined, Sort} from '@mui/icons-material';
+import {
+  Box,
+  Divider,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  ListSubheader,
+} from '@mui/material';
 
 import SortableTagItem from './SortableTagItem';
 
@@ -13,13 +20,15 @@ interface TagsListContentProps {
   displayTags: string[];
   currentTags: string[];
   showArchived: boolean;
+  showTrash: boolean;
+  isGlobalSearch: boolean;
   isReorderMode: boolean;
-  handleToggleArchive: () => void;
+  handleResetFilters: () => void;
+  onArchiveClick: () => void;
   handleToggleOrder: () => void;
   handleDragEnd: (event: DragEndEvent) => void;
   moveStep: (tag: string, direction: 'up' | 'down') => void;
-  toggleTag: (tag: string) => void;
-  setExclusiveTag: (tag: string) => void;
+  onTagClick: (tag: string) => void;
 }
 
 const TagsListContent: FC<TagsListContentProps> = (props: TagsListContentProps) => {
@@ -27,20 +36,45 @@ const TagsListContent: FC<TagsListContentProps> = (props: TagsListContentProps) 
     displayTags,
     currentTags,
     showArchived,
+    showTrash,
+    isGlobalSearch,
     isReorderMode,
-    handleToggleArchive,
+    handleResetFilters,
+    onArchiveClick,
     handleToggleOrder,
     handleDragEnd,
     moveStep,
-    toggleTag,
-    setExclusiveTag,
+    onTagClick,
   } = props;
 
   return (
     <Box>
-      <ListItemButton selected={showArchived} onClick={handleToggleArchive}>
+      <ListItemButton
+        selected={!isGlobalSearch && !showArchived && !showTrash && currentTags.length === 0}
+        onClick={handleResetFilters}
+      >
         <ListItemIcon>
-          <Archive sx={{fontSize: 18, color: showArchived ? 'primary.main' : 'text.secondary'}} />
+          <LightbulbOutlined
+            sx={{
+              fontSize: 18,
+              color:
+                !isGlobalSearch && !showArchived && !showTrash && currentTags.length === 0
+                  ? 'primary.main'
+                  : 'text.secondary',
+            }}
+          />
+        </ListItemIcon>
+        <ListItemText primary="Заметки" slotProps={{primary: {sx: {fontSize: '0.85rem'}}}} />
+      </ListItemButton>
+
+      <ListItemButton selected={showArchived && currentTags.length === 0} onClick={onArchiveClick}>
+        <ListItemIcon>
+          <Archive
+            sx={{
+              fontSize: 18,
+              color: showArchived && currentTags.length === 0 ? 'primary.main' : 'text.secondary',
+            }}
+          />
         </ListItemIcon>
         <ListItemText
           primary="Архив"
@@ -55,23 +89,24 @@ const TagsListContent: FC<TagsListContentProps> = (props: TagsListContentProps) 
       {displayTags.length > 0 && <Divider />}
 
       {displayTags.length > 0 && (
-        <DndContext onDragEnd={handleDragEnd}>
-          <SortableContext items={displayTags} disabled={!isReorderMode}>
-            {displayTags.map((tag, index) => (
-              <SortableTagItem
-                key={tag}
-                tag={tag}
-                isReordering={isReorderMode}
-                isActive={currentTags.includes(tag)}
-                toggleTag={toggleTag}
-                moveStep={moveStep}
-                index={index}
-                totalCount={displayTags.length}
-                setExclusiveTag={setExclusiveTag}
-              />
-            ))}
-          </SortableContext>
-        </DndContext>
+        <>
+          <DndContext onDragEnd={handleDragEnd}>
+            <SortableContext items={displayTags} disabled={!isReorderMode}>
+              {displayTags.map((tag, index) => (
+                <SortableTagItem
+                  key={tag}
+                  tag={tag}
+                  isReordering={isReorderMode}
+                  isActive={currentTags.includes(tag)}
+                  onTagClick={onTagClick}
+                  moveStep={moveStep}
+                  index={index}
+                  totalCount={displayTags.length}
+                />
+              ))}
+            </SortableContext>
+          </DndContext>
+        </>
       )}
 
       {displayTags.length > 1 && <Divider />}

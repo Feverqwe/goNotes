@@ -31,6 +31,31 @@ import {ArchiveMessageRequest, ReorderMessagesRequest, RestoreMessageRequest} fr
 import {Note} from './types';
 
 const wrapperSx = {minHeight: '100vh', display: 'flex', flexDirection: 'column'};
+
+type NotesView = 'notes' | 'archive' | 'trash' | 'tag';
+
+const hasSearchQuery = (value: string | null | undefined) => Boolean(value?.trim());
+
+const getNotesView = (
+  currentTags: string[],
+  showArchived: boolean,
+  showTrash: boolean,
+): NotesView | undefined => {
+  if (showTrash && !showArchived && currentTags.length === 0) return 'trash';
+  if (showArchived && !showTrash && currentTags.length === 0) return 'archive';
+  if (!showArchived && !showTrash && currentTags.length === 1) return 'tag';
+  if (!showArchived && !showTrash && currentTags.length === 0) return 'notes';
+  return undefined;
+};
+
+const getCurrentTags = (params: URLSearchParams) => {
+  if (hasSearchQuery(params.get('q')) || params.get('deleted') === '1') {
+    return [];
+  }
+  const tag = params.get('tags')?.split(',')[0];
+  return tag ? [tag] : [];
+};
+
 function App() {
   const theme = useTheme();
   const queryClient = useQueryClient();
@@ -48,13 +73,14 @@ function App() {
     return tagsStr ?? '';
   });
 
-  const [currentTags, setCurrentTags] = useState(() => {
-    const tagsStr = initUrlParams.get('tags');
-    return tagsStr ? tagsStr.split(',') : [];
-  });
+  const [currentTags, setCurrentTags] = useState(() => getCurrentTags(initUrlParams));
 
   const [showArchived, setShowArchived] = useState(() => {
-    return initUrlParams.get('archived') === '1' && initUrlParams.get('deleted') !== '1';
+    return (
+      !hasSearchQuery(initUrlParams.get('q')) &&
+      initUrlParams.get('archived') === '1' &&
+      initUrlParams.get('deleted') !== '1'
+    );
   });
 
   const [showTrash, setShowTrash] = useState(() => {
@@ -71,7 +97,7 @@ function App() {
   const refMsgToDelete = useRef(msgToDelete);
   refMsgToDelete.current = msgToDelete;
 
-  const refGoBack = useRef(false);
+  const historyUpdateRef = useRef<'push' | 'replace'>('replace');
   const bottomInputRef = useRef<HTMLInputElement>(null);
 
   const [deleteBatchDialogOpen, setBatchDeleteDialogOpen] = useState(false);
@@ -93,15 +119,13 @@ function App() {
   useEffect(() => {
     const handlePopState = () => {
       const params = new URLSearchParams(window.location.search);
-      const tags = params.get('tags');
       const searchQuery = params.get('q');
       const archived = params.get('archived');
       const deleted = params.get('deleted');
       const id = params.get('id');
-      refGoBack.current = true;
-      setCurrentTags(tags ? tags.split(',') : []);
+      setCurrentTags(getCurrentTags(params));
       setSearchQuery(searchQuery ?? '');
-      setShowArchived(archived === '1' && deleted !== '1');
+      setShowArchived(!hasSearchQuery(searchQuery) && archived === '1' && deleted !== '1');
       setShowTrash(deleted === '1');
       setSelectedNoteId(id ? Number(id) : undefined);
     };
@@ -196,22 +220,41 @@ function App() {
     },
   });
 
-  const handleSetShowArchived = useCallback((value: boolean) => {
-    setShowArchived(value);
-    if (value) setShowTrash(false);
-  }, []);
+  const navigateToView = useCallback(
+    (view: NotesView, tag?: string) => {
+      const currentView = getNotesView(currentTags, showArchived, showTrash);
+      const isSameView = currentView === view && (view !== 'tag' || currentTags[0] === tag);
 
-  const handleSetShowTrash = useCallback((value: boolean) => {
-    setShowTrash(value);
-    if (value) setShowArchived(false);
-  }, []);
+      if (isSameView && searchQuery === '' && selectedNoteId === undefined) return;
+
+      historyUpdateRef.current = 'push';
+      setSearchQuery('');
+      setCurrentTags(view === 'tag' && tag ? [tag] : []);
+      setShowArchived(view === 'archive');
+      setShowTrash(view === 'trash');
+      setSelectedNoteId(undefined);
+    },
+    [currentTags, searchQuery, selectedNoteId, showArchived, showTrash],
+  );
+
+  const handleSearchQueryChange = useCallback(
+    (value: string) => {
+      if (value === searchQuery) return;
+
+      if (searchQuery === '' || selectedNoteId !== undefined) {
+        historyUpdateRef.current = 'push';
+      }
+      if (hasSearchQuery(value) && !showTrash) {
+        setCurrentTags([]);
+        setShowArchived(false);
+      }
+      setSelectedNoteId(undefined);
+      setSearchQuery(value);
+    },
+    [searchQuery, selectedNoteId, showTrash],
+  );
 
   useEffect(() => {
-    if (refGoBack.current) {
-      refGoBack.current = false;
-      return;
-    }
-
     const url = new URL(window.location.href);
     const oldSearch = url.search;
 
@@ -247,18 +290,15 @@ function App() {
 
     const newSearch = url.search;
 
-    if (oldSearch === '' && newSearch !== '') {
-      window.history.pushState({}, '', url);
-    } else {
-      window.history.replaceState({}, '', url);
+    if (oldSearch !== newSearch) {
+      if (historyUpdateRef.current === 'push') {
+        window.history.pushState({}, '', url);
+      } else {
+        window.history.replaceState({}, '', url);
+      }
     }
-
-    const delayDebounceFn = setTimeout(() => {
-      queryClient.invalidateQueries({queryKey: ['notes']});
-    }, 400);
-
-    return () => clearTimeout(delayDebounceFn);
-  }, [currentTags, queryClient, searchQuery, selectedNoteId, showArchived, showTrash]);
+    historyUpdateRef.current = 'replace';
+  }, [currentTags, searchQuery, selectedNoteId, showArchived, showTrash]);
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -399,9 +439,42 @@ function App() {
   const handleCloseDrawer = useCallback(() => setIsDrawerOpen(false), []);
 
   const handleTrashClick = useCallback(() => {
-    handleSetShowTrash(!showTrash);
+    navigateToView('trash');
     handleCloseDrawer();
-  }, [handleCloseDrawer, handleSetShowTrash, showTrash]);
+  }, [handleCloseDrawer, navigateToView]);
+
+  const handleArchiveClick = useCallback(() => {
+    navigateToView('archive');
+    handleCloseDrawer();
+  }, [handleCloseDrawer, navigateToView]);
+
+  const handleTagClick = useCallback(
+    (tag: string) => {
+      navigateToView('tag', tag);
+      handleCloseDrawer();
+    },
+    [handleCloseDrawer, navigateToView],
+  );
+
+  const handleCategoryArchiveChange = useCallback(
+    (archived: boolean) => {
+      if (currentTags.length !== 1 || showArchived === archived) return;
+
+      historyUpdateRef.current = 'push';
+      setSearchQuery('');
+      setShowArchived(archived);
+      setShowTrash(false);
+      setSelectedNoteId(undefined);
+    },
+    [currentTags.length, showArchived],
+  );
+
+  const handleMessageTagClick = useCallback(
+    (tags: string[]) => {
+      if (tags[0]) handleTagClick(tags[0]);
+    },
+    [handleTagClick],
+  );
 
   const observer = useRef<IntersectionObserver | undefined>(undefined);
   const loadMoreTrigger = useCallback(
@@ -422,13 +495,29 @@ function App() {
 
   const hasActiveFilters = useMemo(
     () =>
-      searchQuery.length > 0 ||
+      hasSearchQuery(searchQuery) ||
       currentTags.length > 0 ||
       showArchived ||
       showTrash ||
       selectedNoteId !== undefined,
-    [currentTags.length, searchQuery.length, selectedNoteId, showArchived, showTrash],
+    [currentTags.length, searchQuery, selectedNoteId, showArchived, showTrash],
   );
+
+  const isGlobalSearch = hasSearchQuery(searchQuery) && !showTrash;
+
+  const resetFilters = useCallback(() => {
+    navigateToView('notes');
+  }, [navigateToView]);
+
+  const pageTitle = useMemo(() => {
+    if (hasSearchQuery(searchQuery) && !showTrash) return 'Поиск';
+    if (currentTags.length === 1) {
+      return showArchived ? `#${currentTags[0]} · Архив` : `#${currentTags[0]}`;
+    }
+    if (showArchived) return 'Архив';
+    if (showTrash) return 'Корзина';
+    return 'Заметки';
+  }, [currentTags, searchQuery, showArchived, showTrash]);
 
   const displayMessages = isReorderMode ? dndMessages : serverMessages;
 
@@ -453,15 +542,14 @@ function App() {
       <Box sx={wrapperSx}>
         <SearchBox
           searchQuery={searchQuery}
-          setSearchQuery={setSearchQuery}
+          onSearchQueryChange={handleSearchQueryChange}
           currentTags={currentTags}
-          setCurrentTags={setCurrentTags}
           showArchived={showArchived}
-          setShowArchived={handleSetShowArchived}
           showTrash={showTrash}
-          setShowTrash={handleSetShowTrash}
           hasActiveFilters={hasActiveFilters}
-          setSelectedNoteId={setSelectedNoteId}
+          pageTitle={pageTitle}
+          onResetFilters={resetFilters}
+          onCategoryArchiveChange={handleCategoryArchiveChange}
           onMenuClick={handleToggleDrawer}
         />
 
@@ -476,9 +564,12 @@ function App() {
           >
             <TagsManager
               currentTags={currentTags}
-              setCurrentTags={setCurrentTags}
               showArchived={showArchived}
-              setShowArchived={handleSetShowArchived}
+              showTrash={showTrash}
+              isGlobalSearch={isGlobalSearch}
+              onResetFilters={resetFilters}
+              onArchiveClick={handleArchiveClick}
+              onTagClick={handleTagClick}
               onActionFinished={handleCloseDrawer}
             />
           </SideTagsPanel>
@@ -503,7 +594,7 @@ function App() {
                     <MessageItem
                       key={msg.id}
                       msg={msg}
-                      onTagClick={setCurrentTags}
+                      onTagClick={handleMessageTagClick}
                       handleOpenMenu={handleOpenMenu}
                       isSelectMode={isSelectMode}
                       isSelected={selectedIds.includes(msg.id)}
@@ -534,7 +625,7 @@ function App() {
           editingNote={editingNote}
           endEditing={endEditing}
           currentTags={currentTags}
-          setCurrentTags={setCurrentTags}
+          onRemoveCurrentTag={resetFilters}
           innerRef={bottomInputRef}
         />
         {isSelectMode && (

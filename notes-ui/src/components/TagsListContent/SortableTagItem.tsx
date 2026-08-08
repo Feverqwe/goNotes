@@ -2,20 +2,16 @@ import React, {FC, useCallback, useMemo} from 'react';
 
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {AddCircleOutlined, CheckCircle} from '@mui/icons-material';
 import TagIcon from '@mui/icons-material/Tag';
-import {IconButton, ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
+import {ListItemButton, ListItemIcon, ListItemText} from '@mui/material';
 
 import TagOrder from './TagOrder';
-
-const iconSx = {fontSize: '18px'};
 
 interface SortableTagItemProps {
   tag: string;
   isActive: boolean;
   isReordering: boolean;
-  toggleTag: (tag: string) => void;
-  setExclusiveTag: (tag: string) => void;
+  onTagClick: (tag: string) => void;
   index: number;
   totalCount: number;
   moveStep: (id: string, direction: 'up' | 'down') => void;
@@ -25,8 +21,7 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
   tag,
   isActive,
   isReordering,
-  toggleTag,
-  setExclusiveTag,
+  onTagClick,
   index,
   moveStep,
   totalCount,
@@ -37,16 +32,8 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
   });
 
   const handleMainClick = useCallback(() => {
-    if (!isReordering) setExclusiveTag(tag);
-  }, [isReordering, setExclusiveTag, tag]);
-
-  const handleToggleClick = useCallback(
-    (e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!isReordering) toggleTag(tag);
-    },
-    [isReordering, toggleTag, tag],
-  );
+    if (!isReordering) onTagClick(tag);
+  }, [isReordering, onTagClick, tag]);
 
   const dndStyle = useMemo(
     () => ({
@@ -72,7 +59,6 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
               bgcolor: 'transparent',
             }
           : {}),
-        '& .add-tag-btn': {opacity: 1},
       },
     }),
     [isDragging, isReordering],
@@ -89,16 +75,6 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
       },
     }),
     [isActive],
-  );
-
-  const iconBtnSx = useMemo(
-    () => ({
-      opacity: isActive ? 1 : 0,
-      transition: 'opacity 0.2s',
-      color: isActive ? 'primary.main' : 'text.secondary',
-      visibility: isReordering ? 'hidden' : 'visible',
-    }),
-    [isActive, isReordering],
   );
 
   const tagIconSx = useMemo(
@@ -130,9 +106,6 @@ const SortableTagItem: FC<SortableTagItemProps> = ({
         />
       )}
       <ListItemText primary={tag} slotProps={listItemTextSlotProps} />
-      <IconButton className="add-tag-btn" size="small" onClick={handleToggleClick} sx={iconBtnSx}>
-        {isActive ? <CheckCircle sx={iconSx} /> : <AddCircleOutlined sx={iconSx} />}
-      </IconButton>
     </ListItemButton>
   );
 };

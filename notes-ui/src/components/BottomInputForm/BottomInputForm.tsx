@@ -112,7 +112,7 @@ export interface BottomInputFormProps {
   files: File[];
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   currentTags: string[];
-  setCurrentTags: React.Dispatch<React.SetStateAction<string[]>>;
+  onRemoveCurrentTag: (tag: string) => void;
   isDialogMode?: boolean;
   inputText: string;
   setInputText: React.Dispatch<React.SetStateAction<string>>;
@@ -129,7 +129,7 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
     editingNote,
     files,
     currentTags,
-    setCurrentTags,
+    onRemoveCurrentTag,
     setFiles,
     endEditing,
     isDialogMode,
@@ -380,7 +380,7 @@ const BottomInputForm: FC<BottomInputFormProps> = (props) => {
                 <Chip
                   key={tag}
                   label={tag}
-                  onDelete={() => setCurrentTags((prev) => prev.filter((t) => t !== tag))}
+                  onDelete={() => onRemoveCurrentTag(tag)}
                   sx={tagChipSx}
                 />
               ))}
