@@ -67,6 +67,7 @@ function App() {
 
   const historyUpdateRef = useRef<'push' | 'replace'>('replace');
   const compactEditorRef = useRef<HTMLInputElement>(null);
+  const appTitleRef = useRef(document.title);
 
   const [isDeleteNotesDialogOpen, setIsDeleteNotesDialogOpen] = useState(false);
 
@@ -470,12 +471,17 @@ function App() {
   const pageTitle = useMemo(() => {
     if (hasSearchQuery(searchQuery) && !showTrash) return 'Поиск';
     if (currentTags.length === 1) {
-      return showArchived ? `#${currentTags[0]} · Архив` : `#${currentTags[0]}`;
+      return showArchived ? `${currentTags[0]} · Архив` : currentTags[0];
     }
     if (showArchived) return 'Архив';
     if (showTrash) return 'Корзина';
     return 'Заметки';
   }, [currentTags, searchQuery, showArchived, showTrash]);
+
+  useEffect(() => {
+    document.title =
+      pageTitle === 'Заметки' ? appTitleRef.current : `${pageTitle} · ${appTitleRef.current}`;
+  }, [pageTitle]);
 
   const displayedNotes = isReorderMode ? orderedNotes : serverNotes;
 
