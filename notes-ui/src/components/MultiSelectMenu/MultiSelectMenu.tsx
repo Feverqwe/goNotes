@@ -1,6 +1,13 @@
-import React, {FC, useCallback, useContext, useEffect, useMemo} from 'react';
+import React, {FC, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 
-import {Archive, Close, Delete, RestoreFromTrash, Unarchive} from '@mui/icons-material';
+import {
+  Archive,
+  Close,
+  Delete,
+  LocalOfferOutlined,
+  RestoreFromTrash,
+  Unarchive,
+} from '@mui/icons-material';
 import {
   Box,
   Button,
@@ -14,7 +21,10 @@ import {
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {SnackCtx} from '../../ctx/SnackCtx';
+import {useTags} from '../../hooks/useTags';
 import {api} from '../../tools/api';
+
+import BatchTagDialog from './BatchTagDialog';
 
 const containerSx = {
   display: 'flex',
@@ -37,12 +47,19 @@ const countTextSx = {
 const btnSx = {
   borderRadius: '6px',
   textTransform: 'none',
+  minWidth: {xs: 40, sm: 64},
+  px: {xs: 1, sm: 1.5},
+  '& .MuiButton-startIcon': {
+    ml: {xs: 0, sm: -0.5},
+    mr: {xs: 0, sm: 1},
+  },
   '&:hover': {
     bgcolor: 'action.hover',
   },
 };
 
-const btnCtrSx = {display: 'flex', gap: 1};
+const btnCtrSx = {display: 'flex', gap: {xs: 0, sm: 1}};
+const btnLabelSx = {display: {xs: 'none', sm: 'inline'}};
 
 interface SelectMenuProps {
   cancelSelectMode: () => void;
@@ -62,17 +79,19 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
   const theme = useTheme();
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
+  const {data: allTags = []} = useTags();
+  const [tagDialogOpen, setTagDialogOpen] = useState(false);
   const isActionDisabled = selectedIds.length === 0;
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
+      if (e.key === 'Escape' && !tagDialogOpen) {
         cancelSelectMode();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [cancelSelectMode]);
+  }, [cancelSelectMode, tagDialogOpen]);
 
   const batchArchiveMutation = useMutation({
     mutationFn: (archive: number) => api.messages.batchArchive({ids: selectedIds, archive}),
@@ -95,6 +114,20 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
     onError: (err) => {
       console.error(err);
       showSnackbar('Ошибка восстановления', 'error');
+    },
+  });
+
+  const batchTagsMutation = useMutation({
+    mutationFn: (tags: string[]) => api.messages.batchTags({ids: selectedIds, tags}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({queryKey: ['notes']});
+      queryClient.invalidateQueries({queryKey: ['tags']});
+      setTagDialogOpen(false);
+      cancelSelectMode();
+    },
+    onError: (err) => {
+      console.error(err);
+      showSnackbar('Ошибка при добавлении тегов', 'error');
     },
   });
 
@@ -142,14 +175,30 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
           <Button
             size="medium"
             variant="text"
+            disabled={isActionDisabled || allTags.length === 0}
+            startIcon={<LocalOfferOutlined />}
+            onClick={() => setTagDialogOpen(true)}
+            sx={{...btnSx, color: 'primary.main'}}
+            aria-label="Добавить теги"
+          >
+            <Box component="span" sx={btnLabelSx}>
+              Теги
+            </Box>
+          </Button>
+          <Button
+            size="medium"
+            variant="text"
             disabled={isActionDisabled}
             startIcon={
               showTrash ? <RestoreFromTrash /> : showArchived ? <Unarchive /> : <Archive />
             }
             onClick={handleArchive}
             sx={{...btnSx, color: 'primary.main'}}
+            aria-label={showTrash ? 'Восстановить' : showArchived ? 'Разархивировать' : 'В архив'}
           >
-            {showTrash ? 'Восстановить' : showArchived ? 'Разархивировать' : 'В архив'}
+            <Box component="span" sx={btnLabelSx}>
+              {showTrash ? 'Восстановить' : showArchived ? 'Разархивировать' : 'В архив'}
+            </Box>
           </Button>
           <Button
             size="medium"
@@ -159,11 +208,22 @@ const MultiSelectMenu: FC<SelectMenuProps> = ({
             startIcon={<Delete />}
             sx={btnSx}
             onClick={handleDelete}
+            aria-label={showTrash ? 'Удалить навсегда' : 'В корзину'}
           >
-            {showTrash ? 'Удалить навсегда' : 'В корзину'}
+            <Box component="span" sx={btnLabelSx}>
+              {showTrash ? 'Удалить навсегда' : 'В корзину'}
+            </Box>
           </Button>
         </Box>
       </Container>
+      <BatchTagDialog
+        open={tagDialogOpen}
+        tags={allTags}
+        selectedCount={selectedIds.length}
+        loading={batchTagsMutation.isPending}
+        onClose={() => setTagDialogOpen(false)}
+        onSubmit={(tags) => batchTagsMutation.mutate(tags)}
+      />
     </Paper>
   );
 };

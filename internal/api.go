@@ -33,6 +33,46 @@ type attachmentPaths struct {
 	thumbPath string
 }
 
+func normalizeTagNames(tags []string) ([]string, error) {
+	seen := make(map[string]struct{}, len(tags))
+	normalized := make([]string, 0, len(tags))
+
+	for _, tag := range tags {
+		tag = strings.ToLower(strings.TrimSpace(tag))
+		extracted := extractHashtags("#" + tag)
+		if len(extracted) != 1 || extracted[0] != tag {
+			return nil, fmt.Errorf("Invalid tag: %q", tag)
+		}
+		if _, ok := seen[tag]; ok {
+			continue
+		}
+		seen[tag] = struct{}{}
+		normalized = append(normalized, tag)
+	}
+
+	return normalized, nil
+}
+
+func addTagsToContent(content string, tags []string) string {
+	existing := make(map[string]struct{})
+	for _, tag := range extractHashtags(content) {
+		existing[tag] = struct{}{}
+	}
+
+	for _, tag := range tags {
+		if _, ok := existing[tag]; ok {
+			continue
+		}
+		if content != "" && !strings.HasSuffix(content, "\n") {
+			content += "\n"
+		}
+		content += "#" + tag
+		existing[tag] = struct{}{}
+	}
+
+	return content
+}
+
 // trashOrDeleteMessages moves active messages to the trash and permanently
 // deletes messages that were already there.
 func trashOrDeleteMessages(ids []int64) (int, error) {
@@ -610,6 +650,103 @@ func handleAction(router *Router) {
 				return "", err
 			}
 
+			return "ok", nil
+		})
+	})
+
+	router.Post("/api/messages/batch-tags", func(w http.ResponseWriter, r *http.Request) {
+		apiCall(w, func() (string, error) {
+			var data struct {
+				IDs  []int64  `json:"ids"`
+				Tags []string `json:"tags"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+				return "", err
+			}
+			if len(data.IDs) == 0 || len(data.Tags) == 0 {
+				return "ok", nil
+			}
+
+			tags, err := normalizeTagNames(data.Tags)
+			if err != nil {
+				return "", err
+			}
+			if len(tags) == 0 {
+				return "ok", nil
+			}
+
+			tx, err := db.Begin()
+			if err != nil {
+				return "", err
+			}
+			defer tx.Rollback()
+
+			args := make([]any, len(data.IDs))
+			for i, id := range data.IDs {
+				args[i] = id
+			}
+			rows, err := tx.Query(
+				fmt.Sprintf("SELECT id, COALESCE(content, '') FROM messages WHERE id IN (%s)", generatePlaceholders(len(data.IDs))),
+				args...,
+			)
+			if err != nil {
+				return "", err
+			}
+
+			type messageContent struct {
+				id      int64
+				content string
+			}
+			messages := make([]messageContent, 0, len(data.IDs))
+			for rows.Next() {
+				var message messageContent
+				if err := rows.Scan(&message.id, &message.content); err != nil {
+					rows.Close()
+					return "", err
+				}
+				messages = append(messages, message)
+			}
+			if err := rows.Err(); err != nil {
+				rows.Close()
+				return "", err
+			}
+			if err := rows.Close(); err != nil {
+				return "", err
+			}
+
+			for _, tag := range tags {
+				if _, err := tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", tag); err != nil {
+					return "", err
+				}
+			}
+
+			for _, message := range messages {
+				content := addTagsToContent(message.content, tags)
+				if content != message.content {
+					if _, err := tx.Exec(
+						"UPDATE messages SET content = ?, content_lower = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
+						content,
+						strings.ToLower(content),
+						message.id,
+					); err != nil {
+						return "", err
+					}
+				}
+
+				for _, tag := range tags {
+					if _, err := tx.Exec(
+						"INSERT OR IGNORE INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?",
+						message.id,
+						tag,
+					); err != nil {
+						return "", err
+					}
+				}
+			}
+
+			if err := tx.Commit(); err != nil {
+				return "", err
+			}
 			return "ok", nil
 		})
 	})

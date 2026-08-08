@@ -64,6 +64,12 @@ export interface BatchArchiveRequest {
 }
 export type BatchArchiveResponse = 'ok';
 
+export interface BatchTagsRequest {
+  ids: number[];
+  tags: string[];
+}
+export type BatchTagsResponse = 'ok';
+
 export interface SetColorRequest {
   id: number;
   color: string;

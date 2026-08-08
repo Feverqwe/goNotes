@@ -11,6 +11,8 @@ import {
   BatchDeleteResponse,
   BatchRestoreRequest,
   BatchRestoreResponse,
+  BatchTagsRequest,
+  BatchTagsResponse,
   DeleteMessageRequest,
   DeleteMessageResponse,
   ListMessagesRequest,
@@ -134,6 +136,10 @@ export const api = {
     batchArchive: action<BatchArchiveRequest, BatchArchiveResponse>({
       method: 'POST',
       path: '/api/messages/batch-archive',
+    }),
+    batchTags: action<BatchTagsRequest, BatchTagsResponse>({
+      method: 'POST',
+      path: '/api/messages/batch-tags',
     }),
     reorder: action<ReorderMessagesRequest, ReorderMessagesResponse>({
       method: 'POST',
