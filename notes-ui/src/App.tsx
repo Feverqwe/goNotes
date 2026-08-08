@@ -46,6 +46,7 @@ function App() {
   const [showArchived, setShowArchived] = useState(() => {
     return (
       !hasSearchQuery(initUrlParams.get('q')) &&
+      getTagsFromUrl(initUrlParams).length === 0 &&
       initUrlParams.get('archived') === '1' &&
       initUrlParams.get('deleted') !== '1'
     );
@@ -92,9 +93,12 @@ function App() {
       const archived = params.get('archived');
       const deleted = params.get('deleted');
       const id = params.get('id');
-      setCurrentTags(getTagsFromUrl(params));
+      const tags = getTagsFromUrl(params);
+      setCurrentTags(tags);
       setSearchQuery(searchQuery ?? '');
-      setShowArchived(!hasSearchQuery(searchQuery) && archived === '1' && deleted !== '1');
+      setShowArchived(
+        !hasSearchQuery(searchQuery) && tags.length === 0 && archived === '1' && deleted !== '1',
+      );
       setShowTrash(deleted === '1');
       setSelectedNoteId(id ? Number(id) : undefined);
     };
@@ -407,25 +411,17 @@ function App() {
     handleCloseDrawer();
   }, [handleCloseDrawer, navigateToView]);
 
+  const handleArchiveClick = useCallback(() => {
+    navigateToView('archive');
+    handleCloseDrawer();
+  }, [handleCloseDrawer, navigateToView]);
+
   const handleTagClick = useCallback(
     (tag: string) => {
       navigateToView('tag', tag);
       handleCloseDrawer();
     },
     [handleCloseDrawer, navigateToView],
-  );
-
-  const handleArchiveViewChange = useCallback(
-    (archived: boolean) => {
-      if (currentTags.length > 1 || showArchived === archived || showTrash) return;
-
-      historyUpdateRef.current = 'push';
-      setSearchQuery('');
-      setShowArchived(archived);
-      setShowTrash(false);
-      setSelectedNoteId(undefined);
-    },
-    [currentTags.length, showArchived, showTrash],
   );
 
   const handleNoteTagClick = useCallback(
@@ -470,9 +466,7 @@ function App() {
 
   const pageTitle = useMemo(() => {
     if (hasSearchQuery(searchQuery) && !showTrash) return 'Поиск';
-    if (currentTags.length === 1) {
-      return showArchived ? `${currentTags[0]} · Архив` : currentTags[0];
-    }
+    if (currentTags.length === 1) return currentTags[0];
     if (showArchived) return 'Архив';
     if (showTrash) return 'Корзина';
     return 'Заметки';
@@ -505,13 +499,11 @@ function App() {
         <NotesHeader
           searchQuery={searchQuery}
           onSearchQueryChange={handleSearchQueryChange}
-          currentTags={currentTags}
           showArchived={showArchived}
           showTrash={showTrash}
           hasActiveFilters={hasActiveFilters}
           pageTitle={pageTitle}
           onResetFilters={resetFilters}
-          onArchiveViewChange={handleArchiveViewChange}
           onMenuClick={handleToggleDrawer}
         />
 
@@ -521,11 +513,14 @@ function App() {
             onOpen={handleOpenDrawer}
             onClose={handleCloseDrawer}
             onCreateClick={handleCreateClick}
+            showArchived={showArchived}
+            onArchiveClick={handleArchiveClick}
             showTrash={showTrash}
             onTrashClick={handleTrashClick}
           >
             <TagsNavigation
               currentTags={currentTags}
+              showArchived={showArchived}
               showTrash={showTrash}
               isGlobalSearch={isGlobalSearch}
               onResetFilters={resetFilters}

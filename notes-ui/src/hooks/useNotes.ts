@@ -13,22 +13,24 @@ export const useNotes = (filters: {
 }) => {
   return useInfiniteQuery({
     queryKey: ['notes', filters],
-    queryFn: async ({pageParam = 0}) => {
+    queryFn: async ({pageParam = {sortOrder: 0, isArchived: 0}}) => {
       return api.notes.list({
         id: filters.id,
         limit: POST_LIMIT,
-        last_order: pageParam,
+        last_order: pageParam.sortOrder,
+        last_archived: pageParam.isArchived,
         q: filters.q,
         tags: filters.tags.join(','),
         archived: filters.archived ? '1' : '0',
         deleted: filters.deleted ? '1' : '0',
       });
     },
-    initialPageParam: 0,
+    initialPageParam: {sortOrder: 0, isArchived: 0},
     getNextPageParam: (lastPage) => {
       if (lastPage.length < POST_LIMIT) return undefined;
 
-      return lastPage[lastPage.length - 1].sort_order;
+      const lastNote = lastPage[lastPage.length - 1];
+      return {sortOrder: lastNote.sort_order, isArchived: lastNote.is_archived};
     },
 
     refetchInterval: 10000,

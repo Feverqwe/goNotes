@@ -1,12 +1,6 @@
 import React, {FC, useCallback, useMemo} from 'react';
 
-import {
-  ArchiveOutlined,
-  FilterAltOff,
-  Menu as MenuIcon,
-  Search as SearchIcon,
-  Unarchive,
-} from '@mui/icons-material';
+import {FilterAltOff, Menu as MenuIcon, Search as SearchIcon} from '@mui/icons-material';
 import {
   AppBar,
   Badge,
@@ -85,26 +79,22 @@ const inputBaseProps = {tabIndex: 1};
 interface NotesHeaderProps {
   searchQuery: string;
   onSearchQueryChange: (value: string) => void;
-  currentTags: string[];
   showArchived: boolean;
   showTrash: boolean;
   hasActiveFilters: boolean;
   pageTitle: string;
   onResetFilters: () => void;
-  onArchiveViewChange: (archived: boolean) => void;
   onMenuClick: () => void;
 }
 
 const NotesHeader: FC<NotesHeaderProps> = ({
   searchQuery,
   onSearchQueryChange,
-  currentTags,
   showArchived,
   showTrash,
   hasActiveFilters,
   pageTitle,
   onResetFilters,
-  onArchiveViewChange,
   onMenuClick,
 }) => {
   const theme = useTheme();
@@ -114,16 +104,6 @@ const NotesHeader: FC<NotesHeaderProps> = ({
     (e: React.ChangeEvent<HTMLInputElement>) => onSearchQueryChange(e.target.value),
     [onSearchQueryChange],
   );
-
-  const handleArchiveViewClick = useCallback(
-    () => onArchiveViewChange(!showArchived),
-    [onArchiveViewChange, showArchived],
-  );
-  const archiveToggleLabel = showArchived
-    ? 'Показать текущие заметки'
-    : currentTags.length === 1
-      ? 'Показать архив категории'
-      : 'Показать архив';
 
   const appBarSx = useMemo(
     () =>
@@ -189,39 +169,12 @@ const NotesHeader: FC<NotesHeaderProps> = ({
                 </IconButton>
               </Tooltip>
             )}
-            {currentTags.length <= 1 && !showTrash && searchQuery.trim() === '' && (
-              <Tooltip title={archiveToggleLabel}>
-                <IconButton
-                  size="medium"
-                  onClick={handleArchiveViewClick}
-                  color={showArchived ? 'primary' : 'default'}
-                  aria-label={archiveToggleLabel}
-                >
-                  {showArchived ? (
-                    <Unarchive sx={{fontSize: 20}} />
-                  ) : (
-                    <ArchiveOutlined sx={{fontSize: 20}} />
-                  )}
-                </IconButton>
-              </Tooltip>
-            )}
           </Box>
         ),
         sx: textFieldInputSx,
       },
     }),
-    [
-      archiveToggleLabel,
-      currentTags.length,
-      searchQuery,
-      showArchived,
-      showTrash,
-      isDesktop,
-      onMenuClick,
-      hasActiveFilters,
-      handleArchiveViewClick,
-      onResetFilters,
-    ],
+    [showArchived, showTrash, isDesktop, onMenuClick, hasActiveFilters, onResetFilters],
   );
 
   return (

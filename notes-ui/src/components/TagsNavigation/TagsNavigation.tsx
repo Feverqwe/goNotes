@@ -11,6 +11,7 @@ import TagsNavigationList from '../TagsNavigationList/TagsNavigationList';
 
 interface TagsNavigationProps {
   currentTags: string[];
+  showArchived: boolean;
   showTrash: boolean;
   isGlobalSearch: boolean;
   onResetFilters: () => void;
@@ -20,6 +21,7 @@ interface TagsNavigationProps {
 
 const TagsNavigation: FC<TagsNavigationProps> = ({
   currentTags,
+  showArchived,
   showTrash,
   isGlobalSearch,
   onResetFilters,
@@ -99,6 +101,7 @@ const TagsNavigation: FC<TagsNavigationProps> = ({
     <TagsNavigationList
       tags={visibleTags}
       currentTags={currentTags}
+      showArchived={showArchived}
       showTrash={showTrash}
       isGlobalSearch={isGlobalSearch}
       isReorderMode={isReorderMode}

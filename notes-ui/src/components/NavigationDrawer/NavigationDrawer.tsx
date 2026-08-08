@@ -1,6 +1,12 @@
 import React, {FC, PropsWithChildren, memo, useMemo} from 'react';
 
-import {Add as AddIcon, DarkMode, DeleteOutlined, LightMode} from '@mui/icons-material';
+import {
+  Add as AddIcon,
+  ArchiveOutlined,
+  DarkMode,
+  DeleteOutlined,
+  LightMode,
+} from '@mui/icons-material';
 import {
   Box,
   Divider,
@@ -30,6 +36,8 @@ interface NavigationDrawerProps extends PropsWithChildren {
   open: boolean;
   onOpen: () => void;
   onClose: () => void;
+  showArchived: boolean;
+  onArchiveClick: () => void;
   showTrash: boolean;
   onTrashClick: () => void;
 }
@@ -40,6 +48,8 @@ const NavigationDrawer: FC<NavigationDrawerProps> = ({
   open,
   onOpen,
   onClose,
+  showArchived,
+  onArchiveClick,
   showTrash,
   onTrashClick,
 }: NavigationDrawerProps) => {
@@ -95,6 +105,14 @@ const NavigationDrawer: FC<NavigationDrawerProps> = ({
       </Box>
       <Box sx={{mt: 'auto'}}>
         <Divider />
+        <ListItemButton selected={showArchived} onClick={onArchiveClick}>
+          <ListItemIcon sx={{minWidth: 40}}>
+            <ArchiveOutlined
+              sx={{fontSize: 18, color: showArchived ? 'primary.main' : 'text.secondary'}}
+            />
+          </ListItemIcon>
+          <ListItemText primary="Архив" slotProps={{primary: {sx: {fontSize: '0.85rem'}}}} />
+        </ListItemButton>
         <ListItemButton selected={showTrash} onClick={onTrashClick}>
           <ListItemIcon sx={{minWidth: 40}}>
             <DeleteOutlined

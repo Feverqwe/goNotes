@@ -19,6 +19,7 @@ const commonIconSx = {fontSize: 18};
 interface TagsNavigationListProps {
   tags: string[];
   currentTags: string[];
+  showArchived: boolean;
   showTrash: boolean;
   isGlobalSearch: boolean;
   isReorderMode: boolean;
@@ -33,6 +34,7 @@ const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationLi
   const {
     tags,
     currentTags,
+    showArchived,
     showTrash,
     isGlobalSearch,
     isReorderMode,
@@ -46,7 +48,7 @@ const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationLi
   return (
     <Box>
       <ListItemButton
-        selected={!isGlobalSearch && !showTrash && currentTags.length === 0}
+        selected={!isGlobalSearch && !showArchived && !showTrash && currentTags.length === 0}
         onClick={onResetFilters}
       >
         <ListItemIcon>
@@ -54,7 +56,7 @@ const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationLi
             sx={{
               fontSize: 18,
               color:
-                !isGlobalSearch && !showTrash && currentTags.length === 0
+                !isGlobalSearch && !showArchived && !showTrash && currentTags.length === 0
                   ? 'primary.main'
                   : 'text.secondary',
             }}

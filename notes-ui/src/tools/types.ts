@@ -4,6 +4,7 @@ export interface ListNotesRequest {
   id?: number;
   limit?: number;
   last_order?: number;
+  last_archived?: number;
   tags?: string;
   q?: string;
   archived?: '1' | '0';

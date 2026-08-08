@@ -205,11 +205,13 @@ func handleAction(router *Router) {
 		apiCall(w, func() ([]MessageDTO, error) {
 			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
 			lastOrder, _ := strconv.Atoi(r.URL.Query().Get("last_order"))
+			lastArchived, _ := strconv.Atoi(r.URL.Query().Get("last_archived"))
 			tagsParam := r.URL.Query().Get("tags")
 			searchQuery := r.URL.Query().Get("q")
 			onlyArchived := r.URL.Query().Get("archived") == "1"
 			onlyDeleted := r.URL.Query().Get("deleted") == "1"
 			noteID, _ := strconv.Atoi(r.URL.Query().Get("id"))
+			groupByArchive := tagsParam != "" && !onlyDeleted
 
 			if limit <= 0 {
 				limit = 15
@@ -228,8 +230,13 @@ func handleAction(router *Router) {
 				args = append(args, noteID)
 			} else {
 				if lastOrder > 0 {
-					clauses = append(clauses, "sort_order < ?")
-					args = append(args, lastOrder)
+					if groupByArchive {
+						clauses = append(clauses, "(is_archived > ? OR (is_archived = ? AND sort_order < ?))")
+						args = append(args, lastArchived, lastArchived, lastOrder)
+					} else {
+						clauses = append(clauses, "sort_order < ?")
+						args = append(args, lastOrder)
+					}
 				}
 
 				if searchQuery != "" {
@@ -262,9 +269,9 @@ func handleAction(router *Router) {
 					args = append(args, len(tagList))
 				}
 
-				// Search is global across archived and non-archived messages.
-				// The trash is separate and can contain both states as well.
-				if !onlyDeleted && searchQuery == "" {
+				// Tagged views contain both current and archived messages. Search is
+				// global across both states, and the trash is separate as well.
+				if !onlyDeleted && searchQuery == "" && !groupByArchive {
 					if onlyArchived {
 						clauses = append(clauses, "is_archived = 1")
 					} else {
@@ -278,12 +285,17 @@ func handleAction(router *Router) {
 				whereSQL = "WHERE " + strings.Join(clauses, " AND ")
 			}
 
+			orderSQL := "sort_order DESC"
+			if groupByArchive {
+				orderSQL = "is_archived ASC, sort_order DESC"
+			}
+
 			query := fmt.Sprintf(`
 				SELECT id, content, created_at, updated_at, used_at, is_archived, is_deleted, is_expanded, sort_order, color
 					FROM messages 
 					%s 
-					ORDER BY sort_order DESC
-					LIMIT ?`, whereSQL)
+					ORDER BY %s
+					LIMIT ?`, whereSQL, orderSQL)
 
 			args = append(args, limit)
 
