@@ -9,8 +9,10 @@ import SnackProvider from './components/SnackProvider/SnackProvider';
 import {AppThemeProvider} from './ctx/ThemeCtx';
 
 const globalStyles = {
-  html: {overscrollBehaviorY: 'none'},
-  body: {overscrollBehaviorY: 'none'},
+  '@media (hover: hover) and (pointer: fine)': {
+    html: {overscrollBehaviorY: 'none'},
+    body: {overscrollBehaviorY: 'none'},
+  },
 };
 
 const queryClient = new QueryClient({
