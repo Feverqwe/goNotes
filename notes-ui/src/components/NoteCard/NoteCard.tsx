@@ -109,6 +109,7 @@ interface NoteCardProps {
   index: number;
   totalCount: number;
   onRequestDelete: (id: number) => void;
+  disableContentCollapse: boolean;
 }
 
 const NoteCard: FC<NoteCardProps> = ({
@@ -124,6 +125,7 @@ const NoteCard: FC<NoteCardProps> = ({
   index,
   totalCount,
   onRequestDelete,
+  disableContentCollapse,
 }) => {
   const theme = useTheme();
   const showSnackbar = useContext(SnackCtx);
@@ -133,6 +135,7 @@ const NoteCard: FC<NoteCardProps> = ({
   const [isContentExpanded, setIsContentExpanded] = useState(Boolean(note.is_expanded));
   const [isContentOverflowing, setIsContentOverflowing] = useState(false);
   const collapsedContentHeight = isMobile ? 180 : 240;
+  const isContentCollapsed = !disableContentCollapse && isContentOverflowing && !isContentExpanded;
   const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({
     id: note.id,
     disabled: !isReorderMode,
@@ -273,17 +276,14 @@ const NoteCard: FC<NoteCardProps> = ({
   const contentBoxSx = useMemo(
     () => ({
       color: note.is_archived ? 'text.secondary' : 'text.primary',
-      maxHeight:
-        isContentOverflowing && !isContentExpanded ? `${collapsedContentHeight}px` : 'none',
+      maxHeight: isContentCollapsed ? `${collapsedContentHeight}px` : 'none',
       overflow: 'hidden',
-      WebkitMaskImage:
-        isContentOverflowing && !isContentExpanded
-          ? 'linear-gradient(to bottom, black calc(100% - 48px), transparent 100%)'
-          : 'none',
-      maskImage:
-        isContentOverflowing && !isContentExpanded
-          ? 'linear-gradient(to bottom, black calc(100% - 48px), transparent 100%)'
-          : 'none',
+      WebkitMaskImage: isContentCollapsed
+        ? 'linear-gradient(to bottom, black calc(100% - 48px), transparent 100%)'
+        : 'none',
+      maskImage: isContentCollapsed
+        ? 'linear-gradient(to bottom, black calc(100% - 48px), transparent 100%)'
+        : 'none',
       '& p': {
         m: 0,
         whiteSpace: 'pre-wrap',
@@ -296,7 +296,7 @@ const NoteCard: FC<NoteCardProps> = ({
       },
       '& ul, & ol': {pl: 2, my: 1},
     }),
-    [collapsedContentHeight, isContentExpanded, isContentOverflowing, note.is_archived],
+    [collapsedContentHeight, isContentCollapsed, note.is_archived],
   );
 
   const menuBtnSx = useMemo(
@@ -375,7 +375,7 @@ const NoteCard: FC<NoteCardProps> = ({
                 {note.content}
               </ReactMarkdown>
             </Box>
-            {isContentOverflowing && !isContentExpanded && (
+            {isContentCollapsed && (
               <Tooltip title="Развернуть" arrow>
                 <IconButton
                   size="small"
@@ -404,7 +404,7 @@ const NoteCard: FC<NoteCardProps> = ({
             <Box sx={{display: 'flex', alignItems: 'center', gap: 0.5}}>
               {!isSelectMode && !isReorderMode && (
                 <>
-                  {isContentOverflowing && isContentExpanded && (
+                  {!disableContentCollapse && isContentOverflowing && isContentExpanded && (
                     <Tooltip title="Свернуть" arrow>
                       <IconButton
                         size="small"

@@ -549,6 +549,7 @@ function App() {
               isReorderMode={isReorderMode}
               onMove={moveNote}
               onRequestDelete={requestNoteDeletion}
+              openedNoteId={selectedNoteId}
             />
           </Container>
         </Box>

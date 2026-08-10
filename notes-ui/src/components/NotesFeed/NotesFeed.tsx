@@ -26,6 +26,7 @@ interface NotesFeedProps {
   isReorderMode: boolean;
   onMove: (id: number, direction: 'up' | 'down') => void;
   onRequestDelete: (id: number) => void;
+  openedNoteId?: number;
 }
 
 const loadingBoxSx = {display: 'flex', justifyContent: 'center'};
@@ -48,6 +49,7 @@ const NotesFeed: FC<NotesFeedProps> = ({
   isReorderMode,
   onMove,
   onRequestDelete,
+  openedNoteId,
 }) => {
   const noteIds = useMemo(() => notes.map((note) => note.id), [notes]);
 
@@ -79,6 +81,7 @@ const NotesFeed: FC<NotesFeedProps> = ({
                 totalCount={notes.length}
                 onMove={onMove}
                 onRequestDelete={onRequestDelete}
+                disableContentCollapse={note.id === openedNoteId}
               />
             ))}
 
