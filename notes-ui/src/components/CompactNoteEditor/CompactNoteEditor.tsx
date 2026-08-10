@@ -9,18 +9,8 @@ import React, {
   useState,
 } from 'react';
 
-import {AttachFile, Check, Send} from '@mui/icons-material';
-import {
-  Box,
-  Chip,
-  Container,
-  IconButton,
-  Paper,
-  TextField,
-  Theme,
-  alpha,
-  useTheme,
-} from '@mui/material';
+import {Check, Send} from '@mui/icons-material';
+import {Box, Container, IconButton, Paper, TextField, Theme, alpha, useTheme} from '@mui/material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
 import {SnackCtx} from '../../ctx/SnackCtx';
@@ -31,27 +21,6 @@ import {getNoteBackgroundColor, getNoteBorderColor} from '../../utils/noteColors
 import EditorAttachments from '../EditorAttachments/EditorAttachments';
 
 import EditingBanner from './EditingBanner';
-
-const tagsContainerSx = {px: 2, pt: 1.5, pb: 1, display: 'flex', gap: 1, flexWrap: 'wrap'};
-
-const tagChipSx = {
-  bgcolor: 'action.selected',
-  color: 'primary.main',
-  border: '1px solid',
-  borderColor: 'divider',
-  borderRadius: '6px',
-  fontWeight: 600,
-  fontSize: '0.85rem',
-  height: '36px',
-  '& .MuiChip-deleteIcon': {
-    fontSize: 20,
-    color: 'primary.main',
-    ml: 1,
-    mr: 0.5,
-    '&:hover': {color: 'text.primary'},
-  },
-  '& .MuiChip-label': {px: 1.5},
-};
 
 const attachBtnSx = {
   color: 'text.secondary',
@@ -71,8 +40,6 @@ const saveButtonSx = {
 };
 
 const checkIconSx = {fontSize: 26, color: 'primary.main'};
-const attachInputProps = {hidden: true, multiple: true, type: 'file'} as const;
-const attachIconRotationSx = {transform: 'rotate(45deg)'};
 const createIconSx = {fontSize: 26};
 
 const editorActionsSx = {
@@ -111,7 +78,6 @@ export interface CompactNoteEditorProps {
   files: File[];
   setFiles: React.Dispatch<React.SetStateAction<File[]>>;
   currentTags: string[];
-  onRemoveCurrentTag: (tag: string) => void;
   isDialogMode?: boolean;
   inputText: string;
   setInputText: React.Dispatch<React.SetStateAction<string>>;
@@ -128,7 +94,6 @@ const CompactNoteEditor: FC<CompactNoteEditorProps> = (props) => {
     editingNote,
     files,
     currentTags,
-    onRemoveCurrentTag,
     setFiles,
     isDialogMode,
     inputText,
@@ -349,6 +314,14 @@ const CompactNoteEditor: FC<CompactNoteEditorProps> = (props) => {
     [isDialogMode],
   );
 
+  const placeholder = useMemo(() => {
+    if (isDragging) return 'Сбросьте файлы...';
+    if (!editingNote && currentTags.length > 0) {
+      return `Заметка в ${currentTags.map((tag) => `#${tag}`).join(', ')}…`;
+    }
+    return 'Заметка...';
+  }, [currentTags, editingNote, isDragging]);
+
   return (
     <Paper
       square={!isDialogMode}
@@ -362,27 +335,6 @@ const CompactNoteEditor: FC<CompactNoteEditorProps> = (props) => {
         {!isDialogMode && editingNote && <EditingBanner onCancel={cancelEditing} />}
 
         <Box sx={isDialogMode ? dialogScrollableContentSx : undefined}>
-          <EditorAttachments
-            existingAttachments={existingAttachments}
-            deletedAttachIds={deletedAttachIds}
-            files={files}
-            onToggleDeleteAttachment={toggleDeleteExisting}
-            onRemoveFile={removeNewFile}
-          />
-
-          {currentTags.length > 0 && !editingNote && (
-            <Box sx={tagsContainerSx}>
-              {currentTags.map((tag) => (
-                <Chip
-                  key={tag}
-                  label={tag}
-                  onDelete={() => onRemoveCurrentTag(tag)}
-                  sx={tagChipSx}
-                />
-              ))}
-            </Box>
-          )}
-
           <Box
             sx={{
               position: 'relative',
@@ -394,10 +346,16 @@ const CompactNoteEditor: FC<CompactNoteEditorProps> = (props) => {
             }}
           >
             {!isDialogMode && (
-              <IconButton component="label" tabIndex={3} sx={attachBtnSx}>
-                <AttachFile sx={attachIconRotationSx} />
-                <input {...attachInputProps} onChange={handleFileChange} />
-              </IconButton>
+              <EditorAttachments
+                existingAttachments={existingAttachments}
+                deletedAttachIds={deletedAttachIds}
+                files={files}
+                onToggleDeleteAttachment={toggleDeleteExisting}
+                onRemoveFile={removeNewFile}
+                onFileChange={handleFileChange}
+                buttonSx={attachBtnSx}
+                tabIndex={3}
+              />
             )}
 
             <TextField
@@ -406,7 +364,7 @@ const CompactNoteEditor: FC<CompactNoteEditorProps> = (props) => {
               minRows={isDialogMode ? 10 : 1}
               maxRows={isDialogMode ? undefined : 10}
               variant="standard"
-              placeholder={isDragging ? 'Сбросьте файлы...' : 'Заметка...'}
+              placeholder={placeholder}
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleKeyDown}
@@ -429,10 +387,16 @@ const CompactNoteEditor: FC<CompactNoteEditorProps> = (props) => {
 
         {isDialogMode && (
           <Box sx={dialogBottomActionsSx}>
-            <IconButton component="label" tabIndex={3} sx={dialogAttachBtnSx}>
-              <AttachFile sx={attachIconRotationSx} />
-              <input {...attachInputProps} onChange={handleFileChange} />
-            </IconButton>
+            <EditorAttachments
+              existingAttachments={existingAttachments}
+              deletedAttachIds={deletedAttachIds}
+              files={files}
+              onToggleDeleteAttachment={toggleDeleteExisting}
+              onRemoveFile={removeNewFile}
+              onFileChange={handleFileChange}
+              buttonSx={dialogAttachBtnSx}
+              tabIndex={3}
+            />
             <Box sx={editorActionsSx}>
               {editorActions}
               <IconButton

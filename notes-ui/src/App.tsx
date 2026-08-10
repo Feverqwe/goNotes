@@ -483,9 +483,9 @@ function App() {
     () => ({
       flexGrow: 1,
       pt: 1,
-      pb: isMobile ? 7.5 * (currentTags.length ? 2 : 1) : 1,
+      pb: isMobile ? 7.5 : 1,
     }),
-    [currentTags.length, isMobile],
+    [isMobile],
   );
 
   const handleCreateClick = useCallback(() => {
@@ -523,6 +523,7 @@ function App() {
               showArchived={showArchived}
               showTrash={showTrash}
               isGlobalSearch={isGlobalSearch}
+              hasSelectedNote={selectedNoteId !== undefined}
               onResetFilters={resetFilters}
               onTagClick={handleTagClick}
               onActionFinished={handleCloseDrawer}
@@ -558,7 +559,6 @@ function App() {
           editingNote={editingNote}
           onClose={closeNoteEditor}
           currentTags={currentTags}
-          onRemoveCurrentTag={resetFilters}
           innerRef={compactEditorRef}
         />
         {isSelectMode && (

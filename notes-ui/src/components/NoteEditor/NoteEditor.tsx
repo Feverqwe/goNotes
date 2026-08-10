@@ -11,7 +11,7 @@ import CompactNoteEditorDialog, {
 
 interface NoteEditorProps extends Pick<
   CompactNoteEditorDialogProps,
-  'editingNote' | 'currentTags' | 'onRemoveCurrentTag' | 'open' | 'innerRef'
+  'editingNote' | 'currentTags' | 'open' | 'innerRef'
 > {
   setOpen: React.Dispatch<React.SetStateAction<boolean>>;
   onClose: () => void;

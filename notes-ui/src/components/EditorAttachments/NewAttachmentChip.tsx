@@ -1,7 +1,7 @@
-import React, {FC, memo, useCallback, useMemo} from 'react';
+import React, {FC, memo, useCallback} from 'react';
 
 import {Close} from '@mui/icons-material';
-import {Box, IconButton, Typography, alpha, useTheme} from '@mui/material';
+import {Box, IconButton, Typography, alpha} from '@mui/material';
 
 interface NewAttachmentChipProps {
   file: File;
@@ -9,49 +9,49 @@ interface NewAttachmentChipProps {
   onRemove: (index: number) => void;
 }
 
+const itemSx = {
+  display: 'flex',
+  alignItems: 'center',
+  bgcolor: 'action.hover',
+  pl: 1.5,
+  pr: 0.5,
+  borderRadius: '8px',
+  border: '1px solid',
+  borderColor: (theme: {palette: {primary: {main: string}}}) =>
+    alpha(theme.palette.primary.main, 0.4),
+  width: '100%',
+  minWidth: 0,
+  height: '40px',
+  backgroundImage: (theme: {palette: {primary: {main: string}}}) =>
+    `linear-gradient(${alpha(theme.palette.primary.main, 0.08)}, ${alpha(theme.palette.primary.main, 0.08)})`,
+};
+
+const textSx = {
+  color: 'primary.main',
+  flex: 1,
+  minWidth: 0,
+  fontSize: '0.85rem',
+  fontWeight: 500,
+};
+
 const NewAttachmentChip: FC<NewAttachmentChipProps> = ({
   file,
   index,
   onRemove,
 }: NewAttachmentChipProps) => {
-  const theme = useTheme();
   const handleRemove = useCallback(() => onRemove(index), [onRemove, index]);
-
-  const itemSx = useMemo(
-    () => ({
-      display: 'flex',
-      alignItems: 'center',
-      bgcolor: 'action.hover',
-      pl: 2,
-      pr: 0.5,
-      py: 0.5,
-      borderRadius: '8px',
-      border: '1px solid',
-      borderColor: 'primary.main',
-      minWidth: 'fit-content',
-      height: '42px',
-
-      backgroundImage: `linear-gradient(${alpha(theme.palette.primary.main, 0.05)}, ${alpha(theme.palette.primary.main, 0.05)})`,
-    }),
-    [theme],
-  );
-
-  const textSx = useMemo(
-    () => ({
-      color: 'primary.main',
-      maxWidth: 150,
-      fontSize: '0.9rem',
-      fontWeight: 500,
-    }),
-    [],
-  );
 
   return (
     <Box sx={itemSx}>
       <Typography variant="body2" title={file.name} sx={textSx} noWrap>
         {file.name}
       </Typography>
-      <IconButton size="medium" onClick={handleRemove} sx={{ml: 1, color: 'primary.main'}}>
+      <IconButton
+        size="small"
+        onClick={handleRemove}
+        sx={{ml: 0.5, p: 0.75, color: 'primary.main'}}
+        aria-label={`Удалить ${file.name}`}
+      >
         <Close sx={{fontSize: 20}} />
       </IconButton>
     </Box>

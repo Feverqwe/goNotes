@@ -80,6 +80,13 @@ const MONACO_EDITOR_OPTIONS: editor.IStandaloneEditorConstructionOptions = {
 const formControlLabelSx = {mr: 0, '& .MuiFormControlLabel-label': {fontSize: '0.75rem'}};
 const iconButtonBoxSx = {display: 'flex', alignItems: 'center', gap: 0.5};
 const saveIconButtonSx = {p: 0.5};
+const attachmentButtonSx = {
+  alignSelf: 'flex-start',
+  width: 42,
+  height: 42,
+  mx: 2,
+  my: 1,
+};
 const suspenseBoxSx = {
   display: 'flex',
   justifyContent: 'center',
@@ -437,7 +444,7 @@ const AdvancedNoteEditor: FC<AdvancedNoteEditorProps> = ({
           onToggleDeleteAttachment={toggleDeleteAttachment}
           onRemoveFile={removeFile}
           onFileChange={handleFileChange}
-          isEditorMode={true}
+          buttonSx={attachmentButtonSx}
         />
       </Box>
     </Box>

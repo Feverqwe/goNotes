@@ -22,6 +22,7 @@ interface TagsNavigationListProps {
   showArchived: boolean;
   showTrash: boolean;
   isGlobalSearch: boolean;
+  hasSelectedNote: boolean;
   isReorderMode: boolean;
   onResetFilters: () => void;
   onToggleReorder: () => void;
@@ -37,6 +38,7 @@ const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationLi
     showArchived,
     showTrash,
     isGlobalSearch,
+    hasSelectedNote,
     isReorderMode,
     onResetFilters,
     onToggleReorder,
@@ -44,21 +46,17 @@ const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationLi
     onMove,
     onTagClick,
   } = props;
+  const isNotesSelected =
+    !isGlobalSearch && !showArchived && !showTrash && !hasSelectedNote && currentTags.length === 0;
 
   return (
     <Box>
-      <ListItemButton
-        selected={!isGlobalSearch && !showArchived && !showTrash && currentTags.length === 0}
-        onClick={onResetFilters}
-      >
+      <ListItemButton selected={isNotesSelected} onClick={onResetFilters}>
         <ListItemIcon>
           <LightbulbOutlined
             sx={{
               fontSize: 18,
-              color:
-                !isGlobalSearch && !showArchived && !showTrash && currentTags.length === 0
-                  ? 'primary.main'
-                  : 'text.secondary',
+              color: isNotesSelected ? 'primary.main' : 'text.secondary',
             }}
           />
         </ListItemIcon>

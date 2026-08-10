@@ -1,7 +1,7 @@
-import React, {FC, Fragment, memo, useMemo} from 'react';
+import React, {FC, memo, useCallback, useRef, useState} from 'react';
 
 import {AttachFile} from '@mui/icons-material';
-import {Box, IconButton} from '@mui/material';
+import {Badge, Box, Button, Divider, IconButton, Popover, Stack} from '@mui/material';
 
 import {Attachment} from '../../types';
 
@@ -14,21 +14,48 @@ interface EditorAttachmentsProps {
   files: File[];
   onToggleDeleteAttachment: (id: number) => void;
   onRemoveFile: (index: number) => void;
-  onFileChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  isEditorMode?: boolean;
+  onFileChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  buttonSx?: React.ComponentProps<typeof IconButton>['sx'];
+  tabIndex?: number;
 }
 
-const attachScrollBoxSx = {
-  display: 'flex',
-  gap: 1.5,
-  px: 2,
-  pt: 1.5,
-  pb: 0,
-  overflowX: 'auto',
-  '&::-webkit-scrollbar': {display: 'none'},
+const badgeSx = {
+  '& .MuiBadge-badge': {
+    fontSize: '0.65rem',
+    height: 16,
+    minWidth: 16,
+    px: 0.5,
+  },
 };
 
-const iconButtonSx = {p: 0.5, height: '42px', width: '42px'};
+const menuContentSx = {
+  width: 296,
+  maxWidth: 'calc(100vw - 32px)',
+  maxHeight: 'calc(100vh - 32px)',
+  overflowY: 'auto',
+  p: 1,
+};
+
+const addButtonSx = {
+  justifyContent: 'flex-start',
+  px: 1.5,
+  py: 1,
+  borderRadius: '8px',
+  textTransform: 'none',
+  fontSize: '0.85rem',
+};
+
+const popoverPaperSx = {
+  borderRadius: '8px',
+  border: '1px solid',
+  borderColor: 'divider',
+  backgroundImage: 'none',
+};
+
+const attachIconSx = {transform: 'rotate(45deg)'};
+
+const anchorOrigin = {vertical: 'top', horizontal: 'left'} as const;
+const transformOrigin = {vertical: 'bottom', horizontal: 'left'} as const;
 
 const EditorAttachments: FC<EditorAttachmentsProps> = ({
   existingAttachments,
@@ -37,54 +64,101 @@ const EditorAttachments: FC<EditorAttachmentsProps> = ({
   onToggleDeleteAttachment,
   onRemoveFile,
   onFileChange,
-  isEditorMode = false,
+  buttonSx,
+  tabIndex,
 }) => {
-  const hasAttachments = existingAttachments.length > 0 || files.length > 0;
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [anchorElement, setAnchorElement] = useState<HTMLElement | null>(null);
+  const attachmentCount = existingAttachments.length + files.length;
+  const hasAttachments = attachmentCount > 0;
+  const isMenuOpen = Boolean(anchorElement);
 
-  const sx = useMemo(() => {
-    const s = {...attachScrollBoxSx};
-    if (isEditorMode) {
-      s.pt = 1;
-      s.pb = 1;
-    }
-    return s;
-  }, [isEditorMode]);
+  const openFileDialog = useCallback(() => inputRef.current?.click(), []);
 
-  if (!hasAttachments && !isEditorMode) {
-    return null;
-  }
+  const handleButtonClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (hasAttachments) {
+        setAnchorElement(event.currentTarget);
+        return;
+      }
+      openFileDialog();
+    },
+    [hasAttachments, openFileDialog],
+  );
+
+  const handleCloseMenu = useCallback(() => setAnchorElement(null), []);
+
+  const handleAddFiles = useCallback(() => {
+    handleCloseMenu();
+    openFileDialog();
+  }, [handleCloseMenu, openFileDialog]);
+
+  const buttonLabel = hasAttachments ? `Вложения: ${attachmentCount}` : 'Добавить вложения';
 
   return (
-    <Box sx={sx}>
-      {isEditorMode && onFileChange && (
-        <IconButton component="label" size="small" sx={iconButtonSx}>
-          <AttachFile fontSize="small" />
-          <input hidden multiple type="file" onChange={onFileChange} />
-        </IconButton>
-      )}
+    <>
+      <IconButton
+        tabIndex={tabIndex}
+        onClick={handleButtonClick}
+        sx={buttonSx}
+        aria-label={buttonLabel}
+        aria-haspopup={hasAttachments ? 'dialog' : undefined}
+        aria-expanded={isMenuOpen || undefined}
+      >
+        <Badge
+          badgeContent={attachmentCount}
+          color="primary"
+          invisible={!hasAttachments}
+          max={99}
+          sx={badgeSx}
+        >
+          <AttachFile sx={attachIconSx} />
+        </Badge>
+      </IconButton>
 
-      {hasAttachments && (
-        <Fragment>
-          {existingAttachments?.map((att) => (
-            <ExistingAttachmentChip
-              key={att.id}
-              attachment={att}
-              isDeleted={deletedAttachIds.includes(att.id)}
-              onToggle={onToggleDeleteAttachment}
-            />
-          ))}
+      <input ref={inputRef} hidden multiple type="file" onChange={onFileChange} />
 
-          {files.map((file, index) => (
-            <NewAttachmentChip
-              key={`${file.name}-${index}`}
-              file={file}
-              index={index}
-              onRemove={onRemoveFile}
-            />
-          ))}
-        </Fragment>
-      )}
-    </Box>
+      <Popover
+        anchorEl={anchorElement}
+        open={isMenuOpen}
+        onClose={handleCloseMenu}
+        anchorOrigin={anchorOrigin}
+        transformOrigin={transformOrigin}
+        slotProps={{paper: {sx: popoverPaperSx}}}
+      >
+        <Box role="dialog" aria-label="Вложения" sx={menuContentSx}>
+          <Stack spacing={0.75}>
+            {existingAttachments.map((attachment) => (
+              <ExistingAttachmentChip
+                key={attachment.id}
+                attachment={attachment}
+                isDeleted={deletedAttachIds.includes(attachment.id)}
+                onToggle={onToggleDeleteAttachment}
+              />
+            ))}
+
+            {files.map((file, index) => (
+              <NewAttachmentChip
+                key={`${file.name}-${index}`}
+                file={file}
+                index={index}
+                onRemove={onRemoveFile}
+              />
+            ))}
+          </Stack>
+          {hasAttachments && <Divider sx={{my: 1}} />}
+          <Button
+            fullWidth
+            size="small"
+            startIcon={<AttachFile fontSize="small" />}
+            onClick={handleAddFiles}
+            sx={addButtonSx}
+          >
+            Добавить файлы
+          </Button>
+        </Box>
+      </Popover>
+    </>
   );
 };
 

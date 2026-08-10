@@ -14,6 +14,7 @@ interface TagsNavigationProps {
   showArchived: boolean;
   showTrash: boolean;
   isGlobalSearch: boolean;
+  hasSelectedNote: boolean;
   onResetFilters: () => void;
   onTagClick: (tag: string) => void;
   onActionFinished: () => void;
@@ -24,6 +25,7 @@ const TagsNavigation: FC<TagsNavigationProps> = ({
   showArchived,
   showTrash,
   isGlobalSearch,
+  hasSelectedNote,
   onResetFilters,
   onTagClick,
   onActionFinished,
@@ -104,6 +106,7 @@ const TagsNavigation: FC<TagsNavigationProps> = ({
       showArchived={showArchived}
       showTrash={showTrash}
       isGlobalSearch={isGlobalSearch}
+      hasSelectedNote={hasSelectedNote}
       isReorderMode={isReorderMode}
       onResetFilters={resetFiltersAndClose}
       onToggleReorder={toggleReorderMode}

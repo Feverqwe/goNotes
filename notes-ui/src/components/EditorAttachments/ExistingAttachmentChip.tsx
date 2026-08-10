@@ -1,6 +1,6 @@
 import React, {FC, memo, useCallback, useMemo} from 'react';
 
-import {Close, DeleteForever} from '@mui/icons-material';
+import {DeleteOutlined, Undo} from '@mui/icons-material';
 import {Box, IconButton, Typography, alpha, useTheme} from '@mui/material';
 
 import {Attachment} from '../../types';
@@ -26,14 +26,18 @@ const ExistingAttachmentChip: FC<ExistingAttachmentChipProps> = ({
     () => ({
       display: 'flex',
       alignItems: 'center',
-      height: '42px',
-      bgcolor: isDeleted ? alpha(theme.palette.error.main, 0.1) : 'action.hover',
-      pl: 2,
+      height: '40px',
+      bgcolor: isDeleted ? alpha(theme.palette.error.main, 0.12) : 'action.hover',
+      pl: 1.5,
+      pr: 0.5,
       borderRadius: '8px',
       border: '1px solid',
-      borderColor: isDeleted ? 'error.main' : 'divider',
-      opacity: isDeleted ? 0.6 : 1,
-      minWidth: 'fit-content',
+      borderColor: isDeleted
+        ? alpha(theme.palette.error.main, 0.45)
+        : alpha(theme.palette.text.primary, 0.12),
+      opacity: isDeleted ? 0.75 : 1,
+      width: '100%',
+      minWidth: 0,
       transition: theme.transitions.create(['background-color', 'border-color', 'opacity']),
     }),
     [isDeleted, theme],
@@ -42,8 +46,10 @@ const ExistingAttachmentChip: FC<ExistingAttachmentChipProps> = ({
   const textSx = useMemo(
     () => ({
       color: isDeleted ? 'error.main' : 'text.primary',
-      maxWidth: 150,
+      flex: 1,
+      minWidth: 0,
       fontSize: '0.85rem',
+      textDecoration: isDeleted ? 'line-through' : 'none',
     }),
     [isDeleted],
   );
@@ -55,11 +61,16 @@ const ExistingAttachmentChip: FC<ExistingAttachmentChipProps> = ({
       <Typography variant="body2" title={filename} sx={textSx} noWrap>
         {filename}
       </Typography>
-      <IconButton onClick={handleToggle} sx={{ml: 0.5}} size="small">
+      <IconButton
+        onClick={handleToggle}
+        sx={{ml: 0.5, p: 0.75}}
+        size="small"
+        aria-label={isDeleted ? `Восстановить ${filename}` : `Удалить ${filename}`}
+      >
         {isDeleted ? (
-          <Close sx={{fontSize: 22, color: 'error.main'}} />
+          <Undo sx={{fontSize: 20, color: 'error.main'}} />
         ) : (
-          <DeleteForever sx={{fontSize: 22, color: 'text.secondary'}} />
+          <DeleteOutlined sx={{fontSize: 20, color: 'text.secondary'}} />
         )}
       </IconButton>
     </Box>
