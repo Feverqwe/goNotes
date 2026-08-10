@@ -339,14 +339,13 @@ func handleAction(router *Router) {
 	})
 
 	handleAttachment := func(fHeader *multipart.FileHeader, tx *sql.Tx, id int64) (err error) {
-		fileName := fmt.Sprintf("%d_%s", id, fHeader.Filename)
-		fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
-
-		err = saveFile(fHeader, fullPath)
+		uploadsDir := filepath.Join(cfg.GetProfilePath(), "uploads")
+		fileName, err := saveFile(fHeader, uploadsDir)
 		if err != nil {
 			log.Printf("File save error: %v", err)
 			return
 		}
+		fullPath := filepath.Join(uploadsDir, fileName)
 
 		fileType := "document"
 		thumbnailPath := ""

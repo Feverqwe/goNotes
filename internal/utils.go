@@ -1,6 +1,9 @@
 package internal
 
 import (
+	"crypto/rand"
+	"encoding/hex"
+	"errors"
 	"fmt"
 	"goNotes/internal/cfg"
 	"image"
@@ -112,26 +115,49 @@ func extractHashtags(text string) []string {
 	return result
 }
 
-func saveFile(fileHeader *multipart.FileHeader, destPath string) error {
-
+func saveFile(fileHeader *multipart.FileHeader, destDir string) (string, error) {
 	src, err := fileHeader.Open()
 	if err != nil {
-		return err
+		return "", err
 	}
 	defer src.Close()
 
-	dst, err := os.Create(destPath)
-	if err != nil {
-		return err
-	}
-	defer dst.Close()
-
-	_, err = io.Copy(dst, src)
-	if err != nil {
-		return err
+	originalName := filepath.Base(strings.ReplaceAll(fileHeader.Filename, "\\", "/"))
+	if originalName == "" || originalName == "." {
+		return "", errors.New("invalid attachment filename")
 	}
 
-	return nil
+	for range 10 {
+		randomBytes := make([]byte, 16)
+		if _, err := rand.Read(randomBytes); err != nil {
+			return "", err
+		}
+
+		fileName := hex.EncodeToString(randomBytes) + "_" + originalName
+		destPath := filepath.Join(destDir, fileName)
+		dst, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0644)
+		if errors.Is(err, os.ErrExist) {
+			continue
+		}
+		if err != nil {
+			return "", err
+		}
+
+		_, copyErr := io.Copy(dst, src)
+		closeErr := dst.Close()
+		if copyErr != nil {
+			_ = os.Remove(destPath)
+			return "", copyErr
+		}
+		if closeErr != nil {
+			_ = os.Remove(destPath)
+			return "", closeErr
+		}
+
+		return fileName, nil
+	}
+
+	return "", errors.New("could not allocate a unique attachment filename")
 }
 
 func isImage(name string) bool {
