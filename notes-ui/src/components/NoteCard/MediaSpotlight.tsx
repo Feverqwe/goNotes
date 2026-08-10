@@ -39,7 +39,6 @@ const spotlightContentSx = {
   p: 2,
   overflow: 'hidden',
   bgcolor: getSpotlightBackground,
-  backdropFilter: 'blur(12px)',
   '&:fullscreen': {bgcolor: getFullscreenBackground},
 };
 
