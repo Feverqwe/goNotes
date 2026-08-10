@@ -18,7 +18,6 @@ import {
   Checkbox,
   IconButton,
   Link,
-  Stack,
   Theme,
   Tooltip,
   Typography,
@@ -40,7 +39,7 @@ import MarkdownCode from './MarkdownCode';
 import MarkdownListItem from './MarkdownListItem';
 import MarkdownParagraph from './MarkdownParagraph';
 import MarkdownUnorderedList from './MarkdownUnorderedList';
-import NoteAttachment from './NoteAttachment';
+import NoteAttachments from './NoteAttachments';
 import NoteOrder from './NoteOrder';
 import NoteTag from './NoteTag';
 import Secret from './Secret';
@@ -78,7 +77,6 @@ const selectCheckboxSx = {
 };
 
 const cardContentSx = {'&:last-child': {pb: 1.5}, p: 1.5};
-const attachmentsStackSx = {mt: 1, pr: 0};
 const contentContainerSx = {position: 'relative'};
 const expandOverlayButtonSx = {
   position: 'absolute',
@@ -394,11 +392,7 @@ const NoteCard: FC<NoteCardProps> = ({
             )}
           </Box>
           {note.attachments && note.attachments.length > 0 && (
-            <Stack spacing={1} sx={attachmentsStackSx}>
-              {note.attachments?.map((att) => (
-                <NoteAttachment key={att.id} att={att} />
-              ))}
-            </Stack>
+            <NoteAttachments attachments={note.attachments} />
           )}
           <Box sx={[bottomSx, {display: 'flex', alignItems: 'center'}]}>
             <Box sx={tagsCtrSx}>

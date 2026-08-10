@@ -1,28 +1,10 @@
 import React, {FC, useMemo} from 'react';
 
-import {InsertDriveFile} from '@mui/icons-material';
-import {Box, Button, Link, Typography} from '@mui/material';
+import {Download, InsertDriveFile} from '@mui/icons-material';
+import {Box, Button, Typography} from '@mui/material';
 
 import {API_BASE} from '../../constants';
 import {Attachment} from '../../types';
-
-const imageSx = {
-  width: '100%',
-  borderRadius: 2,
-  border: '1px solid',
-  borderColor: 'divider',
-  cursor: 'pointer',
-};
-
-const videoSx = {
-  mt: 1,
-  width: '100%',
-  borderRadius: 3,
-  overflow: 'hidden',
-  bgcolor: 'common.black',
-};
-
-const videoStyle = {width: '100%', display: 'block', maxHeight: '500px'};
 
 const audioSx = {
   mt: 1,
@@ -42,14 +24,26 @@ const audioCaptainSx = {color: 'text.secondary', ml: 1, mb: 0.5};
 const audioStyle = {width: '100%', height: '32px'};
 
 const fileSx = {
-  justifyContent: 'start',
+  width: '100%',
+  minWidth: 0,
+  justifyContent: 'flex-start',
   textTransform: 'none',
   borderColor: 'divider',
   color: 'text.primary',
+  '& .MuiButton-endIcon': {ml: 'auto'},
   '&:hover': {
     bgcolor: 'action.hover',
-    borderColor: 'primary.main',
+    borderColor: 'divider',
   },
+};
+
+const fileNameSx = {
+  flex: 1,
+  minWidth: 0,
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+  textAlign: 'left',
 };
 
 interface NoteAttachmentProps {
@@ -59,35 +53,7 @@ interface NoteAttachmentProps {
 const NoteAttachment: FC<NoteAttachmentProps> = ({att}) => {
   const filename = useMemo(() => att.file_path.split('_').slice(1).join('_'), [att.file_path]);
 
-  const displayUrl = useMemo(
-    () =>
-      att.thumbnail_path
-        ? `${API_BASE}/files/${att.thumbnail_path}`
-        : `${API_BASE}/files/${att.file_path}`,
-    [att],
-  );
-
   const originalUrl = `${API_BASE}/files/${att.file_path}`;
-
-  if (att.file_type === 'image') {
-    return (
-      <Link href={originalUrl} target="_blank">
-        <Box component="img" src={displayUrl} sx={imageSx} />
-      </Link>
-    );
-  }
-
-  if (att.file_type === 'video') {
-    return (
-      <Box sx={videoSx}>
-        <video controls preload="metadata" style={videoStyle}>
-          <source src={originalUrl} type="video/mp4" />
-          <source src={originalUrl} type="video/quicktime" />
-          Ваш браузер не поддерживает видео.
-        </video>
-      </Box>
-    );
-  }
 
   if (att.file_type === 'audio') {
     return (
@@ -110,11 +76,16 @@ const NoteAttachment: FC<NoteAttachmentProps> = ({att}) => {
       variant="outlined"
       size="small"
       startIcon={<InsertDriveFile />}
+      endIcon={<Download />}
       href={originalUrl}
-      target="_blank"
+      download={filename}
+      title={filename}
+      aria-label={`Скачать файл ${filename}`}
       sx={fileSx}
     >
-      {filename}
+      <Typography component="span" variant="body2" sx={fileNameSx}>
+        {filename}
+      </Typography>
     </Button>
   );
 };
