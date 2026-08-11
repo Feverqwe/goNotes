@@ -42,6 +42,9 @@ func TestMCPRequiresBearerTokenAndListsTools(t *testing.T) {
 			t.Errorf("tools/list response does not contain %q: %s", toolName, body)
 		}
 	}
+	if !strings.Contains(body, `||hidden text||`) {
+		t.Errorf("tools/list response does not describe custom spoiler syntax: %s", body)
+	}
 }
 
 func TestHTTPAndMCPShareNotesService(t *testing.T) {

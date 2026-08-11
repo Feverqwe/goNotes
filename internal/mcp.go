@@ -35,13 +35,13 @@ type mcpGetAttachmentInput struct {
 }
 
 type mcpCreateNoteInput struct {
-	Content     string               `json:"content" jsonschema:"Complete Markdown note content. Put tags in the content as #tags."`
+	Content     string               `json:"content" jsonschema:"Complete goNotes Markdown content. Put tags in the content as #tags; wrap visually hidden text as ||hidden text||."`
 	Attachments []mcpAttachmentInput `json:"attachments,omitempty" jsonschema:"Optional files to attach"`
 }
 
 type mcpUpdateNoteInput struct {
 	ID                  int64                `json:"id" jsonschema:"Exact note ID"`
-	Content             *string              `json:"content,omitempty" jsonschema:"Replacement Markdown content. May be an empty string."`
+	Content             *string              `json:"content,omitempty" jsonschema:"Replacement goNotes Markdown content. Use ||hidden text|| for visually hidden text. May be an empty string."`
 	AppendContent       string               `json:"append_content,omitempty" jsonschema:"Text to append on a new line instead of replacing content"`
 	Attachments         []mcpAttachmentInput `json:"attachments,omitempty" jsonschema:"Optional new files to attach"`
 	DeleteAttachmentIDs []int64              `json:"delete_attachment_ids,omitempty" jsonschema:"IDs of existing attachments to remove"`
@@ -117,7 +117,7 @@ func newMCPServer(service *NotesService, version string) *mcp.Server {
 	server := mcp.NewServer(
 		&mcp.Implementation{Name: "goNotes", Version: version},
 		&mcp.ServerOptions{Instructions: strings.TrimSpace(`
-goNotes stores Markdown notes whose hashtags are part of their content. Always use notes_list or note_get to resolve exact IDs before changing existing notes. Never guess an ID. Prefer note_update with append_content when the user asks to add information. Moving to trash is reversible; notes_delete_permanently is irreversible and only affects notes already in trash, so obtain explicit user confirmation immediately before calling it. Attachments are sent as base64 and are limited to 32 MiB decoded per tool call.`)},
+goNotes stores Markdown notes whose hashtags are part of their content. It also supports custom spoiler syntax: wrap text as ||hidden text|| to mask it in the UI until clicked. This is visual concealment only, not encryption; the text remains stored as plaintext and visible through MCP. Preserve this syntax when editing notes and use it when the user asks to hide content. Always use notes_list or note_get to resolve exact IDs before changing existing notes. Never guess an ID. Prefer note_update with append_content when the user asks to add information. Moving to trash is reversible; notes_delete_permanently is irreversible and only affects notes already in trash, so obtain explicit user confirmation immediately before calling it. Attachments are sent as base64 and are limited to 32 MiB decoded per tool call.`)},
 	)
 
 	mcp.AddTool(server, readOnlyTool("notes_list", "Search and list notes with tag, state, and cursor filters."),
