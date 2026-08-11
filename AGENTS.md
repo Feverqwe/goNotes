@@ -12,7 +12,8 @@ goNotes — self-hosted приложение для заметок. Backend на
 
 ## Где вносить изменения
 
-- HTTP API, SQL и транзакции: `internal/api.go`; DTO ответа:
+- HTTP API-адаптеры: `internal/api.go`; общая бизнес-логика, SQL и транзакции
+  заметок для HTTP/MCP: `internal/notes_service.go`; DTO ответа:
   `internal/types.go`.
 - Схема новой БД: `db.sql`; совместимость существующей БД:
   `internal/migrations.go`.

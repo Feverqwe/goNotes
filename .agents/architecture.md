@@ -10,6 +10,7 @@ React UI (`notes-ui/src`)
 custom Router (`internal/router.go`)
         |
         +-- JSON/multipart API (`internal/api.go`)
+        +-- Streamable HTTP MCP `/mcp` (`internal/mcp.go`)
         +-- вложения и превью (`internal/utils.go`, `internal/utils/`)
         +-- SQLite (`db.sql`, `internal/migrations.go`)
 
@@ -21,8 +22,12 @@ Development: DEBUG_UI=1 -> backend читает notes-ui/dist с диска
 
 - `main.go` — загрузка конфигурации, открытие SQLite, миграции, регистрация
   маршрутов и раздача UI/файлов.
-- `internal/api.go` — HTTP API заметок, тегов и вложений; здесь же основная
-  работа с транзакциями и SQL.
+- `internal/api.go` — тонкие HTTP-адаптеры заметок, тегов и вложений; переводят
+  query/JSON/multipart в вызовы общего сервиса и сохраняют клиентский контракт.
+- `internal/mcp.go` — защищенный Bearer-токеном Streamable HTTP MCP endpoint;
+  набор инструментов агента для полного управления заметками.
+- `internal/notes_service.go` — единый доменный сервис для HTTP API и MCP;
+  владеет SQL, транзакциями, синхронизацией тегов и файлами вложений.
 - `internal/router.go` — небольшой собственный HTTP router. Префикс маршрута
   обозначается ведущим `^`, суффикс — завершающим `$`.
 - `internal/types.go` — DTO backend.

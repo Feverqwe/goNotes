@@ -1,15 +1,13 @@
 package internal
 
 import (
-	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"goNotes/internal/cfg"
+	"io"
 	"log"
 	"mime/multipart"
 	"net/http"
-	"path/filepath"
 	"strconv"
 	"strings"
 
@@ -26,500 +24,111 @@ type JsonSuccessResponse struct {
 	Result any `json:"result"`
 }
 
-var db *sql.DB
-
-type attachmentPaths struct {
-	filePath  string
-	thumbPath string
-}
-
-func normalizeTagNames(tags []string) ([]string, error) {
-	seen := make(map[string]struct{}, len(tags))
-	normalized := make([]string, 0, len(tags))
-
-	for _, tag := range tags {
-		tag = strings.ToLower(strings.TrimSpace(tag))
-		extracted := extractHashtags("#" + tag)
-		if len(extracted) != 1 || extracted[0] != tag {
-			return nil, fmt.Errorf("Invalid tag: %q", tag)
-		}
-		if _, ok := seen[tag]; ok {
-			continue
-		}
-		seen[tag] = struct{}{}
-		normalized = append(normalized, tag)
-	}
-
-	return normalized, nil
-}
-
-func addTagsToContent(content string, tags []string) string {
-	existing := make(map[string]struct{})
-	for _, tag := range extractHashtags(content) {
-		existing[tag] = struct{}{}
-	}
-
-	for _, tag := range tags {
-		if _, ok := existing[tag]; ok {
-			continue
-		}
-		if content != "" && !strings.HasSuffix(content, "\n") {
-			content += "\n"
-		}
-		content += "#" + tag
-		existing[tag] = struct{}{}
-	}
-
-	return content
-}
-
-// trashOrDeleteMessages moves non-deleted messages to the trash without
-// changing their archive state and permanently deletes messages already there.
-func trashOrDeleteMessages(ids []int64) (int, error) {
-	if len(ids) == 0 {
-		return 0, nil
-	}
-
-	tx, err := db.Begin()
-	if err != nil {
-		return 0, err
-	}
-	defer tx.Rollback()
-
-	args := make([]any, len(ids))
-	for i, id := range ids {
-		args[i] = id
-	}
-
-	rows, err := tx.Query(
-		fmt.Sprintf("SELECT id, is_deleted FROM messages WHERE id IN (%s)", generatePlaceholders(len(ids))),
-		args...,
-	)
-	if err != nil {
-		return 0, err
-	}
-
-	var toTrash, toDelete []int64
-	for rows.Next() {
-		var id int64
-		var isDeleted int
-		if err := rows.Scan(&id, &isDeleted); err != nil {
-			rows.Close()
-			return 0, err
-		}
-		if isDeleted == 1 {
-			toDelete = append(toDelete, id)
-		} else {
-			toTrash = append(toTrash, id)
-		}
-	}
-	if err := rows.Err(); err != nil {
-		rows.Close()
-		return 0, err
-	}
-	if err := rows.Close(); err != nil {
-		return 0, err
-	}
-
-	var files []attachmentPaths
-	if len(toDelete) > 0 {
-		deleteArgs := make([]any, len(toDelete))
-		for i, id := range toDelete {
-			deleteArgs[i] = id
-		}
-
-		attachmentRows, err := tx.Query(
-			fmt.Sprintf("SELECT file_path, thumbnail_path FROM attachments WHERE message_id IN (%s)", generatePlaceholders(len(toDelete))),
-			deleteArgs...,
-		)
-		if err != nil {
-			return 0, err
-		}
-		for attachmentRows.Next() {
-			var paths attachmentPaths
-			if err := attachmentRows.Scan(&paths.filePath, &paths.thumbPath); err != nil {
-				attachmentRows.Close()
-				return 0, err
-			}
-			files = append(files, paths)
-		}
-		if err := attachmentRows.Err(); err != nil {
-			attachmentRows.Close()
-			return 0, err
-		}
-		if err := attachmentRows.Close(); err != nil {
-			return 0, err
-		}
-
-		if _, err := tx.Exec(
-			fmt.Sprintf("DELETE FROM messages WHERE id IN (%s)", generatePlaceholders(len(toDelete))),
-			deleteArgs...,
-		); err != nil {
-			return 0, err
-		}
-	}
-
-	if len(toTrash) > 0 {
-		trashArgs := make([]any, len(toTrash))
-		for i, id := range toTrash {
-			trashArgs[i] = id
-		}
-		if _, err := tx.Exec(
-			fmt.Sprintf("UPDATE messages SET is_deleted = 1 WHERE id IN (%s)", generatePlaceholders(len(toTrash))),
-			trashArgs...,
-		); err != nil {
-			return 0, err
-		}
-	}
-
-	if err := tx.Commit(); err != nil {
-		return 0, err
-	}
-	for _, paths := range files {
-		deletePhysicalFile(paths.filePath)
-		if paths.thumbPath != "" {
-			deletePhysicalFile(paths.thumbPath)
-		}
-	}
-
-	return len(toTrash) + len(toDelete), nil
-}
-
-func HandleApi(router *Router, database *sql.DB, config *cfg.Config) {
-	db = database
+func HandleApi(router *Router, service *NotesService) {
 	apiRouter := NewRouter()
-
 	gzipHandler := gziphandler.GzipHandler(apiRouter)
 
-	handleAction(apiRouter)
+	handleAction(apiRouter, service)
 
-	apiRouter.Use(func(w http.ResponseWriter, r *http.Request) {
-		w.WriteHeader(404)
+	apiRouter.Use(func(w http.ResponseWriter, _ *http.Request) {
+		w.WriteHeader(http.StatusNotFound)
 	})
-
 	router.All("^/api/", gzipHandler.ServeHTTP)
 }
 
-func handleAction(router *Router) {
+func handleAction(router *Router, service *NotesService) {
 	router.Get("/api/messages/list", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() ([]MessageDTO, error) {
-			limit, _ := strconv.Atoi(r.URL.Query().Get("limit"))
-			lastOrder, _ := strconv.Atoi(r.URL.Query().Get("last_order"))
-			lastArchived, _ := strconv.Atoi(r.URL.Query().Get("last_archived"))
-			tagsParam := r.URL.Query().Get("tags")
-			searchQuery := r.URL.Query().Get("q")
-			onlyArchived := r.URL.Query().Get("archived") == "1"
-			onlyDeleted := r.URL.Query().Get("deleted") == "1"
-			noteID, _ := strconv.Atoi(r.URL.Query().Get("id"))
-			groupByArchive := tagsParam != "" && !onlyDeleted
-
+			query := r.URL.Query()
+			limit, _ := strconv.Atoi(query.Get("limit"))
 			if limit <= 0 {
 				limit = 15
 			}
+			lastOrder, _ := strconv.Atoi(query.Get("last_order"))
+			lastArchived, _ := strconv.Atoi(query.Get("last_archived"))
+			noteID, _ := strconv.ParseInt(query.Get("id"), 10, 64)
+			tagsParam := query.Get("tags")
+			searchQuery := strings.TrimSpace(query.Get("q"))
+			onlyArchived := query.Get("archived") == "1"
+			onlyDeleted := query.Get("deleted") == "1"
 
-			var clauses []string
-			var args []any
-			if onlyDeleted {
-				clauses = append(clauses, "is_deleted = 1")
-			} else {
-				clauses = append(clauses, "is_deleted = 0")
+			var tags []string
+			if tagsParam != "" {
+				tags = strings.Split(tagsParam, ",")
 			}
-
 			if noteID > 0 {
-				clauses = append(clauses, "id = ?")
-				args = append(args, noteID)
-			} else {
-				if lastOrder > 0 {
-					if groupByArchive {
-						clauses = append(clauses, "(is_archived > ? OR (is_archived = ? AND sort_order < ?))")
-						args = append(args, lastArchived, lastArchived, lastOrder)
-					} else {
-						clauses = append(clauses, "sort_order < ?")
-						args = append(args, lastOrder)
-					}
-				}
-
-				if searchQuery != "" {
-					searchQuery = strings.TrimSpace(searchQuery)
-					words := strings.Fields(searchQuery)
-
-					for _, word := range words {
-						processedWord := strings.ToLower(word)
-
-						processedWord = "%" + processedWord + "%"
-
-						clauses = append(clauses, "content_lower LIKE ?")
-						args = append(args, processedWord)
-					}
-				}
-
-				if tagsParam != "" {
-					tagList := strings.Split(tagsParam, ",")
-					clauses = append(clauses, fmt.Sprintf(`id IN (
-						SELECT message_id FROM message_tags mt 
-						JOIN tags t ON mt.tag_id = t.id 
-						WHERE t.name IN (%s)
-						GROUP BY message_id
-						HAVING COUNT(DISTINCT t.name) = ?
-					)`, generatePlaceholders(len(tagList))))
-
-					for _, t := range tagList {
-						args = append(args, strings.ToLower(strings.TrimSpace(t)))
-					}
-					args = append(args, len(tagList))
-				}
-
-				// Tagged views contain both current and archived messages. Search is
-				// global across both states, and the trash is separate as well.
-				if !onlyDeleted && searchQuery == "" && !groupByArchive {
-					if onlyArchived {
-						clauses = append(clauses, "is_archived = 1")
-					} else {
-						clauses = append(clauses, "is_archived = 0")
-					}
-				}
+				searchQuery = ""
+				tags = nil
+				lastOrder = 0
 			}
-
-			whereSQL := ""
-			if len(clauses) > 0 {
-				whereSQL = "WHERE " + strings.Join(clauses, " AND ")
+			state := "active"
+			switch {
+			case onlyDeleted:
+				state = "trash"
+			case noteID > 0, searchQuery != "", tagsParam != "":
+				state = "all"
+			case onlyArchived:
+				state = "archived"
 			}
-
-			orderSQL := "sort_order DESC"
-			if groupByArchive {
-				orderSQL = "is_archived ASC, sort_order DESC"
-			}
-
-			query := fmt.Sprintf(`
-				SELECT id, content, created_at, updated_at, used_at, is_archived, is_deleted, is_expanded, sort_order, color
-					FROM messages 
-					%s 
-					ORDER BY %s
-					LIMIT ?`, whereSQL, orderSQL)
-
-			args = append(args, limit)
-
-			rows, err := db.Query(query, args...)
-			if err != nil {
-				log.Printf("Query error: %v", err)
-				return nil, err
-			}
-			defer rows.Close()
-
-			messages := make([]MessageDTO, 0)
-			var messageIDs []int64
-
-			for rows.Next() {
-				var m MessageDTO
-
-				if err := rows.Scan(&m.ID, &m.Content, &m.CreatedAt, &m.UpdatedAt, &m.UsedAt, &m.IsArchived, &m.IsDeleted, &m.IsExpanded, &m.SortOrder, &m.Color); err != nil {
-					log.Printf("Scan error: %v", err)
-					continue
-				}
-				m.Tags = []string{}
-				m.Attachments = []AttachmentDTO{}
-				messages = append(messages, m)
-				messageIDs = append(messageIDs, m.ID)
-			}
-
-			if len(messages) > 0 {
-				tagsMap := fetchTagsForMessages(messageIDs)
-				attachMap := fetchAttachmentsForMessages(messageIDs)
-				for i := range messages {
-					if t, ok := tagsMap[messages[i].ID]; ok {
-						messages[i].Tags = t
-					}
-					if a, ok := attachMap[messages[i].ID]; ok {
-						messages[i].Attachments = a
-					}
-				}
-			}
-			return messages, nil
+			result, err := service.ListNotes(r.Context(), ListNotesOptions{
+				ID: noteID, Query: searchQuery, Tags: tags, State: state, Limit: limit,
+				BeforeSortOrder: lastOrder, BeforeArchived: lastArchived,
+				GroupByArchived: noteID == 0 && tagsParam != "" && !onlyDeleted,
+			})
+			return result.Notes, err
 		})
 	})
 
-	handleAttachment := func(fHeader *multipart.FileHeader, tx *sql.Tx, id int64) (err error) {
-		uploadsDir := filepath.Join(cfg.GetProfilePath(), "uploads")
-		fileName, err := saveFile(fHeader, uploadsDir)
-		if err != nil {
-			log.Printf("File save error: %v", err)
-			return
-		}
-		fullPath := filepath.Join(uploadsDir, fileName)
-
-		fileType := "document"
-		thumbnailPath := ""
-		if isImage(fileName) {
-			fileType = "image"
-			thumbName := "thumb_" + fileName
-			fullThumbPath := filepath.Join(cfg.GetProfilePath(), "uploads", thumbName)
-
-			if err := generateThumbnail(fullPath, fullThumbPath); err != nil {
-				log.Printf("Ошибка генерации миниатюры: %v", err)
-			} else {
-				thumbnailPath = thumbName
-			}
-		} else if isAudio(fileName) {
-			fileType = "audio"
-		} else if isVideo(fileName) {
-			fileType = "video"
-		}
-
-		_, err = tx.Exec("INSERT INTO attachments (message_id, file_path, thumbnail_path, file_type) VALUES (?, ?, ?, ?)",
-			id, fileName, thumbnailPath, fileType)
-		if err != nil {
-			return
-		}
-
-		return
-	}
-
-	handleTags := func(tx *sql.Tx, id int64, content string, isUpdate bool) (err error) {
-		if isUpdate {
-			_, err = tx.Exec("DELETE FROM message_tags WHERE message_id = ?", id)
-			if err != nil {
-				return
-			}
-		}
-
-		tags := extractHashtags(content)
-		for _, t := range tags {
-			_, err = tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", t)
-			if err != nil {
-				break
-			}
-			_, err = tx.Exec("INSERT INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?", id, t)
-			if err != nil {
-				break
-			}
-		}
-		return
-	}
-
-	type SendMessageResponse struct {
+	type sendMessageResponse struct {
 		ID int64 `json:"id"`
 	}
 
 	router.Post("/api/messages/send", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (SendMessageResponse, error) {
+		apiCall(w, func() (sendMessageResponse, error) {
 			if err := r.ParseMultipartForm(32 << 20); err != nil {
-				return SendMessageResponse{}, err
+				return sendMessageResponse{}, err
 			}
-
-			content := r.FormValue("content")
-			content = strings.ReplaceAll(content, "\r\n", "\n")
-
-			contentLower := strings.ToLower(content)
-
-			tx, err := db.Begin()
-			if err != nil {
-				return SendMessageResponse{}, err
-			}
-			defer tx.Rollback()
-
-			var maxOrder int
-			db.QueryRow("SELECT COALESCE(MAX(sort_order), 0) FROM messages").Scan(&maxOrder)
-
-			res, err := tx.Exec("INSERT INTO messages (content, content_lower, sort_order) VALUES (?, ?, ?)", content, contentLower, maxOrder+1)
-			if err != nil {
-				return SendMessageResponse{}, err
-			}
-			msgID, _ := res.LastInsertId()
-
-			files := r.MultipartForm.File["attachments"]
-			for _, fHeader := range files {
-				if err = handleAttachment(fHeader, tx, msgID); err != nil {
-					return SendMessageResponse{}, err
-				}
-			}
-
-			if err = handleTags(tx, msgID, content, false); err != nil {
-				return SendMessageResponse{}, err
-			}
-
-			if err := tx.Commit(); err != nil {
-				return SendMessageResponse{}, err
-			}
-
-			return SendMessageResponse{ID: msgID}, nil
+			note, err := service.CreateNote(
+				r.Context(),
+				r.FormValue("content"),
+				newMultipartAttachments(r.MultipartForm.File["attachments"]),
+			)
+			return sendMessageResponse{ID: note.ID}, err
 		})
 	})
 
 	router.Post("/api/messages/update", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (string, error) {
-
 			if err := r.ParseMultipartForm(32 << 20); err != nil {
 				return "", err
 			}
-
-			idStr := r.FormValue("id")
-			content := r.FormValue("content")
-			content = strings.ReplaceAll(content, "\r\n", "\n")
-
-			contentLower := strings.ToLower(content)
-
-			deleteAttachIDs := r.FormValue("delete_attachments")
-
-			id, _ := strconv.ParseInt(idStr, 10, 64)
-
-			tx, _ := db.Begin()
-			defer tx.Rollback()
-
-			_, err := tx.Exec("UPDATE messages SET content = ?, content_lower = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?", content, contentLower, id)
+			id, err := strconv.ParseInt(r.FormValue("id"), 10, 64)
+			if err != nil || id <= 0 {
+				return "", errors.New("missing ID")
+			}
+			deleteAttachmentIDs, err := parseCommaSeparatedIDs(r.FormValue("delete_attachments"))
 			if err != nil {
 				return "", err
 			}
-
-			if deleteAttachIDs != "" {
-				ids := strings.Split(deleteAttachIDs, ",")
-				for _, aid := range ids {
-
-					var filePath, thumbPath string
-					err := tx.QueryRow("SELECT file_path, thumbnail_path FROM attachments WHERE id = ? AND message_id = ?", aid, id).Scan(&filePath, &thumbPath)
-					if err == nil {
-						deletePhysicalFile(filePath)
-						if thumbPath != "" {
-							deletePhysicalFile(thumbPath)
-						}
-					}
-
-					_, err = tx.Exec("DELETE FROM attachments WHERE id = ?", aid)
-					if err != nil {
-						return "", err
-					}
-				}
-			}
-
-			files := r.MultipartForm.File["attachments"]
-			for _, fHeader := range files {
-				if err = handleAttachment(fHeader, tx, id); err != nil {
-					return "", err
-				}
-			}
-
-			if err = handleTags(tx, id, content, true); err != nil {
-				return "", err
-			}
-
-			if err := tx.Commit(); err != nil {
-				return "", err
-			}
-
-			return "ok", nil
+			content := r.FormValue("content")
+			_, err = service.UpdateNote(r.Context(), id, UpdateNoteOptions{
+				Content:             &content,
+				Attachments:         newMultipartAttachments(r.MultipartForm.File["attachments"]),
+				DeleteAttachmentIDs: deleteAttachmentIDs,
+			})
+			return "ok", err
 		})
 	})
 
 	router.Post("/api/messages/use", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (string, error) {
 			var data struct {
-				Id int64 `json:"id"`
+				ID int64 `json:"id"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 				return "", err
 			}
-			// Обновляем только used_at, не трогая updated_at
-			_, err := db.Exec("UPDATE messages SET used_at = CURRENT_TIMESTAMP WHERE id = ?", data.Id)
-			return "ok", err
+			return "ok", service.MarkUsed(r.Context(), data.ID)
 		})
 	})
 
@@ -532,8 +141,7 @@ func handleAction(router *Router) {
 			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 				return "", err
 			}
-			_, err := db.Exec("UPDATE messages SET is_expanded = ? WHERE id = ?", data.Expanded, data.ID)
-			return "ok", err
+			return "ok", service.SetExpanded(r.Context(), data.ID, data.Expanded == 1)
 		})
 	})
 
@@ -541,17 +149,15 @@ func handleAction(router *Router) {
 		apiCall(w, func() (string, error) {
 			id, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)
 			if err != nil || id <= 0 {
-				return "", errors.New("Missing ID")
+				return "", errors.New("missing ID")
 			}
-
-			processed, err := trashOrDeleteMessages([]int64{id})
+			processed, err := service.TrashOrDelete(r.Context(), []int64{id})
 			if err != nil {
 				return "", err
 			}
 			if processed == 0 {
-				return "", errors.New("Message not found")
+				return "", errors.New("message not found")
 			}
-
 			return "ok", nil
 		})
 	})
@@ -564,18 +170,11 @@ func handleAction(router *Router) {
 			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 				return "", err
 			}
-
 			if len(data.IDs) == 0 {
-				w.WriteHeader(http.StatusOK)
 				return "ok", nil
 			}
-
-			_, err := trashOrDeleteMessages(data.IDs)
-			if err != nil {
-				return "", err
-			}
-
-			return "ok", nil
+			_, err := service.TrashOrDelete(r.Context(), data.IDs)
+			return "ok", err
 		})
 	})
 
@@ -587,7 +186,7 @@ func handleAction(router *Router) {
 			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 				return "", err
 			}
-			_, err := db.Exec("UPDATE messages SET is_deleted = 0 WHERE id = ?", data.ID)
+			_, err := service.Restore(r.Context(), []int64{data.ID})
 			return "ok", err
 		})
 	})
@@ -603,15 +202,7 @@ func handleAction(router *Router) {
 			if len(data.IDs) == 0 {
 				return "ok", nil
 			}
-
-			args := make([]any, len(data.IDs))
-			for i, id := range data.IDs {
-				args[i] = id
-			}
-			_, err := db.Exec(
-				fmt.Sprintf("UPDATE messages SET is_deleted = 0 WHERE id IN (%s)", generatePlaceholders(len(data.IDs))),
-				args...,
-			)
+			_, err := service.Restore(r.Context(), data.IDs)
 			return "ok", err
 		})
 	})
@@ -619,18 +210,14 @@ func handleAction(router *Router) {
 	router.Post("/api/messages/archive", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (string, error) {
 			var data struct {
-				Id      int64 `json:"id"`
+				ID      int64 `json:"id"`
 				Archive int   `json:"archive"`
 			}
-			json.NewDecoder(r.Body).Decode(&data)
-			id := data.Id
-			archive := data.Archive
-
-			_, err := db.Exec("UPDATE messages SET is_archived = ? WHERE id = ?", archive, id)
-			if err != nil {
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 				return "", err
 			}
-			return "ok", nil
+			_, err := service.SetArchived(r.Context(), []int64{data.ID}, data.Archive == 1)
+			return "ok", err
 		})
 	})
 
@@ -643,25 +230,11 @@ func handleAction(router *Router) {
 			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 				return "", err
 			}
-
 			if len(data.IDs) == 0 {
 				return "ok", nil
 			}
-
-			query := fmt.Sprintf("UPDATE messages SET is_archived = ? WHERE id IN (%s)", generatePlaceholders(len(data.IDs)))
-
-			args := make([]any, len(data.IDs)+1)
-			args[0] = data.Archive
-			for i, id := range data.IDs {
-				args[i+1] = id
-			}
-
-			_, err := db.Exec(query, args...)
-			if err != nil {
-				return "", err
-			}
-
-			return "ok", nil
+			_, err := service.SetArchived(r.Context(), data.IDs, data.Archive == 1)
+			return "ok", err
 		})
 	})
 
@@ -677,102 +250,21 @@ func handleAction(router *Router) {
 			if len(data.IDs) == 0 || len(data.Tags) == 0 {
 				return "ok", nil
 			}
-
-			tags, err := normalizeTagNames(data.Tags)
-			if err != nil {
-				return "", err
-			}
-			if len(tags) == 0 {
-				return "ok", nil
-			}
-
-			tx, err := db.Begin()
-			if err != nil {
-				return "", err
-			}
-			defer tx.Rollback()
-
-			args := make([]any, len(data.IDs))
-			for i, id := range data.IDs {
-				args[i] = id
-			}
-			rows, err := tx.Query(
-				fmt.Sprintf("SELECT id, COALESCE(content, '') FROM messages WHERE id IN (%s)", generatePlaceholders(len(data.IDs))),
-				args...,
-			)
-			if err != nil {
-				return "", err
-			}
-
-			type messageContent struct {
-				id      int64
-				content string
-			}
-			messages := make([]messageContent, 0, len(data.IDs))
-			for rows.Next() {
-				var message messageContent
-				if err := rows.Scan(&message.id, &message.content); err != nil {
-					rows.Close()
-					return "", err
-				}
-				messages = append(messages, message)
-			}
-			if err := rows.Err(); err != nil {
-				rows.Close()
-				return "", err
-			}
-			if err := rows.Close(); err != nil {
-				return "", err
-			}
-
-			for _, tag := range tags {
-				if _, err := tx.Exec("INSERT OR IGNORE INTO tags (name) VALUES (?)", tag); err != nil {
-					return "", err
-				}
-			}
-
-			for _, message := range messages {
-				content := addTagsToContent(message.content, tags)
-				if content != message.content {
-					if _, err := tx.Exec(
-						"UPDATE messages SET content = ?, content_lower = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?",
-						content,
-						strings.ToLower(content),
-						message.id,
-					); err != nil {
-						return "", err
-					}
-				}
-
-				for _, tag := range tags {
-					if _, err := tx.Exec(
-						"INSERT OR IGNORE INTO message_tags (message_id, tag_id) SELECT ?, id FROM tags WHERE name = ?",
-						message.id,
-						tag,
-					); err != nil {
-						return "", err
-					}
-				}
-			}
-
-			if err := tx.Commit(); err != nil {
-				return "", err
-			}
-			return "ok", nil
+			_, err := service.AddTags(r.Context(), data.IDs, data.Tags)
+			return "ok", err
 		})
 	})
 
 	router.Post("/api/messages/set-color", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (string, error) {
 			var data struct {
-				Id    int64  `json:"id"`
+				ID    int64  `json:"id"`
 				Color string `json:"color"`
 			}
 			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 				return "", err
 			}
-			_, err := db.Exec("UPDATE messages SET color = ? WHERE id = ?", data.Color, data.Id)
-			return "ok", err
+			return "ok", service.SetColor(r.Context(), data.ID, data.Color)
 		})
 	})
 
@@ -781,61 +273,16 @@ func handleAction(router *Router) {
 			var data struct {
 				IDs []int64 `json:"ids"`
 			}
-			json.NewDecoder(r.Body).Decode(&data)
-
-			tx, err := db.Begin()
-			if err != nil {
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 				return "", err
 			}
-			defer tx.Rollback()
-
-			rows, err := tx.Query(fmt.Sprintf("SELECT sort_order FROM messages WHERE id IN (%s) ORDER BY sort_order DESC", joinIDs(data.IDs)))
-			if err != nil {
-				return "", err
-			}
-			var orders []int
-			for rows.Next() {
-				var o int
-				rows.Scan(&o)
-				orders = append(orders, o)
-			}
-			rows.Close()
-
-			for i, id := range data.IDs {
-				_, err := tx.Exec("UPDATE messages SET sort_order = ? WHERE id = ?", orders[i], id)
-				if err != nil {
-					return "", err
-				}
-			}
-
-			if err := tx.Commit(); err != nil {
-				return "", err
-			}
-
-			return "ok", nil
+			return "ok", service.ReorderNotes(r.Context(), data.IDs)
 		})
 	})
 
 	router.Get("/api/tags/list", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() ([]string, error) {
-			rows, err := db.Query(`
-				SELECT DISTINCT t.name 
-				FROM tags t 
-				JOIN message_tags mt ON t.id = mt.tag_id 
-				ORDER BY t.sort_order DESC`)
-			if err != nil {
-				return nil, err
-			}
-			defer rows.Close()
-
-			tags := []string{}
-			for rows.Next() {
-				var name string
-				rows.Scan(&name)
-				tags = append(tags, name)
-			}
-
-			return tags, nil
+			return service.ListTags(r.Context())
 		})
 	})
 
@@ -844,21 +291,42 @@ func handleAction(router *Router) {
 			var data struct {
 				Names []string `json:"names"`
 			}
-			json.NewDecoder(r.Body).Decode(&data)
-
-			tx, _ := db.Begin()
-			defer tx.Rollback()
-
-			for i, name := range data.Names {
-				newOrder := len(data.Names) - i
-				_, err := tx.Exec("UPDATE tags SET sort_order = ? WHERE name = ?", newOrder, name)
-				if err != nil {
-					return "", err
-				}
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+				return "", err
 			}
-			return "ok", tx.Commit()
+			return "ok", service.ReorderTags(r.Context(), data.Names)
 		})
 	})
+}
+
+func newMultipartAttachments(headers []*multipart.FileHeader) []NewAttachment {
+	attachments := make([]NewAttachment, 0, len(headers))
+	for _, fileHeader := range headers {
+		fileHeader := fileHeader
+		attachments = append(attachments, NewAttachment{
+			Filename: fileHeader.Filename,
+			Open: func() (io.ReadCloser, error) {
+				return fileHeader.Open()
+			},
+		})
+	}
+	return attachments
+}
+
+func parseCommaSeparatedIDs(value string) ([]int64, error) {
+	if value == "" {
+		return nil, nil
+	}
+	parts := strings.Split(value, ",")
+	ids := make([]int64, 0, len(parts))
+	for _, part := range parts {
+		id, err := strconv.ParseInt(strings.TrimSpace(part), 10, 64)
+		if err != nil || id <= 0 {
+			return nil, fmt.Errorf("invalid attachment ID %q", part)
+		}
+		ids = append(ids, id)
+	}
+	return ids, nil
 }
 
 func apiCall[T any](w http.ResponseWriter, action ActionAny[T]) {
@@ -870,16 +338,12 @@ func apiCall[T any](w http.ResponseWriter, action ActionAny[T]) {
 }
 
 func writeApiResult(w http.ResponseWriter, result any, err error) error {
-	var statusCode int
-	var body any
+	statusCode := http.StatusOK
+	body := any(JsonSuccessResponse{Result: result})
 	if err != nil {
-		statusCode = 500
+		statusCode = http.StatusInternalServerError
 		body = JsonFailResponse{Error: err.Error()}
-	} else {
-		statusCode = 200
-		body = JsonSuccessResponse{Result: result}
 	}
-
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(statusCode)
 	return json.NewEncoder(w).Encode(body)

@@ -60,8 +60,13 @@ func main() {
 	os.Mkdir(filepath.Join(cfg.GetProfilePath(), "uploads"), 0755)
 
 	router := internal.NewRouter()
+	notesService := internal.NewNotesService(db, filepath.Join(cfg.GetProfilePath(), "uploads"))
 
-	internal.HandleApi(router, db, &config)
+	internal.HandleApi(router, notesService)
+	if config.MCPToken != "" {
+		internal.HandleMCP(router, notesService, config.MCPToken, Version)
+		log.Printf("MCP endpoint enabled at /mcp")
+	}
 
 	router.Get("^/files/", handleGetFile)
 

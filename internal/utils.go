@@ -4,17 +4,13 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"errors"
-	"fmt"
-	"goNotes/internal/cfg"
 	"image"
 	"image/jpeg"
 	"io"
-	"log"
 	"mime/multipart"
 	"os"
 	"path/filepath"
 	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/nfnt/resize"
@@ -27,62 +23,6 @@ func generatePlaceholders(n int) string {
 		p[i] = "?"
 	}
 	return strings.Join(p, ",")
-}
-
-func joinIDs(ids []int64) string {
-	s := make([]string, len(ids))
-	for i, v := range ids {
-		s[i] = strconv.FormatInt(v, 10)
-	}
-	return strings.Join(s, ",")
-}
-
-func deletePhysicalFile(fileName string) {
-	fullPath := filepath.Join(cfg.GetProfilePath(), "uploads", fileName)
-	if err := os.Remove(fullPath); err != nil {
-
-		log.Printf("Could not delete file %s: %v", fullPath, err)
-	} else {
-		log.Printf("File deleted: %s", fullPath)
-	}
-}
-
-func fetchTagsForMessages(ids []int64) map[int64][]string {
-	res := make(map[int64][]string)
-
-	query := fmt.Sprintf(`
-		SELECT mt.message_id, t.name 
-		FROM message_tags mt 
-		JOIN tags t ON mt.tag_id = t.id 
-		WHERE mt.message_id IN (%s)`, joinIDs(ids))
-
-	rows, _ := db.Query(query)
-	defer rows.Close()
-	for rows.Next() {
-		var mID int64
-		var name string
-		rows.Scan(&mID, &name)
-		res[mID] = append(res[mID], name)
-	}
-	return res
-}
-
-func fetchAttachmentsForMessages(ids []int64) map[int64][]AttachmentDTO {
-	res := make(map[int64][]AttachmentDTO)
-	query := fmt.Sprintf(`
-		SELECT message_id, id, file_path, thumbnail_path, file_type 
-		FROM attachments 
-		WHERE message_id IN (%s)`, joinIDs(ids))
-
-	rows, _ := db.Query(query)
-	defer rows.Close()
-	for rows.Next() {
-		var mID int64
-		var a AttachmentDTO
-		rows.Scan(&mID, &a.ID, &a.FilePath, &a.ThumbnailPath, &a.FileType)
-		res[mID] = append(res[mID], a)
-	}
-	return res
 }
 
 func extractHashtags(text string) []string {
@@ -123,6 +63,11 @@ func saveFile(fileHeader *multipart.FileHeader, destDir string) (string, error) 
 	defer src.Close()
 
 	originalName := filepath.Base(strings.ReplaceAll(fileHeader.Filename, "\\", "/"))
+	return saveReader(src, originalName, destDir)
+}
+
+func saveReader(src io.Reader, originalName, destDir string) (string, error) {
+	originalName = filepath.Base(strings.ReplaceAll(originalName, "\\", "/"))
 	if originalName == "" || originalName == "." {
 		return "", errors.New("invalid attachment filename")
 	}

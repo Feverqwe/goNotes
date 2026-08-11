@@ -18,6 +18,7 @@ type Config struct {
 	Address    string
 	Name       string
 	UploadsDir string
+	MCPToken   string `json:"-"`
 }
 
 var APP_ID = "com.rndnm.gonotes"
@@ -68,6 +69,9 @@ func LoadConfig() Config {
 
 	if config.UploadsDir == "" {
 		config.UploadsDir = newConfig.UploadsDir
+	}
+	if token := os.Getenv("MCP_TOKEN"); token != "" {
+		config.MCPToken = token
 	}
 
 	return config
