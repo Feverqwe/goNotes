@@ -4,7 +4,7 @@ uploads/
 assets/www
 
 notes.db*
-goNotes
+/goNotes
 
 # dependencies
 node_modules
