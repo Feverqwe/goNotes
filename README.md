@@ -4,6 +4,11 @@
 SQLite, поддерживает Markdown и вложения, работает как PWA и собирается в один
 Go-бинарник вместе с веб-интерфейсом.
 
+<p align="center">
+  <img src="docs/screenshots/desktop.jpg" alt="goNotes на компьютере" width="78%">
+  <img src="docs/screenshots/mobile.jpg" alt="goNotes на смартфоне" width="20%">
+</p>
+
 ## Возможности
 
 - Markdown с поддержкой GFM, подсветкой синтаксиса и копированием блоков кода.
