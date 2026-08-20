@@ -49,6 +49,7 @@ const spotlightMediaSx = {
   objectFit: 'contain',
   borderRadius: 1,
   boxShadow: 8,
+  outline: 'none',
 };
 
 const actionsSx = {

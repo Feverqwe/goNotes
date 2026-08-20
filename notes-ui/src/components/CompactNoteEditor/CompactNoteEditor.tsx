@@ -331,7 +331,7 @@ const CompactNoteEditor: FC<CompactNoteEditorProps> = (props) => {
       onDrop={handleDrop}
       sx={paperSx}
     >
-      <Container maxWidth="sm" disableGutters sx={containerSx}>
+      <Container maxWidth={isDialogMode ? false : 'sm'} disableGutters sx={containerSx}>
         {!isDialogMode && editingNote && <EditingBanner onCancel={cancelEditing} />}
 
         <Box sx={isDialogMode ? dialogScrollableContentSx : undefined}>
