@@ -12,11 +12,13 @@
     "build": "rspack build --mode production",
     "dev": "rspack build --mode development --watch",
     "release": "npm run clean:dist && npm run build && npm run clean:www && npm run copy:dist",
+    "storybook": "storybook dev -p 6006 --no-open --no-version-updates",
+    "build-storybook": "storybook build",
     "tsc": "tsc --noEmit",
-    "lint": "npx eslint ./src && npm run prettier",
-    "lint:fix": "npx eslint --fix ./src && npm run prettier:fix",
-    "prettier": "npx prettier --check ./src",
-    "prettier:fix": "npx prettier --write ./src"
+    "lint": "npx eslint ./src ./.storybook && npm run prettier",
+    "lint:fix": "npx eslint --fix ./src ./.storybook && npm run prettier:fix",
+    "prettier": "npx prettier --check ./src ./.storybook",
+    "prettier:fix": "npx prettier --write ./src ./.storybook"
   },
   "author": "",
   "license": "ISC",
@@ -46,6 +48,7 @@
     "@gravity-ui/prettier-config": "^1.1.1",
     "@rspack/cli": "^1.7.12",
     "@rspack/core": "^1.7.12",
+    "@storybook/react-vite": "^10.5.10",
     "@types/lodash": "^4.17.25",
     "@types/react-dom": "^19.2.4",
     "@types/react-syntax-highlighter": "^15.5.13",
@@ -55,8 +58,10 @@
     "eslint-plugin-react-hooks": "^7.1.1",
     "ncp": "^2.0.0",
     "prettier": "^3.9.6",
+    "storybook": "^10.5.10",
     "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vite": "^8.2.2"
   },
   "overrides": {
     "typescript": "$typescript"

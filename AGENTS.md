@@ -32,6 +32,9 @@ goNotes — self-hosted приложение для заметок. Backend на
   `CompactNoteEditorDialog` с переходом в `AdvancedNoteEditor`. Изменения
   сценария редактирования проверь в обеих ветках.
 - Конфигурация frontend-сборки находится в `notes-ui/rspack.config.cts`.
+- Конфигурация Storybook находится в `notes-ui/.storybook`; stories размещай
+  рядом с компонентами в файлах `*.stories.tsx`. Общие провайдеры и стили
+  подключай в `notes-ui/.storybook/preview.tsx`.
 
 ## Основные команды
 
@@ -51,6 +54,10 @@ npm ci
 npm run tsc
 npm run lint
 npm run build
+
+# Storybook
+npm run storybook
+npm run build-storybook
 ```
 
 В проекте пока нет отдельных unit-тестов. Для каждого изменения обязательно
@@ -68,6 +75,9 @@ npm run build
 
 # Терминал 2: пересборка frontend при изменениях
 cd notes-ui && npm run dev
+
+# Изолированная разработка и просмотр компонентов на порту 6006
+cd notes-ui && npm run storybook
 ```
 
 По умолчанию приложение слушает порт `80` и пишет пользовательские данные вне
@@ -85,6 +95,10 @@ cd notes-ui && npm run dev
   зависимость без необходимости.
 - Форматируй Go через `gofmt`, TypeScript/React — существующими ESLint и
   Prettier-конфигами.
+- При добавлении или существенном изменении изолированного UI-компонента
+  обновляй его story, если компонент уже представлен в Storybook. Не обращайся
+  к реальному backend из stories: передавай данные через args или локальные
+  моки.
 - SQL всегда параметризуй. Изменения схемы делай обратно совместимыми:
   актуализируй `db.sql` для новых установок и добавляй миграцию в
   `internal/migrations.go` для существующих баз.
@@ -127,7 +141,8 @@ cd notes-ui && npm run dev
 
 1. Проверь diff и отсутствие случайных/generated-файлов.
 2. Выполни проверки затронутой части (`go test ./...` для backend;
-   `npm run tsc`, `npm run lint`, `npm run build` для frontend).
+   `npm run tsc`, `npm run lint`, `npm run build` для frontend; дополнительно
+   `npm run build-storybook` при изменении Storybook или stories).
 3. Для сквозных изменений собери обе части и проверь основной сценарий вручную.
 4. В отчете перечисли измененные файлы, выполненные проверки и известные
    ограничения.
