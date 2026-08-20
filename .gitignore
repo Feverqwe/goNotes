@@ -12,6 +12,7 @@ node_modules
 # production
 dist
 /notes-ui/storybook-static
+/notes-ui/debug-storybook.log
 
 # misc
 .DS_Store
