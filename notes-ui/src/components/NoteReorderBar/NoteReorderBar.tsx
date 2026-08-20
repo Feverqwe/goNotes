@@ -12,10 +12,13 @@ import {
   useTheme,
 } from '@mui/material';
 
+import {DESKTOP_NOTE_CARD_WIDTH} from '../../constants';
+
 const containerSx = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
+  maxWidth: {md: DESKTOP_NOTE_CARD_WIDTH},
   px: 1,
 };
 

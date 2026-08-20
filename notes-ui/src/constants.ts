@@ -23,6 +23,8 @@ export const HEADER_HEIGHT = 49;
 
 export const SIDE_PANEL_WIDTH = 240;
 
+export const DESKTOP_NOTE_CARD_WIDTH = 640;
+
 export const POST_LIMIT = 16;
 
 export const NOTE_COLORS = [

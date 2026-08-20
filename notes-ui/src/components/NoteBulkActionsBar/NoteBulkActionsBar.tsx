@@ -20,6 +20,7 @@ import {
 } from '@mui/material';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 
+import {DESKTOP_NOTE_CARD_WIDTH} from '../../constants';
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {useTags} from '../../hooks/useTags';
 import {api} from '../../tools/api';
@@ -29,6 +30,7 @@ const containerSx = {
   display: 'flex',
   justifyContent: 'space-between',
   alignItems: 'center',
+  maxWidth: {md: DESKTOP_NOTE_CARD_WIDTH},
   px: 1,
 };
 

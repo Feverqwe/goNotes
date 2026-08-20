@@ -15,11 +15,11 @@ import {
   useTheme,
 } from '@mui/material';
 
-import {SIDE_PANEL_WIDTH} from '../../constants';
+import {DESKTOP_NOTE_CARD_WIDTH, SIDE_PANEL_WIDTH} from '../../constants';
 
 const textFieldWrapperSx = {
   width: '100%',
-  maxWidth: 'sm',
+  maxWidth: {xs: 'sm', md: DESKTOP_NOTE_CARD_WIDTH},
   mx: 'auto',
 };
 

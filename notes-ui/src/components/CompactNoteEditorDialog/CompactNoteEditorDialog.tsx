@@ -3,6 +3,7 @@ import React, {FC, useCallback, useEffect, useMemo, useState} from 'react';
 import {Close, Fullscreen} from '@mui/icons-material';
 import {Dialog, DialogContent, IconButton, Theme} from '@mui/material';
 
+import {DESKTOP_NOTE_CARD_WIDTH} from '../../constants';
 import CompactNoteEditor, {CompactNoteEditorProps} from '../CompactNoteEditor/CompactNoteEditor';
 
 const dialogContentSx = {
@@ -20,6 +21,7 @@ const closeSx = {
 };
 
 const headerIconSx = {fontSize: 24};
+const dialogSlotProps = {paper: {sx: {maxWidth: DESKTOP_NOTE_CARD_WIDTH}}};
 
 export interface CompactNoteEditorDialogProps extends Omit<CompactNoteEditorProps, 'isDialogMode'> {
   open: boolean;
@@ -100,9 +102,10 @@ const CompactNoteEditorDialog: FC<CompactNoteEditorDialogProps> = ({
       open={open}
       onClose={handleDialogClose}
       aria-label={editingNote ? 'Редактирование заметки' : 'Новая заметка'}
-      maxWidth="sm"
+      maxWidth={false}
       fullWidth
       scroll="paper"
+      slotProps={dialogSlotProps}
       transitionDuration={100}
       disableRestoreFocus={true}
     >

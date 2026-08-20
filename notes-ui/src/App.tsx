@@ -15,6 +15,7 @@ import NoteReorderBar from './components/NoteReorderBar/NoteReorderBar';
 import NotesFeed from './components/NotesFeed/NotesFeed';
 import NotesHeader from './components/NotesHeader/NotesHeader';
 import TagsNavigation from './components/TagsNavigation/TagsNavigation';
+import {DESKTOP_NOTE_CARD_WIDTH} from './constants';
 import {SnackCtx} from './ctx/SnackCtx';
 import {useNotes} from './hooks/useNotes';
 import {api} from './tools/api';
@@ -482,6 +483,8 @@ function App() {
   const bodyCtrSx = useMemo(
     () => ({
       flexGrow: 1,
+      maxWidth: {md: DESKTOP_NOTE_CARD_WIDTH},
+      px: {md: 0},
       pt: 1,
       pb: isMobile ? 7.5 : 1,
     }),
