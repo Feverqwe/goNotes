@@ -154,7 +154,7 @@ func (s *NotesService) ListNotes(ctx context.Context, opts ListNotesOptions) (Li
 	}
 	query := fmt.Sprintf(`
 		SELECT id, COALESCE(content, ''), created_at, updated_at, used_at,
-		       is_archived, is_deleted, is_expanded, sort_order, color
+		       is_archived, is_deleted, sort_order, color
 		FROM messages
 		WHERE %s
 		ORDER BY %s
@@ -172,7 +172,7 @@ func (s *NotesService) ListNotes(ctx context.Context, opts ListNotesOptions) (Li
 		var note MessageDTO
 		if err := rows.Scan(
 			&note.ID, &note.Content, &note.CreatedAt, &note.UpdatedAt, &note.UsedAt,
-			&note.IsArchived, &note.IsDeleted, &note.IsExpanded, &note.SortOrder, &note.Color,
+			&note.IsArchived, &note.IsDeleted, &note.SortOrder, &note.Color,
 		); err != nil {
 			return ListNotesResult{}, err
 		}
@@ -206,10 +206,10 @@ func (s *NotesService) GetNote(ctx context.Context, id int64) (MessageDTO, error
 	var note MessageDTO
 	err := s.DB.QueryRowContext(ctx, `
 		SELECT id, COALESCE(content, ''), created_at, updated_at, used_at,
-		       is_archived, is_deleted, is_expanded, sort_order, color
+		       is_archived, is_deleted, sort_order, color
 		FROM messages WHERE id = ?`, id).Scan(
 		&note.ID, &note.Content, &note.CreatedAt, &note.UpdatedAt, &note.UsedAt,
-		&note.IsArchived, &note.IsDeleted, &note.IsExpanded, &note.SortOrder, &note.Color,
+		&note.IsArchived, &note.IsDeleted, &note.SortOrder, &note.Color,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return MessageDTO{}, fmt.Errorf("note %d not found", id)
@@ -535,14 +535,6 @@ func (s *NotesService) SetColor(ctx context.Context, id int64, color string) err
 
 func (s *NotesService) MarkUsed(ctx context.Context, id int64) error {
 	return s.updateOne(ctx, id, "UPDATE messages SET used_at = CURRENT_TIMESTAMP WHERE id = ?")
-}
-
-func (s *NotesService) SetExpanded(ctx context.Context, id int64, expanded bool) error {
-	flag := 0
-	if expanded {
-		flag = 1
-	}
-	return s.updateOne(ctx, id, "UPDATE messages SET is_expanded = ? WHERE id = ?", flag)
 }
 
 func (s *NotesService) ReorderNotes(ctx context.Context, ids []int64) error {

@@ -30,8 +30,6 @@ import {
   RestoreNoteResponse,
   SetColorRequest,
   SetColorResponse,
-  SetExpandedRequest,
-  SetExpandedResponse,
   UpdateNoteRequest,
   UpdateNoteResponse,
 } from './types';
@@ -104,10 +102,6 @@ export const api = {
     markUsed: action<MarkNoteUsedRequest, MarkNoteUsedResponse>({
       method: 'POST',
       path: '/api/messages/use',
-    }),
-    setExpanded: action<SetExpandedRequest, SetExpandedResponse>({
-      method: 'POST',
-      path: '/api/messages/set-expanded',
     }),
     delete: action<DeleteNoteRequest, DeleteNoteResponse>({
       method: 'DELETE',

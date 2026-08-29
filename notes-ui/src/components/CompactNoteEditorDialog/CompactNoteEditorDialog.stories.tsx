@@ -38,7 +38,6 @@ const meta = {
       tags: ['дизайн', 'storybook'],
       is_archived: 0,
       is_deleted: 0,
-      is_expanded: 0,
       sort_order: 1,
     },
     files: [],

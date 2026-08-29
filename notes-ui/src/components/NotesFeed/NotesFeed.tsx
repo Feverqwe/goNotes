@@ -81,7 +81,7 @@ const NotesFeed: FC<NotesFeedProps> = ({
                 totalCount={notes.length}
                 onMove={onMove}
                 onRequestDelete={onRequestDelete}
-                disableContentCollapse={note.id === openedNoteId}
+                showFullContent={note.id === openedNoteId}
               />
             ))}
 

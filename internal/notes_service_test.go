@@ -21,7 +21,6 @@ CREATE TABLE messages (
     used_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     is_archived INTEGER DEFAULT 0,
     is_deleted INTEGER DEFAULT 0,
-    is_expanded INTEGER DEFAULT 0,
     color TEXT DEFAULT '',
     sort_order INTEGER DEFAULT 0
 );

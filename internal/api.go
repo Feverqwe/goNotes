@@ -132,19 +132,6 @@ func handleAction(router *Router, service *NotesService) {
 		})
 	})
 
-	router.Post("/api/messages/set-expanded", func(w http.ResponseWriter, r *http.Request) {
-		apiCall(w, func() (string, error) {
-			var data struct {
-				ID       int64 `json:"id"`
-				Expanded int   `json:"expanded"`
-			}
-			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
-				return "", err
-			}
-			return "ok", service.SetExpanded(r.Context(), data.ID, data.Expanded == 1)
-		})
-	})
-
 	router.Delete("/api/messages/delete", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (string, error) {
 			id, err := strconv.ParseInt(r.URL.Query().Get("id"), 10, 64)

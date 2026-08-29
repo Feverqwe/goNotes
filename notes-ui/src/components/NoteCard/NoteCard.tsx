@@ -10,7 +10,7 @@ import React, {
 
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {ExpandLess, ExpandMore, MoreVert, Restore} from '@mui/icons-material';
+import {MoreVert, OpenInFull, Restore} from '@mui/icons-material';
 import {
   Box,
   Card,
@@ -30,7 +30,7 @@ import remarkGfm from 'remark-gfm';
 
 import {SnackCtx} from '../../ctx/SnackCtx';
 import {api} from '../../tools/api';
-import {MarkNoteUsedRequest, SetExpandedRequest} from '../../tools/types';
+import {MarkNoteUsedRequest} from '../../tools/types';
 import {Note} from '../../types';
 import {formatFullDate, formatShortDate} from '../../utils/formatDate';
 import {getNoteBackgroundColor, getNoteBorderColor} from '../../utils/noteColors';
@@ -78,15 +78,27 @@ const selectCheckboxSx = {
 
 const cardContentSx = {'&:last-child': {pb: 1.5}, p: 1.5};
 const contentContainerSx = {position: 'relative'};
-const expandOverlayButtonSx = {
+const noteActionButtonSx = (isMobile: boolean) => ({
+  color: 'text.secondary',
+  backdropFilter: isMobile ? 'none' : 'blur(4px)',
+  '&:focus-visible': {
+    boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
+  },
+});
+const openNoteButtonSx = {
   position: 'absolute',
   left: '50%',
-  bottom: 2,
+  bottom: 8,
   transform: 'translateX(-50%)',
-  color: 'text.secondary',
-  bgcolor: 'background.paper',
-  boxShadow: 1,
-  '&:hover': {color: 'primary.main', bgcolor: 'background.paper'},
+};
+const menuBtnSx = {
+  position: 'absolute',
+  top: 4,
+  right: 4,
+  zIndex: 10,
+  opacity: {xs: 1, sm: 0},
+  transition: 'opacity 0.2s',
+  '&:focus-visible': {opacity: 1},
 };
 const dateSx = {
   color: 'text.secondary',
@@ -109,7 +121,7 @@ interface NoteCardProps {
   index: number;
   totalCount: number;
   onRequestDelete: (id: number) => void;
-  disableContentCollapse: boolean;
+  showFullContent: boolean;
 }
 
 const NoteCard: FC<NoteCardProps> = ({
@@ -125,17 +137,16 @@ const NoteCard: FC<NoteCardProps> = ({
   index,
   totalCount,
   onRequestDelete,
-  disableContentCollapse,
+  showFullContent,
 }) => {
   const theme = useTheme();
   const showSnackbar = useContext(SnackCtx);
   const queryClient = useQueryClient();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const contentRef = useRef<HTMLDivElement>(null);
-  const [isContentExpanded, setIsContentExpanded] = useState(Boolean(note.is_expanded));
   const [isContentOverflowing, setIsContentOverflowing] = useState(false);
-  const collapsedContentHeight = isMobile ? 180 : 240;
-  const isContentCollapsed = !disableContentCollapse && isContentOverflowing && !isContentExpanded;
+  const collapsedContentHeight = isMobile ? 220 : 320;
+  const isContentCollapsed = !showFullContent && isContentOverflowing;
   const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({
     id: note.id,
     disabled: !isReorderMode,
@@ -170,18 +181,6 @@ const NoteCard: FC<NoteCardProps> = ({
     },
   });
 
-  const setExpandedMutation = useMutation({
-    mutationFn: (params: SetExpandedRequest) => api.notes.setExpanded(params),
-    onSuccess: () => {
-      queryClient.invalidateQueries({queryKey: ['notes']});
-    },
-    onError: (err) => {
-      console.error(err);
-      setIsContentExpanded(Boolean(note.is_expanded));
-      showSnackbar('Ошибка сохранения состояния сообщения', 'error');
-    },
-  });
-
   const handleUseClick = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
@@ -209,8 +208,6 @@ const NoteCard: FC<NoteCardProps> = ({
     const content = contentRef.current;
     if (!content) return;
 
-    setIsContentExpanded(Boolean(note.is_expanded));
-
     const updateOverflow = () => {
       setIsContentOverflowing(content.scrollHeight > collapsedContentHeight + 1);
     };
@@ -220,17 +217,7 @@ const NoteCard: FC<NoteCardProps> = ({
     resizeObserver.observe(content);
 
     return () => resizeObserver.disconnect();
-  }, [collapsedContentHeight, note.content, note.is_expanded]);
-
-  const handleToggleExpanded = useCallback(
-    (event: React.MouseEvent<HTMLButtonElement>) => {
-      event.stopPropagation();
-      const expanded = isContentExpanded ? 0 : 1;
-      setIsContentExpanded(Boolean(expanded));
-      setExpandedMutation.mutate({id: note.id, expanded});
-    },
-    [isContentExpanded, note.id, setExpandedMutation],
-  );
+  }, [collapsedContentHeight, note.content]);
 
   const handleCardClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>) => {
@@ -279,10 +266,10 @@ const NoteCard: FC<NoteCardProps> = ({
       maxHeight: isContentCollapsed ? `${collapsedContentHeight}px` : 'none',
       overflow: 'hidden',
       WebkitMaskImage: isContentCollapsed
-        ? 'linear-gradient(to bottom, black calc(100% - 48px), transparent 100%)'
+        ? 'linear-gradient(to bottom, black calc(100% - 64px), transparent 100%)'
         : 'none',
       maskImage: isContentCollapsed
-        ? 'linear-gradient(to bottom, black calc(100% - 48px), transparent 100%)'
+        ? 'linear-gradient(to bottom, black calc(100% - 64px), transparent 100%)'
         : 'none',
       '& p': {
         m: 0,
@@ -346,24 +333,6 @@ const NoteCard: FC<NoteCardProps> = ({
     [collapsedContentHeight, isContentCollapsed, note.is_archived],
   );
 
-  const menuBtnSx = useMemo(
-    () => ({
-      position: 'absolute',
-      top: 4,
-      right: 4,
-      zIndex: 10,
-      opacity: {xs: 1, sm: 0},
-      transition: 'opacity 0.2s',
-      color: 'text.secondary',
-      backdropFilter: isMobile ? 'none' : 'blur(4px)',
-      '&:focus-visible': {
-        opacity: 1,
-        boxShadow: (theme: Theme) => `0 0 0 2px ${theme.palette.primary.main}`,
-      },
-    }),
-    [isMobile],
-  );
-
   const contextActionBtnSx = useMemo(
     () => ({
       color: 'text.disabled',
@@ -411,7 +380,7 @@ const NoteCard: FC<NoteCardProps> = ({
               className="note-menu-action"
               size="medium"
               onClick={handleMenuClick}
-              sx={menuBtnSx}
+              sx={[noteActionButtonSx(isMobile), menuBtnSx]}
             >
               <MoreVert fontSize="inherit" />
             </IconButton>
@@ -422,20 +391,15 @@ const NoteCard: FC<NoteCardProps> = ({
                 {note.content}
               </ReactMarkdown>
             </Box>
-            {isContentCollapsed && (
-              <Tooltip title="Развернуть" arrow>
-                <IconButton
-                  size="small"
-                  onClick={handleToggleExpanded}
-                  disabled={setExpandedMutation.isPending}
-                  aria-label="Развернуть заметку"
-                  aria-expanded={false}
-                  aria-controls={`note-content-${note.id}`}
-                  sx={expandOverlayButtonSx}
-                >
-                  <ExpandMore sx={{fontSize: 18}} />
-                </IconButton>
-              </Tooltip>
+            {isContentCollapsed && !isSelectMode && !isReorderMode && (
+              <IconButton
+                component="a"
+                href={dateLink}
+                aria-label="Открыть только эту заметку"
+                sx={[noteActionButtonSx(isMobile), openNoteButtonSx]}
+              >
+                <OpenInFull fontSize="inherit" />
+              </IconButton>
             )}
           </Box>
           {note.attachments && note.attachments.length > 0 && (
@@ -451,22 +415,6 @@ const NoteCard: FC<NoteCardProps> = ({
             <Box sx={{display: 'flex', alignItems: 'center', gap: 0.5}}>
               {!isSelectMode && !isReorderMode && (
                 <>
-                  {!disableContentCollapse && isContentOverflowing && isContentExpanded && (
-                    <Tooltip title="Свернуть" arrow>
-                      <IconButton
-                        size="small"
-                        className="note-context-action"
-                        onClick={handleToggleExpanded}
-                        disabled={setExpandedMutation.isPending}
-                        aria-label="Свернуть заметку"
-                        aria-expanded={true}
-                        aria-controls={`note-content-${note.id}`}
-                        sx={contextActionBtnSx}
-                      >
-                        <ExpandLess sx={{fontSize: 18}} />
-                      </IconButton>
-                    </Tooltip>
-                  )}
                   <Tooltip title="Отметить использование" arrow>
                     <IconButton
                       size="small"

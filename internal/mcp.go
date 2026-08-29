@@ -66,11 +66,6 @@ type mcpSetColorInput struct {
 	Color string `json:"color" jsonschema:"Color value understood by goNotes; use an empty string to clear"`
 }
 
-type mcpSetExpandedInput struct {
-	ID       int64 `json:"id" jsonschema:"Exact note ID"`
-	Expanded bool  `json:"expanded" jsonschema:"Whether the note card is expanded"`
-}
-
 type mcpReorderNotesInput struct {
 	IDs []int64 `json:"ids" jsonschema:"All note IDs being reordered, in desired top-to-bottom order"`
 }
@@ -215,12 +210,6 @@ goNotes stores Markdown notes whose hashtags are part of their content. It also 
 	mcp.AddTool(server, writeTool("note_mark_used", "Update only the note used_at timestamp, for example after the user copies or uses it.", false, false),
 		func(ctx context.Context, _ *mcp.CallToolRequest, input mcpGetNoteInput) (*mcp.CallToolResult, mcpStatusOutput, error) {
 			err := service.MarkUsed(ctx, input.ID)
-			return nil, mcpStatusOutput{Status: "ok", Affected: 1}, err
-		})
-
-	mcp.AddTool(server, writeTool("note_set_expanded", "Set the persisted expanded state of a note card.", false, true),
-		func(ctx context.Context, _ *mcp.CallToolRequest, input mcpSetExpandedInput) (*mcp.CallToolResult, mcpStatusOutput, error) {
-			err := service.SetExpanded(ctx, input.ID, input.Expanded)
 			return nil, mcpStatusOutput{Status: "ok", Affected: 1}, err
 		})
 

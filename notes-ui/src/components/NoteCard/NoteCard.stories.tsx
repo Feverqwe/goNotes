@@ -77,7 +77,6 @@ const meta = {
       tags: ['пример'],
       is_archived: 0,
       is_deleted: 0,
-      is_expanded: 0,
       sort_order: 1,
     },
     onTagClick: () => undefined,
@@ -91,7 +90,7 @@ const meta = {
     index: 0,
     totalCount: 1,
     onRequestDelete: () => undefined,
-    disableContentCollapse: false,
+    showFullContent: false,
   },
 } satisfies Meta<typeof NoteCard>;
 
@@ -100,7 +99,7 @@ type Story = StoryObj<typeof meta>;
 
 export const Default: Story = {};
 
-export const Markdown: Story = {
+export const LongPreview: Story = {
   args: {
     note: {
       id: 2,
@@ -111,10 +110,26 @@ export const Markdown: Story = {
       tags: ['markdown', 'storybook'],
       is_archived: 0,
       is_deleted: 0,
-      is_expanded: 1,
       sort_order: 2,
       color: '#2196f3',
     },
-    disableContentCollapse: true,
+  },
+};
+
+export const OpenedNote: Story = {
+  args: {
+    note: {
+      id: 2,
+      content: markdownContent,
+      attachments: [],
+      created_at: '2026-08-20T09:30:00Z',
+      updated_at: '2026-08-20T11:45:00Z',
+      tags: ['markdown', 'storybook'],
+      is_archived: 0,
+      is_deleted: 0,
+      sort_order: 2,
+      color: '#2196f3',
+    },
+    showFullContent: true,
   },
 };

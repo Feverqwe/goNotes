@@ -42,6 +42,9 @@ func TestMCPRequiresBearerTokenAndListsTools(t *testing.T) {
 			t.Errorf("tools/list response does not contain %q: %s", toolName, body)
 		}
 	}
+	if strings.Contains(body, `"name":"note_set_expanded"`) {
+		t.Errorf("tools/list response still contains removed note_set_expanded tool: %s", body)
+	}
 	if !strings.Contains(body, `||hidden text||`) {
 		t.Errorf("tools/list response does not describe custom spoiler syntax: %s", body)
 	}
