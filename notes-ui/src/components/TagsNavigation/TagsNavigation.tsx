@@ -34,6 +34,7 @@ const TagsNavigation: FC<TagsNavigationProps> = ({
 
   const [isReorderMode, setIsReorderMode] = useState(false);
   const [orderedTags, setOrderedTags] = useState<string[]>([]);
+  const [tagFilter, setTagFilter] = useState('');
   const orderedTagsRef = useRef(orderedTags);
   orderedTagsRef.current = orderedTags;
 
@@ -94,14 +95,22 @@ const TagsNavigation: FC<TagsNavigationProps> = ({
     [onActionFinished, onTagClick],
   );
 
-  const visibleTags = useMemo(
-    () => (isReorderMode ? orderedTags : allTags),
-    [isReorderMode, orderedTags, allTags],
-  );
+  const clearTagFilter = useCallback(() => setTagFilter(''), []);
+
+  const visibleTags = useMemo(() => {
+    if (isReorderMode) return orderedTags;
+
+    const normalizedFilter = tagFilter.trim().replace(/^#/, '').toLocaleLowerCase();
+    if (!normalizedFilter) return allTags;
+
+    return allTags.filter((tag) => tag.toLocaleLowerCase().includes(normalizedFilter));
+  }, [allTags, isReorderMode, orderedTags, tagFilter]);
 
   return (
     <TagsNavigationList
       tags={visibleTags}
+      totalTagCount={allTags.length}
+      tagFilter={tagFilter}
       currentTags={currentTags}
       showArchived={showArchived}
       showTrash={showTrash}
@@ -113,6 +122,8 @@ const TagsNavigation: FC<TagsNavigationProps> = ({
       onDragEnd={handleDragEnd}
       onMove={moveTag}
       onTagClick={handleNavigateToTag}
+      onTagFilterChange={setTagFilter}
+      onTagFilterClear={clearTagFilter}
     />
   );
 };

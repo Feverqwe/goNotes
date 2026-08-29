@@ -2,22 +2,46 @@ import React, {FC, memo} from 'react';
 
 import {DndContext, DragEndEvent} from '@dnd-kit/core';
 import {SortableContext} from '@dnd-kit/sortable';
-import {Check, LightbulbOutlined, Sort} from '@mui/icons-material';
+import {Check, Clear, LightbulbOutlined, Search, Sort} from '@mui/icons-material';
 import {
   Box,
   Divider,
+  IconButton,
+  InputBase,
   ListItemButton,
   ListItemIcon,
   ListItemText,
-  ListSubheader,
+  Typography,
 } from '@mui/material';
 
 import SortableTagNavigationItem from './SortableTagNavigationItem';
 
 const commonIconSx = {fontSize: 18};
+const tagFilterRowSx = {
+  minHeight: 40,
+  display: 'flex',
+  alignItems: 'center',
+  px: 2,
+  color: 'text.secondary',
+  transition: (theme: {transitions: {create: (property: string) => string}}) =>
+    theme.transitions.create('background-color'),
+  '&:focus-within': {
+    bgcolor: 'action.hover',
+    color: 'primary.main',
+  },
+};
+const tagFilterInputSx = {
+  flex: 1,
+  minWidth: 0,
+  fontSize: '0.85rem',
+  '& input': {py: 0.75},
+};
+const tagFilterClearSx = {mr: -0.75, color: 'text.secondary'};
 
 interface TagsNavigationListProps {
   tags: string[];
+  totalTagCount: number;
+  tagFilter: string;
   currentTags: string[];
   showArchived: boolean;
   showTrash: boolean;
@@ -29,11 +53,15 @@ interface TagsNavigationListProps {
   onDragEnd: (event: DragEndEvent) => void;
   onMove: (tag: string, direction: 'up' | 'down') => void;
   onTagClick: (tag: string) => void;
+  onTagFilterChange: (value: string) => void;
+  onTagFilterClear: () => void;
 }
 
 const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationListProps) => {
   const {
     tags,
+    totalTagCount,
+    tagFilter,
     currentTags,
     showArchived,
     showTrash,
@@ -45,6 +73,8 @@ const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationLi
     onDragEnd,
     onMove,
     onTagClick,
+    onTagFilterChange,
+    onTagFilterClear,
   } = props;
   const isNotesSelected =
     !isGlobalSearch && !showArchived && !showTrash && !hasSelectedNote && currentTags.length === 0;
@@ -63,7 +93,30 @@ const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationLi
         <ListItemText primary="Заметки" slotProps={{primary: {sx: {fontSize: '0.85rem'}}}} />
       </ListItemButton>
 
-      {tags.length > 0 && <Divider />}
+      {totalTagCount > 0 && <Divider />}
+
+      {totalTagCount > 0 && !isReorderMode && (
+        <Box sx={tagFilterRowSx}>
+          <Search sx={{fontSize: 16, mr: 2}} />
+          <InputBase
+            value={tagFilter}
+            placeholder="Найти тег"
+            onChange={(event) => onTagFilterChange(event.target.value)}
+            inputProps={{'aria-label': 'Фильтр тегов'}}
+            sx={tagFilterInputSx}
+          />
+          {tagFilter && (
+            <IconButton
+              aria-label="Очистить фильтр тегов"
+              size="small"
+              onClick={onTagFilterClear}
+              sx={tagFilterClearSx}
+            >
+              <Clear sx={{fontSize: 16}} />
+            </IconButton>
+          )}
+        </Box>
+      )}
 
       {tags.length > 0 && (
         <DndContext onDragEnd={onDragEnd}>
@@ -84,9 +137,15 @@ const TagsNavigationList: FC<TagsNavigationListProps> = (props: TagsNavigationLi
         </DndContext>
       )}
 
-      {tags.length > 1 && <Divider />}
+      {tags.length === 0 && totalTagCount > 0 && tagFilter.trim() && !isReorderMode && (
+        <Typography sx={{pl: 6.5, pr: 2, py: 1, color: 'text.secondary', fontSize: '0.8rem'}}>
+          Теги не найдены
+        </Typography>
+      )}
 
-      {tags.length > 1 && (
+      {totalTagCount > 1 && <Divider />}
+
+      {totalTagCount > 1 && (
         <ListItemButton onClick={onToggleReorder}>
           <ListItemIcon>
             {isReorderMode ? (
