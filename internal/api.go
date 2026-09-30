@@ -165,6 +165,19 @@ func handleAction(router *Router, service *NotesService) {
 		})
 	})
 
+	router.Post("/api/messages/delete-permanently", func(w http.ResponseWriter, r *http.Request) {
+		apiCall(w, func() (string, error) {
+			var data struct {
+				IDs []int64 `json:"ids"`
+			}
+			if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+				return "", err
+			}
+			_, err := service.DeleteImmediately(r.Context(), data.IDs)
+			return "ok", err
+		})
+	})
+
 	router.Post("/api/messages/restore", func(w http.ResponseWriter, r *http.Request) {
 		apiCall(w, func() (string, error) {
 			var data struct {

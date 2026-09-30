@@ -37,7 +37,7 @@ func TestMCPRequiresBearerTokenAndListsTools(t *testing.T) {
 		t.Fatalf("authorized status = %d, body = %s", response.Code, response.Body.String())
 	}
 	body := response.Body.String()
-	for _, toolName := range []string{"notes_list", "note_create", "note_update", "attachment_get", "notes_delete_permanently"} {
+	for _, toolName := range []string{"notes_list", "note_create", "note_update", "attachment_get", "notes_delete_permanently", "notes_delete_immediately"} {
 		if !strings.Contains(body, `"name":"`+toolName+`"`) {
 			t.Errorf("tools/list response does not contain %q: %s", toolName, body)
 		}

@@ -111,6 +111,10 @@ export const api = {
       method: 'POST',
       path: '/api/messages/batch-delete',
     }),
+    deletePermanently: action<BatchDeleteRequest, BatchDeleteResponse>({
+      method: 'POST',
+      path: '/api/messages/delete-permanently',
+    }),
     restore: action<RestoreNoteRequest, RestoreNoteResponse>({
       method: 'POST',
       path: '/api/messages/restore',

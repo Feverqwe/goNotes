@@ -157,3 +157,37 @@ func TestDeletePermanentlyRequiresTrash(t *testing.T) {
 		t.Fatalf("active note disappeared: %v", err)
 	}
 }
+
+func TestDeleteImmediatelyRemovesActiveAndArchivedNotesAtomically(t *testing.T) {
+	ctx := context.Background()
+	service := newTestNotesService(t)
+	active, err := service.CreateNote(ctx, "Active #shared", []NewAttachment{{Filename: "a.txt", Data: []byte("file")}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	archived, err := service.CreateNote(ctx, "Archived #shared", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SetArchived(ctx, []int64{archived.ID}, true); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.DeleteImmediately(ctx, []int64{active.ID, archived.ID, archived.ID + 1000}); err == nil {
+		t.Fatal("DeleteImmediately accepted a missing note")
+	}
+	if _, err := service.GetNote(ctx, active.ID); err != nil {
+		t.Fatalf("active note disappeared after failed deletion: %v", err)
+	}
+	filePath := filepath.Join(service.UploadsDir, active.Attachments[0].FilePath)
+	if affected, err := service.DeleteImmediately(ctx, []int64{active.ID, archived.ID}); err != nil || affected != 2 {
+		t.Fatalf("DeleteImmediately affected %d: %v", affected, err)
+	}
+	for _, id := range []int64{active.ID, archived.ID} {
+		if _, err := service.GetNote(ctx, id); err == nil {
+			t.Fatalf("note %d still exists", id)
+		}
+	}
+	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
+		t.Fatalf("attachment still exists: %v", err)
+	}
+}

@@ -12,9 +12,6 @@ import {
 const buttonSx = {
   borderRadius: '6px',
   textTransform: 'none',
-  '&:hover': {
-    bgcolor: 'action.hover',
-  },
 };
 
 interface DeleteConfirmationDialogProps {
@@ -24,6 +21,7 @@ interface DeleteConfirmationDialogProps {
   confirmLabel: string;
   loading: boolean;
   onConfirm: () => void;
+  onConfirmPermanently?: () => void;
   onClose: () => void;
 }
 
@@ -34,25 +32,52 @@ const DeleteConfirmationDialog: FC<DeleteConfirmationDialogProps> = ({
   confirmLabel,
   loading,
   onConfirm,
+  onConfirmPermanently,
   onClose,
 }) => (
-  <Dialog open={open} onClose={loading ? undefined : onClose} transitionDuration={250}>
+  <Dialog
+    open={open}
+    onClose={loading ? undefined : onClose}
+    transitionDuration={250}
+    maxWidth={onConfirmPermanently ? 'sm' : 'xs'}
+    fullWidth={Boolean(onConfirmPermanently)}
+  >
     <DialogTitle>{title}</DialogTitle>
     <DialogContent>
       <DialogContentText>{description}</DialogContentText>
     </DialogContent>
-    <DialogActions>
+    <DialogActions
+      sx={{
+        ...(onConfirmPermanently && {
+          flexDirection: {xs: 'column', sm: 'row'},
+          alignItems: {xs: 'flex-end', sm: 'center'},
+          gap: 1,
+          p: 2,
+          '& > :not(style) ~ :not(style)': {ml: 0},
+        }),
+      }}
+    >
       <Button
         onClick={onConfirm}
         loading={loading}
-        fullWidth
-        variant="text"
-        color="error"
+        variant={onConfirmPermanently ? 'contained' : 'text'}
+        color={onConfirmPermanently ? 'primary' : 'error'}
         sx={buttonSx}
       >
         {confirmLabel}
       </Button>
-      <Button onClick={onClose} disabled={loading} fullWidth variant="text" sx={buttonSx}>
+      {onConfirmPermanently && (
+        <Button
+          onClick={onConfirmPermanently}
+          disabled={loading}
+          variant="outlined"
+          color="error"
+          sx={buttonSx}
+        >
+          Удалить навсегда
+        </Button>
+      )}
+      <Button onClick={onClose} disabled={loading} variant="text" sx={buttonSx}>
         Отмена
       </Button>
     </DialogActions>

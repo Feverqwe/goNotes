@@ -26,7 +26,8 @@ const DeleteNotesDialog: FC<DeleteNotesDialogProps> = ({
   const queryClient = useQueryClient();
 
   const batchDeleteMutation = useMutation({
-    mutationFn: (params: BatchDeleteRequest) => api.notes.batchDelete(params),
+    mutationFn: ({ids, immediately}: BatchDeleteRequest & {immediately: boolean}) =>
+      immediately ? api.notes.deletePermanently({ids}) : api.notes.batchDelete({ids}),
     onSuccess: (_, {ids}) => {
       queryClient.invalidateQueries({queryKey: ['notes']});
       queryClient.invalidateQueries({queryKey: ['tags']});
@@ -39,14 +40,17 @@ const DeleteNotesDialog: FC<DeleteNotesDialogProps> = ({
     },
   });
 
-  const confirmDelete = useCallback(() => {
-    batchDeleteMutation.mutate({ids: selectedIds});
-  }, [batchDeleteMutation, selectedIds]);
+  const confirmDelete = useCallback(
+    (immediately: boolean) => {
+      batchDeleteMutation.mutate({ids: selectedIds, immediately});
+    },
+    [batchDeleteMutation, selectedIds],
+  );
 
   return (
     <DeleteConfirmationDialog
       open={open}
-      title={permanent ? 'Удалить выбранные заметки навсегда?' : 'Переместить заметки в корзину?'}
+      title={permanent ? 'Удалить выбранные заметки навсегда?' : 'Удалить выбранные заметки?'}
       description={
         permanent ? (
           <>
@@ -54,12 +58,13 @@ const DeleteNotesDialog: FC<DeleteNotesDialogProps> = ({
             Все вложения будут стерты.
           </>
         ) : (
-          'Заметки можно будет восстановить из корзины.'
+          'Из корзины заметки можно восстановить. При удалении навсегда заметки и все вложения будут стерты без возможности восстановления.'
         )
       }
       confirmLabel={permanent ? 'Удалить навсегда' : 'В корзину'}
       loading={batchDeleteMutation.isPending}
-      onConfirm={confirmDelete}
+      onConfirm={() => confirmDelete(permanent)}
+      onConfirmPermanently={permanent ? undefined : () => confirmDelete(true)}
       onClose={onClose}
     />
   );

@@ -112,7 +112,7 @@ func newMCPServer(service *NotesService, version string) *mcp.Server {
 	server := mcp.NewServer(
 		&mcp.Implementation{Name: "goNotes", Version: version},
 		&mcp.ServerOptions{Instructions: strings.TrimSpace(`
-goNotes stores Markdown notes whose hashtags are part of their content. It also supports custom spoiler syntax: wrap text as ||hidden text|| to mask it in the UI until clicked. This is visual concealment only, not encryption; the text remains stored as plaintext and visible through MCP. Preserve this syntax when editing notes and use it when the user asks to hide content. Always use notes_list or note_get to resolve exact IDs before changing existing notes. Never guess an ID. Prefer note_update with append_content when the user asks to add information. Moving to trash is reversible; notes_delete_permanently is irreversible and only affects notes already in trash, so obtain explicit user confirmation immediately before calling it. Attachments are sent as base64 and are limited to 32 MiB decoded per tool call.`)},
+goNotes stores Markdown notes whose hashtags are part of their content. It also supports custom spoiler syntax: wrap text as ||hidden text|| to mask it in the UI until clicked. This is visual concealment only, not encryption; the text remains stored as plaintext and visible through MCP. Preserve this syntax when editing notes and use it when the user asks to hide content. Always use notes_list or note_get to resolve exact IDs before changing existing notes. Never guess an ID. Prefer note_update with append_content when the user asks to add information. Moving to trash is reversible; notes_delete_permanently deletes notes already in trash, while notes_delete_immediately deletes notes in any state. Both permanent deletion tools are irreversible, so obtain explicit user confirmation immediately before calling either one. Attachments are sent as base64 and are limited to 32 MiB decoded per tool call.`)},
 	)
 
 	mcp.AddTool(server, readOnlyTool("notes_list", "Search and list notes with tag, state, and cursor filters."),
@@ -186,6 +186,12 @@ goNotes stores Markdown notes whose hashtags are part of their content. It also 
 	mcp.AddTool(server, writeTool("notes_delete_permanently", "Permanently delete notes that are already in trash and remove their attachment files. Irreversible; confirm with the user immediately before calling.", true, true),
 		func(ctx context.Context, _ *mcp.CallToolRequest, input mcpIDsInput) (*mcp.CallToolResult, mcpStatusOutput, error) {
 			affected, err := service.DeletePermanently(ctx, input.IDs)
+			return nil, mcpStatusOutput{Status: "ok", Affected: affected}, err
+		})
+
+	mcp.AddTool(server, writeTool("notes_delete_immediately", "Permanently delete notes in any state and remove their attachment files. Irreversible; confirm with the user immediately before calling.", true, true),
+		func(ctx context.Context, _ *mcp.CallToolRequest, input mcpIDsInput) (*mcp.CallToolResult, mcpStatusOutput, error) {
+			affected, err := service.DeleteImmediately(ctx, input.IDs)
 			return nil, mcpStatusOutput{Status: "ok", Affected: affected}, err
 		})
 

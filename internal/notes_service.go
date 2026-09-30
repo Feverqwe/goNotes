@@ -432,6 +432,16 @@ func (s *NotesService) SetArchived(ctx context.Context, ids []int64, archived bo
 }
 
 func (s *NotesService) DeletePermanently(ctx context.Context, ids []int64) (int64, error) {
+	return s.deletePermanently(ctx, ids, true)
+}
+
+// DeleteImmediately removes notes regardless of whether they are in trash.
+// Callers must expose this as a separate, explicitly confirmed action.
+func (s *NotesService) DeleteImmediately(ctx context.Context, ids []int64) (int64, error) {
+	return s.deletePermanently(ctx, ids, false)
+}
+
+func (s *NotesService) deletePermanently(ctx context.Context, ids []int64, requireTrash bool) (int64, error) {
 	ids, args, err := prepareIDs(ids)
 	if err != nil {
 		return 0, err
@@ -442,14 +452,21 @@ func (s *NotesService) DeletePermanently(ctx context.Context, ids []int64) (int6
 	}
 	defer tx.Rollback()
 	var deletable int
+	condition := ""
+	if requireTrash {
+		condition = "is_deleted = 1 AND "
+	}
 	if err := tx.QueryRowContext(ctx,
-		fmt.Sprintf("SELECT COUNT(*) FROM messages WHERE is_deleted = 1 AND id IN (%s)", generatePlaceholders(len(ids))),
+		fmt.Sprintf("SELECT COUNT(*) FROM messages WHERE %sid IN (%s)", condition, generatePlaceholders(len(ids))),
 		args...,
 	).Scan(&deletable); err != nil {
 		return 0, err
 	}
 	if deletable != len(ids) {
-		return 0, errors.New("every note must exist and already be in trash before permanent deletion")
+		if requireTrash {
+			return 0, errors.New("every note must exist and already be in trash before permanent deletion")
+		}
+		return 0, errors.New("every note must exist before permanent deletion")
 	}
 
 	files, affected, err := deleteMessageRecords(ctx, tx, ids)

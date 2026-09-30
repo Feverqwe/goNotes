@@ -19,7 +19,8 @@ const DeleteNoteDialog: FC<DeleteNoteDialogProps> = ({open, onClose, noteIdRef, 
   const queryClient = useQueryClient();
 
   const deleteMutation = useMutation({
-    mutationFn: (params: DeleteNoteRequest) => api.notes.delete(params),
+    mutationFn: ({id, immediately}: DeleteNoteRequest & {immediately: boolean}) =>
+      immediately ? api.notes.deletePermanently({ids: [id]}) : api.notes.delete({id}),
     onSuccess: () => {
       queryClient.invalidateQueries({queryKey: ['notes']});
       queryClient.invalidateQueries({queryKey: ['tags']});
@@ -32,16 +33,19 @@ const DeleteNoteDialog: FC<DeleteNoteDialogProps> = ({open, onClose, noteIdRef, 
     },
   });
 
-  const confirmDelete = useCallback(() => {
-    const noteId = noteIdRef.current;
-    if (!noteId) return;
-    deleteMutation.mutate({id: noteId});
-  }, [deleteMutation, noteIdRef]);
+  const confirmDelete = useCallback(
+    (immediately: boolean) => {
+      const noteId = noteIdRef.current;
+      if (!noteId) return;
+      deleteMutation.mutate({id: noteId, immediately});
+    },
+    [deleteMutation, noteIdRef],
+  );
 
   return (
     <DeleteConfirmationDialog
       open={open}
-      title={permanent ? 'Удалить заметку навсегда?' : 'Переместить заметку в корзину?'}
+      title={permanent ? 'Удалить заметку навсегда?' : 'Удалить заметку?'}
       description={
         permanent ? (
           <>
@@ -49,12 +53,13 @@ const DeleteNoteDialog: FC<DeleteNoteDialogProps> = ({open, onClose, noteIdRef, 
             Все вложения будут стерты.
           </>
         ) : (
-          'Заметку можно будет восстановить из корзины.'
+          'Из корзины заметку можно восстановить. При удалении навсегда заметка и все вложения будут стерты без возможности восстановления.'
         )
       }
       confirmLabel={permanent ? 'Удалить навсегда' : 'В корзину'}
       loading={deleteMutation.isPending}
-      onConfirm={confirmDelete}
+      onConfirm={() => confirmDelete(permanent)}
+      onConfirmPermanently={permanent ? undefined : () => confirmDelete(true)}
       onClose={onClose}
     />
   );

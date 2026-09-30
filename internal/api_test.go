@@ -3,6 +3,7 @@ package internal
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -142,6 +143,33 @@ func TestHTTPAPINoteLifecycleUsesNotesService(t *testing.T) {
 	decodeAPIResult[string](t, response)
 	if _, err := service.GetNote(t.Context(), created.ID); err == nil {
 		t.Fatal("second delete did not permanently remove note")
+	}
+}
+
+func TestHTTPAPIDeletePermanentlySkipsTrash(t *testing.T) {
+	router, service := newTestAPIRouter(t)
+	active, err := service.CreateNote(t.Context(), "Active", []NewAttachment{{Filename: "note.txt", Data: []byte("attachment")}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	archived, err := service.CreateNote(t.Context(), "Archived", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := service.SetArchived(t.Context(), []int64{archived.ID}, true); err != nil {
+		t.Fatal(err)
+	}
+	filePath := filepath.Join(service.UploadsDir, active.Attachments[0].FilePath)
+	requestBody := fmt.Sprintf(`{"ids":[%d,%d]}`, active.ID, archived.ID)
+	response := callAPI(t, router, jsonAPIRequest(t, http.MethodPost, "/api/messages/delete-permanently", requestBody))
+	decodeAPIResult[string](t, response)
+	for _, id := range []int64{active.ID, archived.ID} {
+		if _, err := service.GetNote(t.Context(), id); err == nil {
+			t.Fatalf("note %d still exists", id)
+		}
+	}
+	if _, err := os.Stat(filePath); !os.IsNotExist(err) {
+		t.Fatalf("attachment still exists: %v", err)
 	}
 }
 
