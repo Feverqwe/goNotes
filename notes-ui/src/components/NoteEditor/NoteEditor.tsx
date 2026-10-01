@@ -54,29 +54,49 @@ const NoteEditor: FC<NoteEditorProps> = (props) => {
   }, [editingNote]);
 
   useEffect(() => {
+    const serviceWorker = navigator.serviceWorker;
+    if (!serviceWorker) return;
+
+    const shareId = new URLSearchParams(window.location.search).get('shared');
+    let requestedWorker: ServiceWorker | null = null;
+    let disposed = false;
+    let received = false;
+
     const handleMessage = (event: MessageEvent) => {
-      if (event.data.action === 'load-shared-files') {
+      if (event.data?.action === 'load-shared-files' && !received) {
+        received = true;
         const sharedFiles = event.data.files as File[];
         setFiles((prev) => [...prev, ...sharedFiles]);
         if (event.data.text) setInputText(event.data.text);
+        setOpen(true);
+
+        const url = new URL(window.location.href);
+        url.searchParams.delete('shared');
+        window.history.replaceState(window.history.state, '', url);
       }
     };
 
-    navigator.serviceWorker.addEventListener('message', handleMessage);
+    serviceWorker.addEventListener('message', handleMessage);
 
     const askForData = () => {
-      if (navigator.serviceWorker.controller) {
-        navigator.serviceWorker.controller.postMessage({action: 'GET_SHARED_DATA'});
+      const worker = serviceWorker.controller;
+      if (!disposed && !received && shareId && worker && worker !== requestedWorker) {
+        requestedWorker = worker;
+        worker.postMessage({action: 'GET_SHARED_DATA', shareId});
       }
     };
 
-    const timeout = setTimeout(askForData, 500);
+    serviceWorker.addEventListener('controllerchange', askForData);
+    // Registration/activation can take longer than an arbitrary startup timeout.
+    askForData();
+    serviceWorker.ready.then(askForData);
 
     return () => {
-      navigator.serviceWorker.removeEventListener('message', handleMessage);
-      clearTimeout(timeout);
+      disposed = true;
+      serviceWorker.removeEventListener('message', handleMessage);
+      serviceWorker.removeEventListener('controllerchange', askForData);
     };
-  }, []);
+  }, [setOpen]);
 
   const onFinish = useCallback(() => {
     onClose();

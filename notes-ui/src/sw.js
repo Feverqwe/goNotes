@@ -1,4 +1,8 @@
-let sharedData = null;
+const sharedCacheName = 'goNotes-shared-data';
+let delivery = Promise.resolve();
+
+const getSharedUrl = (id) =>
+  new URL(`/shared-data/${encodeURIComponent(id)}`, self.location.origin);
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
@@ -8,32 +12,41 @@ self.addEventListener('fetch', (event) => {
       (async () => {
         const formData = await event.request.formData();
 
-        sharedData = {
-          text: formData.get('text') || formData.get('url') || formData.get('title') || '',
-          files: formData.getAll('attachments'),
-        };
+        const id = self.crypto.randomUUID();
+        const cache = await self.caches.open(sharedCacheName);
+        // Keep the payload across worker termination and slow application startup.
+        await cache.put(getSharedUrl(id), new Response(formData));
 
-        return Response.redirect('/?shared=1', 303);
+        const redirectUrl = new URL('/', self.location.origin);
+        redirectUrl.searchParams.set('shared', id);
+        return Response.redirect(redirectUrl, 303);
       })(),
     );
-  }
-
-  if (url.pathname === '/get-shared-data' && sharedData) {
-    const data = JSON.stringify({
-      text: sharedData.text,
-
-      hasFiles: sharedData.files.length > 0,
-    });
   }
 });
 
 self.addEventListener('message', (event) => {
-  if (event.data.action === 'GET_SHARED_DATA' && sharedData) {
-    event.source.postMessage({
-      action: 'load-shared-files',
-      text: sharedData.text,
-      files: sharedData.files,
+  if (event.data?.action !== 'GET_SHARED_DATA' || !event.source) return;
+
+  // Older UI versions send only the action; their redirect URL still identifies the share.
+  const id = event.data.shareId || new URL(event.source.url).searchParams.get('shared');
+  if (!id) return;
+
+  delivery = delivery
+    .catch(() => {})
+    .then(async () => {
+      const cache = await self.caches.open(sharedCacheName);
+      const sharedUrl = getSharedUrl(id);
+      const response = await cache.match(sharedUrl);
+      if (!response) return;
+
+      const formData = await response.formData();
+      event.source.postMessage({
+        action: 'load-shared-files',
+        text: formData.get('text') || formData.get('url') || formData.get('title') || '',
+        files: formData.getAll('attachments'),
+      });
+      await cache.delete(sharedUrl);
     });
-    sharedData = null;
-  }
+  event.waitUntil(delivery);
 });

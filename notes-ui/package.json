@@ -15,6 +15,7 @@
     "storybook": "storybook dev -p 6006 --no-open --no-version-updates",
     "build-storybook": "storybook build",
     "tsc": "tsc --noEmit",
+    "test:share-target": "node --test tests/share-target.test.mjs",
     "lint": "npx eslint ./src ./.storybook && npm run prettier",
     "lint:fix": "npx eslint --fix ./src ./.storybook && npm run prettier:fix",
     "prettier": "npx prettier --check ./src ./.storybook",
